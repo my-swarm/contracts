@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/access/Roles.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/access/Roles.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 
 /**

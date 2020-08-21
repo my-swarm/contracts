@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/math/SafeMath.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "../interfaces/IManager.sol";
 import "../interfaces/INetAssetValueUSD.sol";
 import "../interfaces/IPriceUSD.sol";
@@ -25,7 +25,7 @@ contract GetRateMinter {
     }
 
     modifier onlyTokenOwner(address src20) {
-	
+
         require(msg.sender == Ownable(src20).owner() ||
                 msg.sender == ISRC20(src20).fundRaiserAddr(), "caller not token owner");
         _;
@@ -95,7 +95,7 @@ contract GetRateMinter {
         returns (bool)
     {
         uint256 numSWMTokens = calcStake(_asset.getNetAssetValueUSD(src20));
-	
+
 	if (msg.sender == ISRC20(src20).fundRaiserAddr())
        		require(_registry.mintSupply(src20, Ownable(src20).owner(), numSWMTokens, numSRC20Tokens), 'supply minting failed');
 	else

@@ -1,13 +1,13 @@
 pragma solidity ^0.5.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/access/Roles.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/access/Roles.sol";
 import "./Manager.sol";
 import "../interfaces/ISRC20Registry.sol";
 
 
 /**
- * @dev SRC20 registry contains the address of every created 
+ * @dev SRC20 registry contains the address of every created
  * SRC20 token. Registered factories can add addresses of
  * new tokens, public can query tokens.
  */

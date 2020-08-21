@@ -15,70 +15,86 @@ import "../roles/DelegateRole.sol";
  */
 contract ContributorRestrictions is IContributorRestrictions, ContributorWhitelist, DelegateRole {
 
-    address payable fundraise;
-    uint256 public maxContributors;
+  address fundraise;
+  uint public maxContributors;
+  uint public minInvestmentAmount;
+  uint public maxInvestmentAmount;
 
-    modifier onlyAuthorised() {
-        require(msg.sender == owner() ||
-                msg.sender == fundraise ||
-                _hasDelegate(msg.sender),
-                "ContributorRestrictions: caller is not authorised");
-        _;
-    }
+  modifier onlyAuthorised() {
+    require(msg.sender == owner() ||
+    msg.sender == fundraise ||
+    _hasDelegate(msg.sender),
+    "ContributorRestrictions: caller is not authorised");
+    _;
+  }
 
-    constructor (
-        address payable fundraiseContract,
-        uint256 maxNumContributors
-    )
-        public
-        Ownable()
-    {
-        fundraise = fundraiseContract;
-        maxContributors = maxNumContributors;
-    }
+  constructor (
+    address fundraiseContract,
+    uint maxNumContributors,
+    uint minAmount,
+    uint maxAmount
+  )
+    public
+    Ownable()
+  {
+    require(maxAmount >= minAmount, "Maximum amount has to be >= minInvestmentAmount");
+    fundraise = fundraiseContract;
+    maxContributors = maxNumContributors;
+    minInvestmentAmount = minAmount;
+    maxInvestmentAmount = maxAmount;
+  }
 
-    function checkRestrictions(address account) external view returns (bool) {
-        require(_whitelisted[account], "Account not on whitelist!");
-        require(
-            maxContributors == 0 ?
-                 true :
-                 SwarmPoweredFundraise(fundraise).numberOfContributors() < maxContributors,
-            "Max number of contributors exceeded!"
-        );
-        return true;
-    }
+  function checkMinInvestment(uint amount) public view returns (bool) {
+    return minInvestmentAmount == 0 ? true : amount >= minInvestmentAmount;
+  }
 
-    function whitelistAccount(address account) external onlyAuthorised {
-        _whitelisted[account] = true;
-        require(
-            SwarmPoweredFundraise(fundraise).acceptContributor(account),
-            "Whitelisting failed on processing contributions!"
-        );
-        emit AccountWhitelisted(account, msg.sender);
-    }
+  function checkMaxInvestment(uint amount) public view returns (bool) {
+    return maxInvestmentAmount == 0 ? true : amount <= maxInvestmentAmount;
+  }
 
-    function unWhitelistAccount(address account) external onlyAuthorised {
-        delete _whitelisted[account];
-        require(
-            SwarmPoweredFundraise(fundraise).removeContributor(account),
-            "UnWhitelisting failed on processing contributions!"
-        );
-        emit AccountUnWhitelisted(account, msg.sender);
-    }
+  function checkMaxContributors() public view returns (bool) {
+    return maxContributors == 0 ?
+    true :
+    SwarmPoweredFundraise(fundraise).numberOfContributors() < maxContributors;
+  }
 
-    function bulkWhitelistAccount(address[] calldata accounts) external onlyAuthorised {
-	uint256 accLen = accounts.length;
-        for (uint256 i = 0; i < accLen ; i++) {
-            _whitelisted[accounts[i]] = true;
-            emit AccountWhitelisted(accounts[i], msg.sender);
-        }
-    }
+  function checkRestrictions(address account) external view returns(bool) {
+    require(isWhitelisted(account));
+    require(checkMaxContributors());
+    return true;
+  }
 
-    function bulkUnWhitelistAccount(address[] calldata accounts) external onlyAuthorised {
-	uint256 accLen = accounts.length;
-        for (uint256 i = 0; i < accLen ; i++) {
-            delete _whitelisted[accounts[i]];
-            emit AccountUnWhitelisted(accounts[i], msg.sender);
-        }
+  function whitelistAccount(address account) external onlyAuthorised {
+    _whitelisted[account] = true;
+    require(
+      SwarmPoweredFundraise(fundraise).acceptContributor(account),
+      "Whitelisting failed on processing contributions!"
+    );
+      emit AccountWhitelisted(account, msg.sender);
+  }
+
+  function unWhitelistAccount(address account) external onlyAuthorised {
+    delete _whitelisted[account];
+    require(
+        SwarmPoweredFundraise(fundraise).removeContributor(account),
+        "UnWhitelisting failed on processing contributions!"
+    );
+    emit AccountUnWhitelisted(account, msg.sender);
+  }
+
+  function bulkWhitelistAccount(address[] calldata accounts) external onlyAuthorised {
+    uint accLen = accounts.length;
+    for (uint i = 0; i < accLen ; i++) {
+      _whitelisted[accounts[i]] = true;
+      emit AccountWhitelisted(accounts[i], msg.sender);
     }
+  }
+
+  function bulkUnWhitelistAccount(address[] calldata accounts) external onlyAuthorised {
+  uint accLen = accounts.length;
+    for (uint i = 0; i < accLen ; i++) {
+      delete _whitelisted[accounts[i]];
+      emit AccountUnWhitelisted(accounts[i], msg.sender);
+    }
+  }
 }

@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/math/SafeMath.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import "./SRC20Detailed.sol";
 import "../interfaces/ISRC20.sol";
 import "../interfaces/ISRC20Managed.sol";
@@ -113,7 +113,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     /**
      * Update the rules and restrictions settings for transfers.
      * Only a Delegate can call this role
-     * 
+     *
      * @param restrictions address implementing on-chain restriction checks
      * or address(0) if no rules should be checked on chain.
      * @param rules address implementing on-chain restriction checks
@@ -556,7 +556,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
         return true;
     }
 
-    
+
     address payable public fundRaiserAddr;
 
     function setFundRaiseAddr(address payable fundContractAddr) onlyOwner external returns (bool)  {
@@ -568,5 +568,5 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     }
 
 
-	
+
 }

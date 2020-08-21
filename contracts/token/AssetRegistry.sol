@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 import "../interfaces/ISRC20Roles.sol";
 import "./SRC20.sol";
 import "../interfaces/IAssetRegistry.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 /**
  * AssetRegistry holds the real-world/offchain properties of the various Assets being tokenized.
@@ -73,7 +73,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * Sets the currently valid Net Asset Value value for a token.
      *
      * @param src20 the token address.
-     * @param netAssetValueUSD the new value we're setting 
+     * @param netAssetValueUSD the new value we're setting
      * @return True on success.
      */
     function updateNetAssetValueUSD(address src20, uint256 netAssetValueUSD) external onlyDelegate(src20) returns (bool) {
@@ -95,7 +95,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
     }
 
     /**
-     * @dev Update KYA document, sending document hash and url. 
+     * @dev Update KYA document, sending document hash and url.
      * Hash is SHA256 hash of document content.
      * Emits AssetKYAUpdated event.
      * Allowed to be called by owner's delegate only.

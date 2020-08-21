@@ -1,29 +1,30 @@
 {
-  "name": "swarm-fundraising-contract",
+  "name": "swarm-compliant-contract",
   "version": "1.0.0",
-  "description": "Fundraising Platform Solidity Contracts",
-  "scripts": {},
-  "private": true,
-  "dependencies": {
-    "chai": "^4.2.0",
-    "dotenv": "^8.1.0",
-    "ethereumjs-abi": "^0.6.7",
-    "moment": "^2.24.0",
-    "node-gyp": "^5.0.3",
-    "openzeppelin-solidity": "^2.3.0",
-    "openzeppelin-test-helpers": "^0.3.2",
-    "truffle": "^5.0.43",
-    "truffle-hdwallet-provider": "^1.0.17",
-    "truffle-privatekey-provider": "^1.3.0",
-    "web3": "1.0.0-beta.47"
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "fundraise": "npx buidler test ./test/fundraising/ContributeFundsLocal.js",
+    "deploy:test": "npx buidler run scripts/deploy_ropsten.js --network ropsten"
   },
-  "devDependencies": {},
-  "main": "truffle-config.js",
-  "directories": {
-    "test": "test"
-  },
-  "keywords": [],
-  "author": "SwarmFund",
+  "author": "",
   "license": "ISC",
-  "repository": ""
+  "devDependencies": {
+    "@nomiclabs/buidler": "^1.4.3",
+    "@nomiclabs/buidler-ethers": "^2.0.0",
+    "@nomiclabs/buidler-etherscan": "^1.3.3",
+    "@nomiclabs/buidler-waffle": "^2.0.0",
+    "chai": "^4.2.0",
+    "ethereum-waffle": "^3.0.2",
+    "ethers": "^5.0.8"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.5.1",
+    "@poanet/solidity-flattener": "^3.0.5",
+    "buidler-deploy": "^0.4.14",
+    "dotenv": "^8.2.0",
+    "ganache-time-traveler": "^1.0.14",
+    "moment": "^2.27.0"
+  }
 }

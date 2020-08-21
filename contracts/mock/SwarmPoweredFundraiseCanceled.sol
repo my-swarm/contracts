@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../fundraising/SwarmPoweredFundraise.sol";
 
 /**
@@ -18,7 +18,6 @@ contract SwarmPoweredFundraiseCanceled is SwarmPoweredFundraise {
     constructor(
         string memory _label,
         address _src20,
-        address _currencyRegistry,
         uint256 _SRC20tokenSupply,
         uint256 _startDate,
         uint256 _endDate,
@@ -29,7 +28,6 @@ contract SwarmPoweredFundraiseCanceled is SwarmPoweredFundraise {
     (
         _label,
         _src20,
-        _currencyRegistry,
         _SRC20tokenSupply,
         _startDate,
         _endDate,
@@ -39,7 +37,7 @@ contract SwarmPoweredFundraiseCanceled is SwarmPoweredFundraise {
         public
     {
     }
-    
+
     function () external payable {
         revert();
     }

@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "../roles/DelegateRole.sol";
 
 /**
@@ -13,7 +13,7 @@ contract AffiliateManager is Ownable, DelegateRole {
 
     struct Affiliate {
         string affiliateLink;
-        uint256 percentage;
+        uint percentage;
     }
 
     mapping(string => address) private affiliateLinks;
@@ -29,14 +29,14 @@ contract AffiliateManager is Ownable, DelegateRole {
     function setupAffiliate(
         address affiliate,
         string calldata affiliateLink,
-        uint256 percentage // *100. 5 = 0.5%
+        uint256 percentage // multiply by 100 => 5 = 0.5%
     )
         external
         onlyOwner()
         returns (bool)
     {
         require( percentage <= 100, "Percentage greater than 100 not allowed");
-        require( percentage > 0, "Percentage has to be  greater than 0");
+        require( percentage > 0, "Percentage has to be greater than 0");
         affiliates[affiliate].affiliateLink = affiliateLink;
         affiliates[affiliate].percentage = percentage;
         affiliateLinks[affiliateLink] = affiliate;
@@ -81,5 +81,15 @@ contract AffiliateManager is Ownable, DelegateRole {
             affiliateLinks[affiliateLink],
             affiliates[affiliateLinks[affiliateLink]].percentage
         );
+    }
+
+    function getAffiliateLink(
+      address affiliate
+    )
+    external
+    view
+    returns (string memory)
+    {
+      return affiliates[affiliate].affiliateLink;
     }
 }

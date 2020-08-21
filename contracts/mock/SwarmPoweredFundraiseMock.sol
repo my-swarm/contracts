@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../fundraising/SwarmPoweredFundraise.sol";
 import "../fundraising/ContributorRestrictions.sol";
 
@@ -16,7 +16,6 @@ contract SwarmPoweredFundraiseMock is SwarmPoweredFundraise {
     constructor(
         string memory _label,
         address _src20,
-        address _currencyRegistry,
         uint256 _SRC20tokenSupply,
         uint256 _startDate,
         uint256 _endDate,
@@ -27,7 +26,6 @@ contract SwarmPoweredFundraiseMock is SwarmPoweredFundraise {
     (
         _label,
         _src20,
-        _currencyRegistry,
         _SRC20tokenSupply,
         _startDate,
         _endDate,
@@ -38,41 +36,26 @@ contract SwarmPoweredFundraiseMock is SwarmPoweredFundraise {
     {
     }
 
-    function getQualifiedContributions(address contributor, address currency) public view returns (uint256) {
-        return qualifiedContributions[contributor][currency];
+    function getQualifiedContributions(address contributor) public view returns (uint256) {
+        return qualifiedContributions[contributor];
     }
 
-    function getBufferedContributions(address contributor, address currency) public view returns (uint256) {
-        return bufferedContributions[contributor][currency];
+    function getBufferedContributions(address contributor) public view returns (uint256) {
+        return bufferedContributions[contributor];
     }
 
-    function getBalanceETH(address contributor) public view returns (uint256) {
-        return qualifiedContributions[contributor][address(0)] + 
-               bufferedContributions[contributor][address(0)];
+    function getBalanceToken(address contributor) public view returns (uint256) {
+        return qualifiedContributions[contributor] +
+               bufferedContributions[contributor];
     }
 
-    function getBalanceToken(address contributor, address token) public view returns (uint256) {
-        return qualifiedContributions[contributor][token] + 
-               bufferedContributions[contributor][token];
-    }
-
-    function getBalanceETHTotal() public view returns (uint256) {
-        return qualifiedSums[address(0)] + bufferedSums[address(0)];
-    }
-
-    function getBalanceTokenTotal(address token) public view returns (uint256) {
-        return qualifiedSums[token] + bufferedSums[token];
-    }
-
-    function acceptContribution(address contributor, uint256 sequence) external pure returns (bool) {
+    function acceptContribution(address contributor) external pure returns (bool) {
         address c; c = contributor;
-        uint256 s; s = sequence;
         return true;
     }
 
-    function rejectContribution(address contributor, uint256 sequence) external pure returns (bool) {
+    function rejectContribution(address contributor) external pure returns (bool) {
         address c; c = contributor;
-        uint256 s; s = sequence;
         return true;
     }
 

@@ -4,6 +4,7 @@ const moment = require('moment');
 const helpers = require('../token/helpers');
 const {encodeTransfer} = require('../token/utils');
 
+
 const SwarmPoweredFundraiseMock = artifacts.require('SwarmPoweredFundraiseMock');
 const SwarmPoweredFundraiseFinished = artifacts.require('SwarmPoweredFundraiseFinished');
 const SwarmPoweredFundraiseCanceled = artifacts.require('SwarmPoweredFundraiseCanceled');
@@ -227,7 +228,7 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
 
     it('should fail to qualify ERC20 if it does not satisfy contribution rules - min amount in ERC20', async function () {
       await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {from: contributor});
-      
+
       let lessThanMinAmount = minAmountBCY - 1;
 
       let beforeBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(contributor, this.acceptedToken.address);

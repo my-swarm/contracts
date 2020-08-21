@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../fundraising/SwarmPoweredFundraise.sol";
 
 /**
@@ -18,7 +18,6 @@ contract SwarmPoweredFundraiseFinished is SwarmPoweredFundraise {
     constructor(
         string memory _label,
         address _src20,
-        address _currencyRegistry,
         uint256 _SRC20tokenSupply,
         uint256 _startDate,
         uint256 _endDate,
@@ -29,7 +28,6 @@ contract SwarmPoweredFundraiseFinished is SwarmPoweredFundraise {
     (
         _label,
         _src20,
-        _currencyRegistry,
         _SRC20tokenSupply,
         _startDate,
         _endDate,
@@ -49,18 +47,13 @@ contract SwarmPoweredFundraiseFinished is SwarmPoweredFundraise {
         isFinished = true;
     }
 
-    function getBalanceETH(address contributor) public pure returns (uint256) {
-        address c; c = contributor;
-        return 0;
-    }
-
     function getBalanceToken(address token, uint256 amount) public pure returns (uint256) {
         address t; t = token;
         uint256 a; a = amount;
         return 0;
     }
 
-    function claimTokens() external returns (uint256) {
-        return 0;
+    function claimTokens() external returns (bool) {
+        return true;
     }
 }
