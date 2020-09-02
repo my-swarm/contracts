@@ -15,7 +15,7 @@ function parseABI(file) {
 
 let overrides = {
   // The maximum units of gas for the transaction to use
-  gasLimit: 9000000,
+  gasLimit: 8000000,
   gasPrice: ethers.utils.parseUnits('9.0', 'gwei'),
 };
 
@@ -34,7 +34,7 @@ const transferRulesAddress = '0x7D780c6c9f6DDCf78aA4ACF4A8A17Bd2737e785c';
 const src20TokenAddress = '0x530470cA8134b28596F9D59B86884DA19cC9D29f';
 
 const affiliateManagerAddress = '0x28384f544D1f7AD9bC879DdD04319AEB43EaEAD2';
-const swarmPoweredFundraiseAddress = '0x00FDd490430A4E730825C4fD37445563Bd3864b5';
+const swarmPoweredFundraiseAddress = '0xCADD9E6A01669b78b63D5F8AD70AD592C2a365Fb';
 const contributorRestrictionsAddress = '0x01020F551067e46056aaad8345e5b4073D4d3e89';
 const usdcAddress = '0xCa5A93FA0812992C0e1B6cf0A63e189dc682F542';
 
@@ -58,7 +58,7 @@ async function setup() {
    this.swm = new ethers.Contract(swarmTokenMockAddress, parseABI('ERC20'), provider);
    this.src20 = new ethers.Contract(src20TokenAddress, parseABI('SRC20'), provider);
 
-   const startDate = moment().unix() + 60; // one minute from the current time
+   const startDate = moment().unix() + 60 * 30; // 30 minutes from the current time
    const endDate = moment().unix() + (60 * 60 * 72); // three days from current time;
    console.log("StartDate: ", startDate, "EndDate: ", endDate);
 
@@ -67,19 +67,19 @@ async function setup() {
    // await this.usdc.deployed();
    // console.log(this.usdc.address);
 
-   // const SwarmPoweredFundraise = await ethers.getContractFactory('SwarmPoweredFundraise');
-   // this.swarmPoweredFundraise = await SwarmPoweredFundraise.deploy(
-   //   "Fundraise",
-   //   src20TokenAddress,
-   //   ethers.utils.parseUnits('1000000'),
-   //   startDate,
-   //   endDate,
-   //   ethers.utils.parseUnits('100000'),
-   //   ethers.utils.parseUnits('1000000'),
-   //   overrides
-   // );
-   // await this.swarmPoweredFundraise.deployed();
-   // console.log("SwarmPoweredFundraise address: ", this.swarmPoweredFundraise.address);
+    const SwarmPoweredFundraise = await ethers.getContractFactory('SwarmPoweredFundraise');
+    this.swarmPoweredFundraise = await SwarmPoweredFundraise.deploy(
+     "Fundraise",
+     src20TokenAddress,
+     ethers.utils.parseUnits('1000000'),
+     startDate,
+     endDate,
+     ethers.utils.parseUnits('100000'),
+     ethers.utils.parseUnits('1000000'),
+     overrides
+   );
+   await this.swarmPoweredFundraise.deployed();
+   console.log("SwarmPoweredFundraise address: ", this.swarmPoweredFundraise.address);
 }
 
 async function invest(contribute) {

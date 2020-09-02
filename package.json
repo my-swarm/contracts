@@ -6,14 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "fundraise": "npx buidler test ./test/fundraising/ContributeFundsLocal.js",
-    "deploy:test": "npx buidler run scripts/deploy_ropsten.js --network ropsten"
+    "deploy:ropsten": "npx buidler run scripts/deploy_ropsten.js --network ropsten",
+    "deploy:kovan": "npx buidler run scripts/deploy_kovan.js --network kovan"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@nomiclabs/buidler": "^1.4.3",
     "@nomiclabs/buidler-ethers": "^2.0.0",
-    "@nomiclabs/buidler-etherscan": "^1.3.3",
+    "@nomiclabs/buidler-etherscan": "^2.0.0",
     "@nomiclabs/buidler-waffle": "^2.0.0",
     "chai": "^4.2.0",
     "ethereum-waffle": "^3.0.2",
