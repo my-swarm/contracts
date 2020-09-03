@@ -33,4 +33,8 @@ contract SRC20Mock is SRC20 {
         _totalSupply = totalSupply;
         _balances[addressList[0]] = _totalSupply;
     }
+
+    function getNum() public pure returns (uint) {
+      return 5;
+    }
 }

@@ -20,23 +20,23 @@ let overrides = {
 };
 
 // New addresses
-// const swarmTokenMockAddress = '0xDa6f5D62Caae82Ec515f22cFd22EF4e3d07a857E';
-// const swmPriceOracleAddress = '0xb993A830D03A8e610Ef3C03AB6424e1aD7dEfeB4';
-// const src20RegistryAddress = '0xA547C89E4f5597b5bFeB396CF9601faE5B50a7CB';
-// const src20FactoryAddress = '0x546E9Fc6582b249d609Ad7Aec100EBb195714AB3';
-// const assetRegistryAddress = '0x163f819fd94f61907fca84854F7E1e4030890889';
-// const getRateMinterAddress = '0x63c4693A1C574ea3A40EdC60f0BAe3E18A7F3044';
-// const setRateMinterAddress = '0x4cf64CA4279fa65F96411dabB5a9B73d3133F31D';
+// const swarmTokenMockAddress = '0x4E07591915C598bEbE6083C21341e874AF9b8296';
+// const swmPriceOracleAddress = '0xF2Cc9891Bf8685C235Caf02cE7bcCe504Ba3F2Eb';
+// const src20RegistryAddress = '0x6381EED41817bcaB733F845d3A6EdE64A721dbA1';
+// const src20FactoryAddress = '0x6993B667C97610D1816DcAfF67106871Ad588F6f';
+// const assetRegistryAddress = '0x4d850bC816040d5C7Bd53740f2CBD0f921222e64';
+// const getRateMinterAddress = '0xdEB1F05C668C185f43A2E5fF40950E8aAC828825';
+// const setRateMinterAddress = '0xfa4b24Db2849Dc9877b39677293F350b4D1131AC';
 //
-// const featuredAddress = '0x4D631Cf62AAEC62f28498729DEF41F8aaA697D13';
-// const src20RolesAddress = '0x33E5e1D9A2EAEfa6aa787719b04F8B737c4538c2';
-// const transferRulesAddress = '0x7D780c6c9f6DDCf78aA4ACF4A8A17Bd2737e785c';
-// const src20TokenAddress = '0x530470cA8134b28596F9D59B86884DA19cC9D29f';
+// const featuredAddress = '0x2d08AC6e6C63b4d4E6807fE9498202DF6945CcaF';
+// const src20RolesAddress = '0x71e034871D0de00e0B747A1B0972EA2D770098DF';
+// const transferRulesAddress = '0xE930e4D9b0d5F020fBeF4ef474828B5BA0AeB9E2';
+// const src20TokenAddress = '0xd8fe55e1a8b6991f839758224d038893b46bb9de';
 //
-// const affiliateManagerAddress = '0x28384f544D1f7AD9bC879DdD04319AEB43EaEAD2';
-// const swarmPoweredFundraiseAddress = '0xCADD9E6A01669b78b63D5F8AD70AD592C2a365Fb';
-// const contributorRestrictionsAddress = '0x01020F551067e46056aaad8345e5b4073D4d3e89';
-// const usdcAddress = '0xCa5A93FA0812992C0e1B6cf0A63e189dc682F542';
+// const affiliateManagerAddress = '0xA13B9d84DBB9927621DBAB1dFa0d2bfd33A81A9a';
+// const swarmPoweredFundraiseAddress = '0xb159d0FDaFbf55036026c116d54ac210Da9e5502';
+// const contributorRestrictionsAddress = '0x4c997184B911Ca1E592ebd8b491471Cfb86c8ea1';
+// const usdcAddress = '0x45f6ebD6332Be48704fd3BeeDC0238652aDf68ac';
 
 async function approveAll(contribute, reserve) {
   let approval = ethers.utils.parseEther('1000000000');
@@ -46,85 +46,97 @@ async function approveAll(contribute, reserve) {
   await tx.wait(1);
 }
 
+function generateVerify(address, args) {
+
+  let cmd = "npx buidler verify --network kovan " + address + args;
+}
+
 async function setup() {
 
   const wallet = await Alice.getAddress();
   const supply = ethers.utils.parseUnits('1000000000');
 
-  const SWM = await ethers.getContractFactory('SwarmTokenMock');
-  this.swm = await SWM.deploy(wallet, supply);
-  await this.swm.deployed();
-  console.log("Swarm address is ", this.swm.address);
+  // const SWM = await ethers.getContractFactory('SwarmTokenMock');
+  // this.swm = await SWM.deploy(wallet, supply);
+  // await this.swm.deployed();
+  // console.log("Swarm address is ", this.swm.address);
+  //
+  // const SWMPriceOracle = await ethers.getContractFactory('SWMPriceOracle');
+  // this.swmPriceOracle = await SWMPriceOracle.deploy(100, 100);
+  // await this.swmPriceOracle.deployed();
+  // console.log("Address is ", this.swmPriceOracle.address);
+  //
+  // const SRC20Registry = await ethers.getContractFactory('SRC20Registry');
+  // this.src20Registry = await SRC20Registry.deploy(this.swm.address);
+  // await this.src20Registry.deployed();
+  // console.log("src20Registry address is ", this.src20Registry.address);
+  //
+  // const SRC20Factory = await ethers.getContractFactory('SRC20Factory');
+  // this.src20Factory = await SRC20Factory.deploy(this.src20Registry.address);
+  // await this.src20Factory.deployed();
+  // console.log("src20Factory address is ", this.src20Factory.address);
+  //
+  // const AssetRegistry = await ethers.getContractFactory('AssetRegistry');
+  // this.assetRegistry = await AssetRegistry.deploy(this.src20Factory.address);
+  // await this.assetRegistry.deployed();
+  // console.log("assetRegistry address is ", this.assetRegistry.address);
+  //
+  // const GetRateMinter = await ethers.getContractFactory('GetRateMinter');
+  // this.getRateMinter = await GetRateMinter.deploy(this.src20Registry.address, this.assetRegistry.address, this.swmPriceOracle.address);
+  // await this.getRateMinter.deployed();
+  // console.log("getRateMinter address is ", this.getRateMinter.address);
+  //
+  // await this.src20Registry.addMinter(this.getRateMinter.address);
+  //
+  // const SetRateMinter = await ethers.getContractFactory('SetRateMinter');
+  // this.setRateMinter = await SetRateMinter.deploy(this.src20Registry.address);
+  // await this.setRateMinter.deployed();
+  // console.log("setRateMinter address is ", this.setRateMinter.address);
+  //
+  // const Featured = await ethers.getContractFactory('Featured');
+  // this.featured = await Featured.deploy(wallet, '0x0000000000000000000000000000000000000000');
+  // await this.featured.deployed();
+  // console.log("featured address is ", this.featured.address);
+  //
+  // const SRC20Roles = await ethers.getContractFactory('SRC20Roles');
+  // this.src20Roles = await SRC20Roles.deploy(wallet ,this.src20Registry.address , '0x0000000000000000000000000000000000000000');
+  // await this.src20Roles.deployed();
+  // console.log("src20Roles address is ", this.src20Roles.address);
+  //
+  // const TransferRules = await ethers.getContractFactory('TransferRules');
+  // this.transferRules = await TransferRules.deploy(wallet);
+  // await this.transferRules.deployed();
+  // console.log("transferRules address is ", this.transferRules.address);
+  //
+  // await this.src20Registry.addFactory(this.src20Factory.address);
+  //
+  // let filter = this.src20Factory.filters.SRC20Created(null);
+  //
+  // await this.src20Factory.create(
+  //   'Security Token',
+  //   'SCT',
+  //   18,
+  //   ethers.utils.parseUnits('0'),
+  //   '0x06de0416e5c5bdd5ec957d2b178cd25019821b53932af0ae6445c225ecb0f6b8',
+  //   'https://www.swarm.fund',
+  //   0,
+  //   [
+  //       wallet,
+  //       this.transferRules.address,
+  //       this.transferRules.address,
+  //       this.src20Roles.address,
+  //       this.featured.address,
+  //       this.assetRegistry.address,
+  //       this.getRateMinter.address
+  //   ],
+  //   overrides
+  // );
+  //
+  // this.src20TokenAddress = filter.address;
+  // console.log("src20TokenAddress is: ", this.src20TokenAddress);
+  //
 
-  const SWMPriceOracle = await ethers.getContractFactory('SWMPriceOracle');
-  this.swmPriceOracle = await SWMPriceOracle.deploy(100, 100);
-  await this.swmPriceOracle.deployed();
-  console.log("Address is ", this.swmPriceOracle.address);
-
-  const SRC20Registry = await ethers.getContractFactory('SRC20Registry');
-  this.src20Registry = await SRC20Registry.deploy(this.swm.address);
-  await this.src20Registry.deployed();
-  console.log("src20Registry address is ", this.src20Registry.address);
-
-  const SRC20Factory = await ethers.getContractFactory('SRC20Factory');
-  this.src20Factory = await SRC20Factory.deploy(this.src20Registry.address);
-  await this.src20Factory.deployed();
-  console.log("src20Factory address is ", this.src20Factory.address);
-
-  const AssetRegistry = await ethers.getContractFactory('AssetRegistry');
-  this.assetRegistry = await AssetRegistry.deploy(this.src20Factory.address);
-  await this.assetRegistry.deployed();
-  console.log("assetRegistry address is ", this.assetRegistry.address);
-
-  const GetRateMinter = await ethers.getContractFactory('GetRateMinter');
-  this.getRateMinter = await GetRateMinter.deploy(this.src20Registry.address, this.assetRegistry.address, this.swmPriceOracle.address);
-  await this.getRateMinter.deployed();
-  console.log("getRateMinter address is ", this.getRateMinter.address);
-
-  const SetRateMinter = await ethers.getContractFactory('SetRateMinter');
-  this.setRateMinter = await SetRateMinter.deploy(this.src20Registry.address);
-  await this.setRateMinter.deployed();
-  console.log("setRateMinter address is ", this.setRateMinter.address);
-
-  const Featured = await ethers.getContractFactory('Featured');
-  this.featured = await Featured.deploy(wallet, '0x0000000000000000000000000000000000000000');
-  await this.featured.deployed();
-  console.log("featured address is ", this.featured.address);
-
-  const SRC20Roles = await ethers.getContractFactory('SRC20Roles');
-  this.src20Roles = await SRC20Roles.deploy(wallet ,this.src20Registry.address , '0x0000000000000000000000000000000000000000');
-  await this.src20Roles.deployed();
-  console.log("src20Roles address is ", this.src20Roles.address);
-
-  const TransferRules = await ethers.getContractFactory('TransferRules');
-  this.transferRules = await TransferRules.deploy(wallet);
-  await this.transferRules.deployed();
-  console.log("transferRules address is ", this.transferRules.address);
-
-  let filter = this.src20Factory.filters.SRC20Created(null);
-
-  await this.src20Factory.create(
-    'Security Token',
-    'SCT',
-    18,
-    ethers.utils.parseUnits('100000000'),
-    '0x06de0416e5c5bdd5ec957d2b178cd25019821b53932af0ae6445c225ecb0f6b8',
-    'https://www.swarm.fund',
-    0,
-    [
-        wallet,
-        this.transferRules.address,
-        this.transferRules.address,
-        this.src20Roles.address,
-        this.featured.address,
-        this.assetRegistry.address,
-        this.getRateMinter.address
-    ],
-    overrides
-  );
-
-  this.src20TokenAddress = filter.address;
-  console.log("src20TokenAddress is: ", this.src20TokenAddress);
+  this.src20TokenAddress = "0xd8fe55e1a8b6991f839758224d038893b46bb9de";
 
   const AffiliateManager = await ethers.getContractFactory('AffiliateManager');
   this.affiliateManager = await AffiliateManager.deploy();
@@ -133,6 +145,9 @@ async function setup() {
 
   const startDate = moment().unix() + 60; // 1 minute from the current time
   const endDate = moment().unix() + (60 * 60 * 72); // three days from current time;
+
+  console.log("sDate: ", startDate);
+  console.log("eDate: ", endDate);
 
   const SwarmPoweredFundraise = await ethers.getContractFactory('SwarmPoweredFundraise');
   this.swarmPoweredFundraise = await SwarmPoweredFundraise.deploy(
@@ -175,7 +190,7 @@ async function setup() {
     ethers.utils.parseUnits('1'),
     this.affiliateManager.address,
     this.contributorRestrictions.address,
-    this.getRateMinter.address,
+    "0xdEB1F05C668C185f43A2E5fF40950E8aAC828825",//this.getRateMinter.address,
     true,
     overrides
   )
