@@ -4,10 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "fundraise": "npx buidler test ./test/fundraising/ContributeFundsLocal.js",
-    "deploy:ropsten": "npx buidler run scripts/deploy_ropsten.js --network ropsten",
-    "deploy:kovan": "npx buidler run scripts/deploy_kovan.js --network kovan"
+    "test": "buidler test ./test",
+    "compile": "buidler compile",
+    "fundraise": "buidler test ./test/fundraising/ContributeFundsLocal.js",
+    "deploy:kovan": "npx buidler run scripts/deploy_kovan.js --network kovan",
+    "deploy:ethers:base": "buidler run scripts/deploy-ethers-base.js --show-stack-traces --verbose --network",
+    "dev:issuance": "concurrently \"buidler node --verbose --hostname 0.0.0.0 --port 7545\" \"(sleep 2 && npm run deploy:ethers:base local)\""
   },
   "author": "",
   "license": "ISC",
@@ -16,16 +18,16 @@
     "@nomiclabs/buidler-ethers": "^2.0.0",
     "@nomiclabs/buidler-etherscan": "^2.0.0",
     "@nomiclabs/buidler-waffle": "^2.0.0",
-    "chai": "^4.2.0",
-    "ethereum-waffle": "^3.0.2",
-    "ethers": "^5.0.8"
-  },
-  "dependencies": {
-    "@openzeppelin/contracts": "^2.5.1",
-    "@poanet/solidity-flattener": "^3.0.5",
     "buidler-deploy": "^0.4.14",
+    "chai": "^4.2.0",
+    "concurrently": "^5.3.0",
     "dotenv": "^8.2.0",
+    "ethereum-waffle": "^3.0.2",
+    "ethers": "^5.0.8",
     "ganache-time-traveler": "^1.0.14",
     "moment": "^2.27.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.5.1"
   }
 }
