@@ -9,7 +9,9 @@
     "fundraise": "buidler test ./test/fundraising/ContributeFundsLocal.js",
     "deploy:kovan": "npx buidler run scripts/deploy_kovan.js --network kovan",
     "deploy:ethers:base": "buidler run scripts/deploy-ethers-base.js --show-stack-traces --verbose --network",
-    "dev:issuance": "concurrently \"buidler node --verbose --hostname 0.0.0.0 --port 7545\" \"(sleep 2 && npm run deploy:ethers:base local)\""
+    "dev:issuance": "concurrently \"buidler node --verbose --hostname 0.0.0.0 --port 7545\" \"(sleep 2 && npm run deploy:ethers:base local)\"",
+    "lint": "solhint -f table contracts/*.sol contracts/**/*.sol",
+    "lint:fix": "prettier --write contracts"
   },
   "author": "",
   "license": "ISC",
@@ -25,7 +27,11 @@
     "ethereum-waffle": "^3.0.2",
     "ethers": "^5.0.8",
     "ganache-time-traveler": "^1.0.14",
-    "moment": "^2.27.0"
+    "moment": "^2.27.0",
+    "prettier": "^2.1.2",
+    "prettier-plugin-solidity": "^1.0.0-alpha.58",
+    "solhint": "^3.2.1",
+    "solhint-plugin-prettier": "^0.0.5"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.1"
