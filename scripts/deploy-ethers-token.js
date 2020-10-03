@@ -26,11 +26,9 @@ async function approveAll(contribute, reserve) {
 
 async function main() {
 
-    const options = {
-        swmSupply: ethers.utils.parseUnits('1000000000'),
-        swarmAccount: await Alice.getAddress(),
-        swmPrice: [1, 2], // 0.5 USD in the format for the Oracle constructor
-    }
+
+    const { addresses } = await getAccounts();
+    const [, issuerAccount, aliceAccount] = addresses;
 
     const prerequisites = await deployPrerequisites(options);
     console.log("Prerequisites deployed");
@@ -38,7 +36,6 @@ async function main() {
 
     const wallet = await Alice.getAddress();
 
-    const featured = await deployContract('Featured', [wallet, '0x0000000000000000000000000000000000000000']);
     console.log('featured address is ', featured.address);
     const src20Roles = await deployContract('SRC20Roles', [wallet, src20Registry.address, '0x0000000000000000000000000000000000000000']);
     console.log('src20Roles address is ', src20Roles.address);

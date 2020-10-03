@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "buidler test ./test",
+    "test": "buidler test",
     "compile": "buidler compile",
     "fundraise": "buidler test ./test/fundraising/ContributeFundsLocal.js",
     "deploy:kovan": "npx buidler run scripts/deploy_kovan.js --network kovan",

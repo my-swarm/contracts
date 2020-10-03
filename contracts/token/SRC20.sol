@@ -96,6 +96,11 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     _features = IFeatured(addressList[4]);
   }
 
+  // getters for private variables
+  function maxTotalSupply() public view returns (uint256) {
+    return _maxTotalSupply;
+  }
+
   /**
    * @dev This method is intended to be executed by TransferRules contract when doTransfer is called in transfer
    * and transferFrom methods to check where funds should go.
