@@ -9,5 +9,9 @@ pragma solidity ^0.5.0;
  * It is intended to implementation of this interface be used for transferToken()
  */
 interface ITransferRestrictions {
-    function authorize(address from, address to, uint256 value) external returns (bool);
+  function authorize(
+    address from,
+    address to,
+    uint256 value
+  ) external returns (bool);
 }

@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "../../interfaces/IFreezable.sol";
+import '../../interfaces/IFreezable.sol';
 
 /**
  * @title Freezable account
@@ -8,33 +8,33 @@ import "../../interfaces/IFreezable.sol";
  * unfreezing and checking accounts' status.
  */
 contract Freezable is IFreezable {
-    mapping (address => bool) private _frozen;
+  mapping(address => bool) private _frozen;
 
-    event AccountFrozen(address indexed account);
-    event AccountUnfrozen(address indexed account);
+  event AccountFrozen(address indexed account);
+  event AccountUnfrozen(address indexed account);
 
-    /**
-     * @dev Freeze an account
-     */
-    function _freezeAccount(address account) internal {
-        _frozen[account] = true;
-        emit AccountFrozen(account);
-    }
+  /**
+   * @dev Freeze an account
+   */
+  function _freezeAccount(address account) internal {
+    _frozen[account] = true;
+    emit AccountFrozen(account);
+  }
 
-    /**
-     * @dev Unfreeze an account
-     */
-    function _unfreezeAccount(address account) internal {
-         _frozen[account] = false;
-         emit AccountUnfrozen(account);
-    }
+  /**
+   * @dev Unfreeze an account
+   */
+  function _unfreezeAccount(address account) internal {
+    _frozen[account] = false;
+    emit AccountUnfrozen(account);
+  }
 
-    /**
-     * @dev Check if an account is frozen. If token is frozen, all
-     * of accounts are frozen also.
-     * @return bool
-     */
-    function _isAccountFrozen(address account) internal view returns (bool) {
-         return _frozen[account];
-    }
+  /**
+   * @dev Check if an account is frozen. If token is frozen, all
+   * of accounts are frozen also.
+   * @return bool
+   */
+  function _isAccountFrozen(address account) internal view returns (bool) {
+    return _frozen[account];
+  }
 }

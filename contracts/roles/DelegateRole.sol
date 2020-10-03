@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/access/Roles.sol";
+import '@openzeppelin/contracts/access/Roles.sol';
 
 /**
  * @title DelegateRole
@@ -8,24 +8,24 @@ import "@openzeppelin/contracts/access/Roles.sol";
  * contract, apart from owner.
  */
 contract DelegateRole {
-    using Roles for Roles.Role;
+  using Roles for Roles.Role;
 
-    event DelegateAdded(address indexed account);
-    event DelegateRemoved(address indexed account);
+  event DelegateAdded(address indexed account);
+  event DelegateRemoved(address indexed account);
 
-    Roles.Role private _delegates;
+  Roles.Role private _delegates;
 
-    function _addDelegate(address account) internal {
-        _delegates.add(account);
-        emit DelegateAdded(account);
-    }
+  function _addDelegate(address account) internal {
+    _delegates.add(account);
+    emit DelegateAdded(account);
+  }
 
-    function _removeDelegate(address account) internal {
-        _delegates.remove(account);
-        emit DelegateRemoved(account);
-    }
+  function _removeDelegate(address account) internal {
+    _delegates.remove(account);
+    emit DelegateRemoved(account);
+  }
 
-    function _hasDelegate(address account) internal view returns (bool) {
-        return _delegates.has(account);
-    }
+  function _hasDelegate(address account) internal view returns (bool) {
+    return _delegates.has(account);
+  }
 }

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "../roles/DelegateRole.sol";
+import '@openzeppelin/contracts/ownership/Ownable.sol';
+import '../roles/DelegateRole.sol';
 
 /**
  * @title AffiliateManager
@@ -10,86 +10,60 @@ import "../roles/DelegateRole.sol";
  * Affiliate links, etc
  */
 contract AffiliateManager is Ownable, DelegateRole {
+  struct Affiliate {
+    string affiliateLink;
+    uint256 percentage;
+  }
 
-    struct Affiliate {
-        string affiliateLink;
-        uint percentage;
-    }
+  mapping(string => address) private affiliateLinks;
+  mapping(address => Affiliate) private affiliates;
 
-    mapping(string => address) private affiliateLinks;
-    mapping(address => Affiliate) private affiliates;
+  /**
+   *  Set up an Affiliate. Can be done by the Token Issuer at any time
+   *  Setting up the same affiliate again changes his parameters
+   *  The contributions are then available to be withdrawn by contributors
+   *
+   *  @return true on success
+   */
+  function setupAffiliate(
+    address affiliate,
+    string calldata affiliateLink,
+    uint256 percentage // multiply by 100 => 5 = 0.5%
+  ) external onlyOwner() returns (bool) {
+    require(percentage <= 100, 'Percentage greater than 100 not allowed');
+    require(percentage > 0, 'Percentage has to be greater than 0');
+    affiliates[affiliate].affiliateLink = affiliateLink;
+    affiliates[affiliate].percentage = percentage;
+    affiliateLinks[affiliateLink] = affiliate;
 
-    /**
-     *  Set up an Affiliate. Can be done by the Token Issuer at any time
-     *  Setting up the same affiliate again changes his parameters
-     *  The contributions are then available to be withdrawn by contributors
-     *
-     *  @return true on success
-     */
-    function setupAffiliate(
-        address affiliate,
-        string calldata affiliateLink,
-        uint256 percentage // multiply by 100 => 5 = 0.5%
-    )
-        external
-        onlyOwner()
-        returns (bool)
-    {
-        require( percentage <= 100, "Percentage greater than 100 not allowed");
-        require( percentage > 0, "Percentage has to be greater than 0");
-        affiliates[affiliate].affiliateLink = affiliateLink;
-        affiliates[affiliate].percentage = percentage;
-        affiliateLinks[affiliateLink] = affiliate;
+    return true;
+  }
 
-        return true;
-    }
+  /**
+   *  Remove an Affiliate. Can be done by the Token Issuer at any time
+   *  Any funds he received while active still remain assigned to him.
+   *  @param affiliate the address of the affiliate being removed
+   *
+   *  @return true on success
+   */
+  function removeAffiliate(address affiliate) external onlyOwner() returns (bool) {
+    require(affiliates[affiliate].percentage != 0, 'Affiliate not exist');
+    affiliateLinks[affiliates[affiliate].affiliateLink] = address(0x0);
+    delete (affiliates[affiliate]);
+    return true;
+  }
 
-    /**
-     *  Remove an Affiliate. Can be done by the Token Issuer at any time
-     *  Any funds he received while active still remain assigned to him.
-     *  @param affiliate the address of the affiliate being removed
-     *
-     *  @return true on success
-     */
-    function removeAffiliate(
-        address affiliate
-    )
-        external
-        onlyOwner()
-        returns (bool)
-    {
-        require( affiliates[affiliate].percentage != 0, "Affiliate not exist");
-        affiliateLinks[affiliates[affiliate].affiliateLink] = address(0x0);
-        delete(affiliates[affiliate]);
-        return true;
-    }
+  /**
+   *  Get information about an Affiliate.
+   *  @param affiliateLink the address of the affiliate being removed
+   *
+   *  @return true on success
+   */
+  function getAffiliate(string calldata affiliateLink) external view returns (address, uint256) {
+    return (affiliateLinks[affiliateLink], affiliates[affiliateLinks[affiliateLink]].percentage);
+  }
 
-    /**
-     *  Get information about an Affiliate.
-     *  @param affiliateLink the address of the affiliate being removed
-     *
-     *  @return true on success
-     */
-    function getAffiliate(
-        string calldata affiliateLink
-    )
-        external
-        view
-        returns (address, uint256)
-    {
-        return (
-            affiliateLinks[affiliateLink],
-            affiliates[affiliateLinks[affiliateLink]].percentage
-        );
-    }
-
-    function getAffiliateLink(
-      address affiliate
-    )
-    external
-    view
-    returns (string memory)
-    {
-      return affiliates[affiliate].affiliateLink;
-    }
+  function getAffiliateLink(address affiliate) external view returns (string memory) {
+    return affiliates[affiliate].affiliateLink;
+  }
 }

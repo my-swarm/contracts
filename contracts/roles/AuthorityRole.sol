@@ -1,8 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/access/Roles.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-
+import '@openzeppelin/contracts/access/Roles.sol';
+import '@openzeppelin/contracts/ownership/Ownable.sol';
 
 /**
  * @title AuthorityRole
@@ -10,24 +9,24 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
  * on-chain & off-chain
  */
 contract AuthorityRole {
-    using Roles for Roles.Role;
+  using Roles for Roles.Role;
 
-    event AuthorityAdded(address indexed account);
-    event AuthorityRemoved(address indexed account);
+  event AuthorityAdded(address indexed account);
+  event AuthorityRemoved(address indexed account);
 
-    Roles.Role private _authorities;
+  Roles.Role private _authorities;
 
-    function _addAuthority(address account) internal {
-        _authorities.add(account);
-        emit AuthorityAdded(account);
-    }
+  function _addAuthority(address account) internal {
+    _authorities.add(account);
+    emit AuthorityAdded(account);
+  }
 
-    function _removeAuthority(address account) internal {
-        _authorities.remove(account);
-        emit AuthorityRemoved(account);
-    }
+  function _removeAuthority(address account) internal {
+    _authorities.remove(account);
+    emit AuthorityRemoved(account);
+  }
 
-    function _hasAuthority(address account) internal view returns (bool) {
-        return _authorities.has(account);
-    }
+  function _hasAuthority(address account) internal view returns (bool) {
+    return _authorities.has(account);
+  }
 }

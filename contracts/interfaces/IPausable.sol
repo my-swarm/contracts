@@ -9,12 +9,13 @@ pragma solidity ^0.5.0;
  * the functions of your contract. Note that they will not be pausable by
  * simply including this module, only once the functions are implemented.
  */
-contract IPausable{
-    event Paused(address account);
-    event Unpaused(address account);
+contract IPausable {
+  event Paused(address account);
+  event Unpaused(address account);
 
-    function paused() public view returns (bool);
+  function paused() public view returns (bool);
 
-    function _pause() internal;
-    function _unpause() internal;
+  function _pause() internal;
+
+  function _unpause() internal;
 }
