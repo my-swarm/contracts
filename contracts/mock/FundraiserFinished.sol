@@ -1,13 +1,13 @@
 pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
-import '../fundraising/SwarmPoweredFundraise.sol';
+import '../fundraising/Fundraiser.sol';
 
 /**
  * @title The Fundraise Contract
  * This contract allows the deployer to perform a Swarm-Powered Fundraise.
  */
-contract SwarmPoweredFundraiseFinished is SwarmPoweredFundraise {
+contract FundraiserFinished is Fundraiser {
   using SafeMath for uint256;
 
   // array
@@ -25,18 +25,10 @@ contract SwarmPoweredFundraiseFinished is SwarmPoweredFundraise {
     uint256 _hardCapBCY
   )
     public
-    SwarmPoweredFundraise(
-      _label,
-      _src20,
-      _SRC20tokenSupply,
-      _startDate,
-      _endDate,
-      _softCapBCY,
-      _hardCapBCY
-    )
+    Fundraiser(_label, _src20, _SRC20tokenSupply, _startDate, _endDate, _softCapBCY, _hardCapBCY)
   {
     isFinished = true;
-    setupCompleted = true;
+    isSetup = true;
   }
 
   // function() external payable {

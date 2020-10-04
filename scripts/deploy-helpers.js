@@ -74,6 +74,35 @@ async function deployTokenContracts(baseContracts, options) {
   return {transferRules, featured, roles, src20};
 }
 
+async function deployFundraiserContracts(baseContracts, src20, options) {
+  const fundraiser = await deployContract('Fundraiser', [
+    options.label,
+    src20.address, // label
+    options.tokensToMint, // tokensToMint
+    options.startDate,
+    options.endDate,
+    options.softCap,
+    options.hardCap,
+  ]);
+  const contributorRestrictions = await deployContract('ContributorRestrictions', [
+    fundraiser.address,
+    options.contributors.maxNum,
+    options.contributors.minAmount,
+    options.contributors.maxAmount,
+  ]);
+
+  await fundraiser.setup(
+    baseContracts.usdc.address, // baseCurrency
+    options.tokenPrice,
+    baseContracts.affiliateManager.address,
+    contributorRestrictions.address,
+    baseContracts.getRateMinter.address,
+    options.contributionsLocked
+  );
+
+  return {fundraiser, contributorRestrictions};
+}
+
 async function getEvent(transaction, eventName) {
   const res = await transaction.wait();
   const event = res.events.find((e) => e.event === 'SRC20Created');
@@ -98,6 +127,7 @@ module.exports = {
   getAccounts,
   deployBaseContracts,
   deployTokenContracts,
+  deployFundraiserContracts,
   deployContract,
   dumpContractAddresses,
 };

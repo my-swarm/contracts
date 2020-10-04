@@ -1,14 +1,14 @@
 pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
-import '../fundraising/SwarmPoweredFundraise.sol';
+import '../fundraising/Fundraiser.sol';
 import '../fundraising/ContributorRestrictions.sol';
 
 /**
  * @title The Fundraise Contract
  * This contract allows the deployer to perform a Swarm-Powered Fundraise.
  */
-contract SwarmPoweredFundraiseMock is SwarmPoweredFundraise {
+contract FundraiserMock is Fundraiser {
   using SafeMath for uint256;
 
   // array
@@ -23,15 +23,7 @@ contract SwarmPoweredFundraiseMock is SwarmPoweredFundraise {
     uint256 _hardCapBCY
   )
     public
-    SwarmPoweredFundraise(
-      _label,
-      _src20,
-      _SRC20tokenSupply,
-      _startDate,
-      _endDate,
-      _softCapBCY,
-      _hardCapBCY
-    )
+    Fundraiser(_label, _src20, _SRC20tokenSupply, _startDate, _endDate, _softCapBCY, _hardCapBCY)
   {}
 
   function getQualifiedContributions(address contributor) public view returns (uint256) {
@@ -39,11 +31,11 @@ contract SwarmPoweredFundraiseMock is SwarmPoweredFundraise {
   }
 
   function getBufferedContributions(address contributor) public view returns (uint256) {
-    return bufferedContributions[contributor];
+    return unqualifiedContributions[contributor];
   }
 
   function getBalanceToken(address contributor) public view returns (uint256) {
-    return qualifiedContributions[contributor] + bufferedContributions[contributor];
+    return qualifiedContributions[contributor] + unqualifiedContributions[contributor];
   }
 
   function acceptContribution(address contributor) external pure returns (bool) {
@@ -59,6 +51,6 @@ contract SwarmPoweredFundraiseMock is SwarmPoweredFundraise {
   }
 
   function setNumContributorsToMax() external {
-    numberOfContributors = ContributorRestrictions(contributorRestrictions).maxContributors();
+    numContributors = ContributorRestrictions(contributorRestrictions).maxCount();
   }
 }

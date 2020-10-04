@@ -10,7 +10,7 @@ import '../interfaces/IContributorRestrictions.sol';
  * @title The Fundraise Contract
  * This contract allows the deployer to perform a Swarm-Powered Fundraise.
  */
-contract SwarmPoweredFundraise {
+contract Fundraiser {
   using SafeMath for uint256;
 
   event ContributionReceived(address indexed account, uint256 amount);
@@ -21,44 +21,48 @@ contract SwarmPoweredFundraise {
   event FundsWithdrawal(address indexed account, uint256 amount);
   event ReferralCollected(address indexed account, uint256 amount);
 
-  // variables that are set up once and never change
-  string public label;
   address private owner;
+
+  // from constructor
+  string public label;
+  address public token;
+  uint256 public tokensToMint;
   uint256 public startDate;
   uint256 public endDate;
-  uint256 public expirationTime = 2592000; // default: 60 * 60 * 24 * 30 = ~1month
-  uint256 public fee = 2000e6; // USDC has 6 decimal places
-  address public token;
-  address public minter;
-  address public affiliateManager;
-  address public contributorRestrictions;
-  address public baseCurrency = 0xCa5A93FA0812992C0e1B6cf0A63e189dc682F542; //= 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // USDC Mainnet
   uint256 public softCap;
   uint256 public hardCap;
-  uint256 public tokenPrice;
-  uint256 public tokensToMint;
-  uint256 public fundraiseAmount;
 
-  // variables that keep track of state
-  uint256 public numberOfContributors;
-  uint256 public totalFundsWithdrawal;
-  uint256 public qualifiedSums;
-  uint256 public bufferedSums;
-  bool public isFinished;
-  bool public isCancelled;
-  bool public setupCompleted;
-  bool public hardCapReached;
+  // from setup
+  address public baseCurrency;
+  uint256 public tokenPrice;
+  address public affiliateManager;
+  address public contributorRestrictions;
+  address public minter;
   bool public contributionsLocked = true;
 
+  // weird constants - should go to constructor :)
+  uint256 public expirationTime = 2592000; // default: 60 * 60 * 24 * 30 = ~1month
+  uint256 public fee = 2000e6; // USDC has 6 decimal places
+
+  // state
+  uint256 public numContributors = 0;
+  uint256 public amountQualified = 0;
+  uint256 public amountUnqualified = 0;
+  uint256 public amountWithdrawn = 0;
+  bool public isFinished = false;
+  bool public isCancelled = false;
+  bool public isSetup = false;
+  bool public isHardcapReached = false;
+
   // per contributor, these are contributors that have not been whitelisted yet
-  mapping(address => uint256) public bufferedContributions;
+  mapping(address => uint256) public unqualifiedContributions;
 
   // per whitelisted contributor, qualified amount
   // a qualified amount is an amount that has passed min/max checks
   mapping(address => uint256) public qualifiedContributions;
 
   // contributors who has been whitelisted and contributed funds
-  mapping(address => bool) public activeContributor;
+  mapping(address => bool) public contributors;
 
   // referral link of contributor
   mapping(address => address) public referral;
@@ -91,9 +95,9 @@ contract SwarmPoweredFundraise {
 
   // forced by bytecode limitations, kept just below the modifier for clarity
   function _ongoing() internal view returns (bool) {
-    require(setupCompleted, 'Fundraise setup not completed');
+    require(isSetup, 'Fundraise setup not completed');
     require(!isFinished, 'Fundraise has finished');
-    require(!hardCapReached, 'HardCap has been reached');
+    require(!isHardcapReached, 'HardCap has been reached');
     require(block.timestamp >= startDate, 'Fundraise has not started yet');
     require(block.timestamp <= endDate, 'Fundraise has ended');
     return true;
@@ -102,7 +106,7 @@ contract SwarmPoweredFundraise {
   /**
    *  Pass all the most important parameters that define the Fundraise
    *  All variables cannot be in the constructor because we get "stack too deep" error
-   *  After deployment setupContract() function needs to be called to set them up
+   *  After deployment setup() function needs to be called to set them up
    */
   constructor(
     string memory _label,
@@ -129,7 +133,7 @@ contract SwarmPoweredFundraise {
    *  All variables cannot be in the constructor because we get "stack too deep" error
    *  NOTE : If tokenPrice is not zero, tokensToMint is ignored
    */
-  function setupContract(
+  function setup(
     address _baseCurrency,
     uint256 _tokenPrice,
     address _affiliateManager,
@@ -138,9 +142,12 @@ contract SwarmPoweredFundraise {
     bool _contributionsLocked
   ) external onlyOwner() {
     require(_tokenPrice > 0 || tokensToMint > 0, 'Either price or amount to mint is needed');
-    require(!setupCompleted, 'Contract is already set up');
+    require(!isSetup, 'Contract is already set up');
     require(!isCancelled, 'Fundsraiser is cancelled');
-    require(block.timestamp < startDate, 'Set up should be done before start date');
+    // I think this is a bullshit condition that makes testing ver annoying
+    // I don't see a reason for this as long as setup is a condition for contributions and other actions
+    // which it is by the ongoing modifier
+    // require(block.timestamp < startDate, 'Set up should be done before start date');
 
     baseCurrency = _baseCurrency;
     tokenPrice = _tokenPrice;
@@ -148,7 +155,7 @@ contract SwarmPoweredFundraise {
     contributorRestrictions = _contributorRestrictions;
     contributionsLocked = _contributionsLocked;
     minter = _minter;
-    setupCompleted = true;
+    isSetup = true;
   }
 
   /**
@@ -203,11 +210,11 @@ contract SwarmPoweredFundraise {
     onlyContributorRestrictions
     returns (bool)
   {
-    uint256 amount = bufferedContributions[contributor];
+    uint256 amount = unqualifiedContributions[contributor];
     // process contribution
     if (amount > 0) {
-      bufferedContributions[contributor] = 0;
-      bufferedSums = bufferedSums.sub(amount);
+      unqualifiedContributions[contributor] = 0;
+      amountUnqualified = amountUnqualified.sub(amount);
       string memory link = IAffiliateManager(affiliateManager).getAffiliateLink(
         referral[contributor]
       );
@@ -273,7 +280,7 @@ contract SwarmPoweredFundraise {
     IGetRateMinter(minter).stakeAndMint(token, amountToMint);
 
     // send funds to the issuer
-    _withdrawRaisedFunds(msg.sender);
+    _withdraw(msg.sender);
     return true;
   }
 
@@ -332,18 +339,14 @@ contract SwarmPoweredFundraise {
     // check if user is whitelisted
     if (IContributorRestrictions(contributorRestrictions).isWhitelisted(contributor)) {
       _addContributor(contributor);
-      uint256 refund = _updateContributions(
-        contributor,
-        amount,
-        true
-      );
+      uint256 refund = _updateContributions(contributor, amount, true);
       (bool pass, uint256 overAmount) = _checkHardCap(qualifiedContributions[contributor]);
       if (overAmount > 0 || refund > 0) {
         uint256 totalRefund = overAmount.add(refund);
         _refund(contributor, totalRefund);
       }
       if (pass) {
-        hardCapReached = true;
+        isHardcapReached = true;
       }
     } else {
       _updateContributions(contributor, amount, false);
@@ -356,16 +359,16 @@ contract SwarmPoweredFundraise {
   }
 
   function _addContributor(address user) internal {
-    if (!activeContributor[user]) {
-      numberOfContributors = numberOfContributors.add(1);
-      activeContributor[user] = true;
+    if (!contributors[user]) {
+      numContributors = numContributors.add(1);
+      contributors[user] = true;
     }
   }
 
   function _removeContributor(address user) internal {
-    if (activeContributor[user]) {
-      numberOfContributors = numberOfContributors.sub(1);
-      activeContributor[user] = false;
+    if (contributors[user]) {
+      numContributors = numContributors.sub(1);
+      contributors[user] = false;
     }
   }
 
@@ -392,10 +395,10 @@ contract SwarmPoweredFundraise {
     ) {
       if (qualified) {
         qualifiedContributions[contributor] = qualifiedContributions[contributor].add(amount);
-        qualifiedSums = qualifiedSums.add(amount);
+        amountQualified = amountQualified.add(amount);
       } else {
-        bufferedContributions[contributor] = bufferedContributions[contributor].add(amount);
-        bufferedSums = bufferedSums.add(amount);
+        unqualifiedContributions[contributor] = unqualifiedContributions[contributor].add(amount);
+        amountUnqualified = amountUnqualified.add(amount);
       }
       refund = 0;
     } else {
@@ -403,8 +406,8 @@ contract SwarmPoweredFundraise {
         refund = (qualifiedContributions[contributor]).sub(maxInvestment);
         qualifiedContributions[contributor] = maxInvestment;
       } else {
-        refund = (bufferedContributions[contributor]).sub(maxInvestment);
-        bufferedContributions[contributor] = maxInvestment;
+        refund = (unqualifiedContributions[contributor]).sub(maxInvestment);
+        unqualifiedContributions[contributor] = maxInvestment;
       }
     }
     return refund;
@@ -471,20 +474,19 @@ contract SwarmPoweredFundraise {
   function _finishFundraise() internal returns (uint256) {
     require(!isFinished, 'Already finished');
     require(block.timestamp < endDate.add(expirationTime), 'Expiration time passed');
-    require(qualifiedSums >= softCap, 'SoftCap not reached');
+    require(amountQualified >= softCap, 'SoftCap not reached');
 
-    if (qualifiedSums < hardCap && block.timestamp < endDate) {
+    if (amountQualified < hardCap && block.timestamp < endDate) {
       revert('Softcap is only valid after end date');
     }
     // lock the fundraise amount... it will be somewhere between the soft and hard caps
     contributionsLocked = true;
     isFinished = true;
-    fundraiseAmount = qualifiedSums;
 
     // find out the token price
-    if (tokenPrice > 0) return fundraiseAmount.div(tokenPrice);
+    if (tokenPrice > 0) return amountQualified.div(tokenPrice);
     else {
-      tokenPrice = fundraiseAmount.div(tokensToMint);
+      tokenPrice = amountQualified.div(tokensToMint);
       return tokensToMint;
     }
   }
@@ -495,25 +497,24 @@ contract SwarmPoweredFundraise {
    *
    *  @return true on success
    */
-  function _withdrawRaisedFunds(address user) internal returns (bool) {
-    uint256 amount = qualifiedSums;
-    qualifiedSums = 0;
-    totalFundsWithdrawal = amount;
+  function _withdraw(address user) internal returns (bool) {
+    amountWithdrawn = amountQualified;
+    amountQualified = 0;
 
-    require(IERC20(baseCurrency).transfer(user, amount), 'ERC20 transfer failed');
-    emit FundsWithdrawal(user, amount);
+    require(IERC20(baseCurrency).transfer(user, amountWithdrawn), 'ERC20 transfer failed');
+    emit FundsWithdrawal(user, amountWithdrawn);
 
     return true;
   }
 
   function _fullRefund(address user) internal returns (bool) {
-    uint256 amount = qualifiedContributions[user].add(bufferedContributions[user]);
+    uint256 amount = qualifiedContributions[user].add(unqualifiedContributions[user]);
 
     if (amount > 0) {
-      qualifiedSums = qualifiedSums.sub(qualifiedContributions[user]);
-      bufferedSums = bufferedSums.sub(bufferedContributions[user]);
+      amountQualified = amountQualified.sub(qualifiedContributions[user]);
+      amountUnqualified = amountUnqualified.sub(unqualifiedContributions[user]);
       delete qualifiedContributions[user];
-      delete bufferedContributions[user];
+      delete unqualifiedContributions[user];
       _refund(user, amount);
       return true;
     } else {

@@ -1,5 +1,6 @@
-const REGEX_ADDR = /0x[a-z0-9]{40}/i;
+const moment = require('moment');
 const {getAccounts} = require('../scripts/deploy-helpers');
+const REGEX_ADDR = /0x[a-z0-9]{40}/i;
 
 async function getAddresses() {
   return (await getAccounts()).addresses;
@@ -27,7 +28,7 @@ async function getTokenContractsOptions() {
     issuerAccount,
     features: 0, // token features bitmap
     src20: {
-      name: 'Test Security Token',
+      name: 'Testing Security Token',
       symbol: 'TST',
       decimals: 18,
       supply: ethers.utils.parseUnits('1000000'), // million baby
@@ -38,8 +39,27 @@ async function getTokenContractsOptions() {
   };
 }
 
+function getFundraiserOptions() {
+  return {
+    label: 'Testing Fundraiser',
+    tokensToMint: ethers.utils.parseUnits('100000'), // 10k baby
+    startDate: moment().unix(),
+    endDate: moment().add(1, 'month').unix(),
+    softCap: ethers.utils.parseUnits('5000'),
+    hardCap: ethers.utils.parseUnits('10000'),
+    tokenPrice: ethers.utils.parseUnits('1'), // 1 token = 1 usd
+    contributionsLocked: false,
+    contributors: {
+      maxNum: 0,
+      minAmount: 0,
+      maxAmount: 0,
+    },
+  };
+}
+
 module.exports = {
   REGEX_ADDR,
   getBaseContractsOptions,
   getTokenContractsOptions,
+  getFundraiserOptions,
 };

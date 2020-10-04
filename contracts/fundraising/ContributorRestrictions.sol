@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
 
 import '../interfaces/IContributorRestrictions.sol';
-import '../fundraising/ContributorWhitelist.sol';
-import '../fundraising/SwarmPoweredFundraise.sol';
+import '../rules/Whitelisted.sol';
+import '../fundraising/Fundraiser.sol';
 import '../roles/DelegateRole.sol';
 
 /**
@@ -13,11 +13,11 @@ import '../roles/DelegateRole.sol';
  * The owner of the Fundraise contract sets up ContributorRestrictions contract at
  * the beginning of the fundraise.
  */
-contract ContributorRestrictions is IContributorRestrictions, ContributorWhitelist, DelegateRole {
+contract ContributorRestrictions is IContributorRestrictions, Whitelisted, DelegateRole {
   address fundraise;
-  uint256 public maxContributors;
-  uint256 public minInvestmentAmount;
-  uint256 public maxInvestmentAmount;
+  uint256 public maxCount;
+  uint256 public minAmount;
+  uint256 public maxAmount;
 
   modifier onlyAuthorised() {
     require(
@@ -28,62 +28,59 @@ contract ContributorRestrictions is IContributorRestrictions, ContributorWhiteli
   }
 
   constructor(
-    address fundraiseContract,
-    uint256 maxNumContributors,
-    uint256 minAmount,
-    uint256 maxAmount
+    address _fundraiser,
+    uint256 _maxCount,
+    uint256 _minAmount,
+    uint256 _maxAmount
   ) public Ownable() {
-    require(maxAmount >= minAmount, 'Maximum amount has to be >= minInvestmentAmount');
-    fundraise = fundraiseContract;
-    maxContributors = maxNumContributors;
-    minInvestmentAmount = minAmount;
-    maxInvestmentAmount = maxAmount;
+    require(_maxAmount >= _minAmount, 'Maximum amount has to be >= minInvestmentAmount');
+    fundraise = _fundraiser;
+    maxCount = _maxCount;
+    minAmount = _minAmount;
+    maxAmount = _maxAmount;
   }
 
-  function checkMinInvestment(uint256 amount) public view returns (bool) {
-    return minInvestmentAmount == 0 ? true : amount >= minInvestmentAmount;
+  function checkMinInvestment(uint256 _amount) public view returns (bool) {
+    return minAmount == 0 ? true : _amount >= minAmount;
   }
 
-  function checkMaxInvestment(uint256 amount) public view returns (bool) {
-    return maxInvestmentAmount == 0 ? true : amount <= maxInvestmentAmount;
+  function checkMaxInvestment(uint256 _amount) public view returns (bool) {
+    return maxAmount == 0 ? true : _amount <= maxAmount;
   }
 
   function checkMaxContributors() public view returns (bool) {
-    return
-      maxContributors == 0
-        ? true
-        : SwarmPoweredFundraise(fundraise).numberOfContributors() < maxContributors;
+    return maxCount == 0 ? true : Fundraiser(fundraise).numContributors() < maxCount;
   }
 
-  function checkRestrictions(address account) external view returns (bool) {
-    require(isWhitelisted(account));
+  function checkRestrictions(address _account) external view returns (bool) {
+    require(isWhitelisted(_account));
     require(checkMaxContributors());
     return true;
   }
 
-  function whitelistAccount(address account) external onlyAuthorised {
-    _whitelisted[account] = true;
+  function whitelistAccount(address _account) external onlyAuthorised {
+    _whitelisted[_account] = true;
     require(
-      SwarmPoweredFundraise(fundraise).acceptContributor(account),
+      Fundraiser(fundraise).acceptContributor(_account),
       'Whitelisting failed on processing contributions!'
     );
-    emit AccountWhitelisted(account, msg.sender);
+    emit AccountWhitelisted(_account, msg.sender);
   }
 
-  function unWhitelistAccount(address account) external onlyAuthorised {
-    delete _whitelisted[account];
+  function unWhitelistAccount(address _account) external onlyAuthorised {
+    delete _whitelisted[_account];
     require(
-      SwarmPoweredFundraise(fundraise).removeContributor(account),
+      Fundraiser(fundraise).removeContributor(_account),
       'UnWhitelisting failed on processing contributions!'
     );
-    emit AccountUnWhitelisted(account, msg.sender);
+    emit AccountUnWhitelisted(_account, msg.sender);
   }
 
-  function bulkWhitelistAccount(address[] calldata accounts) external onlyAuthorised {
-    uint256 accLen = accounts.length;
+  function bulkWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
+    uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
-      _whitelisted[accounts[i]] = true;
-      emit AccountWhitelisted(accounts[i], msg.sender);
+      _whitelisted[_accounts[i]] = true;
+      emit AccountWhitelisted(_accounts[i], msg.sender);
     }
   }
 
