@@ -4,15 +4,13 @@ const {deployBaseContracts, getAccounts, dumpContractAddresses} = require('./dep
 async function main() {
   const {addresses} = await getAccounts();
   const [swarmAccount, issuerAccount] = addresses;
-  const swmSupply = ethers.utils.parseUnits('1000000000');
-  const swmPrice = [1, 2]; // 0.5 USD in the format for the Oracle constructor
-  const stablecoinParams = ['USDC', 'USDC', 18, ethers.utils.parseUnits('1000000000')];
   const baseContracts = await deployBaseContracts({
-    swmSupply,
+    swmSupply: ethers.utils.parseUnits('1000000'), // million
     swarmAccount,
     issuerAccount,
-    swmPrice,
-    stablecoinParams,
+    swmPrice: [1, 2], // 0.5 USD in the format for the Oracle constructor
+    stablecoinParams: ['USDC', 'USDC', 18, ethers.utils.parseUnits('1000000000')],
+    issuerSwmBalance: ethers.utils.parseUnits('100000'), // 100k
   });
 
   console.log('----------------------');

@@ -1,7 +1,11 @@
 const {ethers} = require('@nomiclabs/buidler');
 const {expect} = require('chai');
-const {deployBaseContracts, getAccounts} = require('../scripts/deploy-helpers');
-const {getBaseContractsOptions, REGEX_ADDR} = require('./test-helpers');
+const {
+  deployBaseContracts,
+  getAccounts,
+  getBaseContractsOptions,
+} = require('../scripts/deploy-helpers');
+const {REGEX_ADDR} = require('./test-helpers');
 
 describe('Properly deploys base contracts', async () => {
   let baseContracts;

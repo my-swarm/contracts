@@ -5,15 +5,12 @@ const {
   deployTokenContracts,
   deployFundraiserContracts,
   getAccounts,
-  dumpContractAddresses,
+  getFundraiserOptions,
+  getBaseContractsOptions,
+  getTokenContractsOptions
   ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
-const {
-  REGEX_ADDR,
-  getBaseContractsOptions,
-  getTokenContractsOptions,
-  getFundraiserOptions,
-} = require('./test-helpers');
+const {REGEX_ADDR} = require('./test-helpers');
 
 describe('Properly deploys SRC20 token with all sidekick contracts', async () => {
   let baseContracts;
