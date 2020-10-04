@@ -21,24 +21,23 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
   using SafeMath for uint256;
   using ECDSA for bytes32;
 
-  mapping(address => uint256) public _balances;
-  mapping(address => mapping(address => uint256)) public _allowances;
-  uint256 private _totalSupply;
-  uint256 private _maxTotalSupply;
+  mapping(address => uint256) public balances;
+  mapping(address => mapping(address => uint256)) public allowances;
+  uint256 public totalSupply;
+  uint256 public maxTotalSupply;
 
-  mapping(address => uint256) private _nonce;
+  mapping(address => uint256) private nonce;
 
-  ISRC20Roles public _roles;
-  IFeatured public _features;
-
-  IAssetRegistry public _assetRegistry;
+  ISRC20Roles public roles;
+  IFeatured public features;
+  IAssetRegistry public assetRegistry;
 
   /**
    * @description Configured contract implementing token restriction(s).
    * If set, transferToken will consult this contract should transfer
    * be allowed after successful authorization signature check.
    */
-  ITransferRestrictions public _restrictions;
+  ITransferRestrictions public restrictions;
 
   /**
    * @description Configured contract implementing token rule(s).
@@ -47,74 +46,66 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * And call doTransfer() in order for rules to decide where fund
    * should end up.
    */
-  ITransferRules public _rules;
+  ITransferRules public rules;
+
+  address payable public fundraiser;
 
   modifier onlyAuthority() {
-    require(_roles.isAuthority(msg.sender), 'Caller not authority');
+    require(roles.isAuthority(msg.sender), 'Caller not authority');
     _;
   }
 
   modifier onlyDelegate() {
-    require(_roles.isDelegate(msg.sender), 'Caller not delegate');
+    require(roles.isDelegate(msg.sender), 'Caller not delegate');
     _;
   }
 
   modifier onlyManager() {
-    require(_roles.isManager(msg.sender), 'Caller not manager');
+    require(roles.isManager(msg.sender), 'Caller not manager');
     _;
   }
 
   modifier enabled(uint8 feature) {
-    require(_features.isEnabled(feature), 'Token feature is not enabled');
+    require(features.isEnabled(feature), 'Token feature is not enabled');
     _;
   }
 
   // Constructors
+  //  addressList[0] tokenOwner,
+  //  addressList[1] restrictions,
+  //  addressList[2] rules,
+  //  addressList[3] roles,
+  //  addressList[4] featured,
+  //  addressList[5] assetRegistry
   constructor(
-    string memory name,
-    string memory symbol,
-    uint8 decimals,
-    uint256 maxTotalSupply,
-    address[] memory addressList
-  )
-    public
-    //  addressList[0] tokenOwner,
-    //  addressList[1] restrictions,
-    //  addressList[2] rules,
-    //  addressList[3] roles,
-    //  addressList[4] featured,
-    //  addressList[5] assetRegistry
-    SRC20Detailed(name, symbol, decimals)
-  {
-    _assetRegistry = IAssetRegistry(addressList[5]);
-    _transferOwnership(addressList[0]);
-
-    _maxTotalSupply = maxTotalSupply;
-    _updateRestrictionsAndRules(addressList[1], addressList[2]);
-
-    _roles = ISRC20Roles(addressList[3]);
-    _features = IFeatured(addressList[4]);
-  }
-
-  // getters for private variables
-  function maxTotalSupply() public view returns (uint256) {
-    return _maxTotalSupply;
+    string memory _name,
+    string memory _symbol,
+    uint8 _decimals,
+    uint256 _maxTotalSupply,
+    address[] memory _addressList
+  ) public SRC20Detailed(_name, _symbol, _decimals) {
+    maxTotalSupply = _maxTotalSupply;
+    _transferOwnership(_addressList[0]);
+    _updateRestrictionsAndRules(_addressList[1], _addressList[2]);
+    roles = ISRC20Roles(_addressList[3]);
+    features = IFeatured(_addressList[4]);
+    assetRegistry = IAssetRegistry(_addressList[5]);
   }
 
   /**
    * @dev This method is intended to be executed by TransferRules contract when doTransfer is called in transfer
    * and transferFrom methods to check where funds should go.
    *
-   * @param from The address to transfer from.
-   * @param to The address to send tokens to.
-   * @param value The amount of tokens to send.
+   * @param _from The address to transfer from.
+   * @param _to The address to send tokens to.
+   * @param _value The amount of tokens to send.
    */
   function executeTransfer(
-    address from,
-    address to,
-    uint256 value
+    address _from,
+    address _to,
+    uint256 _value
   ) external onlyAuthority returns (bool) {
-    _transfer(from, to, value);
+    _transfer(_from, _to, _value);
     return true;
   }
 
@@ -122,40 +113,40 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * Update the rules and restrictions settings for transfers.
    * Only a Delegate can call this role
    *
-   * @param restrictions address implementing on-chain restriction checks
+   * @param _restrictions address implementing on-chain restriction checks
    * or address(0) if no rules should be checked on chain.
-   * @param rules address implementing on-chain restriction checks
-   * @return True on success.
+   * @param _rules address implementing on-chain restriction checks
+   * @return true on success.
    */
-  function updateRestrictionsAndRules(address restrictions, address rules)
+  function updateRestrictionsAndRules(address _restrictions, address _rules)
     external
     onlyDelegate
     returns (bool)
   {
-    return _updateRestrictionsAndRules(restrictions, rules);
+    return _updateRestrictionsAndRules(_restrictions, _rules);
   }
 
   /**
    * @dev Internal function to update the restrictions and rules contracts.
    * Emits RestrictionsAndRulesUpdated event.
    *
-   * @param restrictions address implementing on-chain restriction checks
+   * @param _restrictions address implementing on-chain restriction checks
    *                     or address(0) if no rules should be checked on chain.
-   * @param rules address implementing on-chain restriction checks
-   * @return True on success.
+   * @param _rules address implementing on-chain restriction checks
+   * @return true on success.
    */
-  function _updateRestrictionsAndRules(address restrictions, address rules)
+  function _updateRestrictionsAndRules(address _restrictions, address _rules)
     internal
     returns (bool)
   {
-    _restrictions = ITransferRestrictions(restrictions);
-    _rules = ITransferRules(rules);
+    restrictions = ITransferRestrictions(_restrictions);
+    rules = ITransferRules(_rules);
 
-    if (rules != address(0)) {
-      require(_rules.setSRC(address(this)), 'SRC20 contract already set in transfer rules');
+    if (_rules != address(0)) {
+      require(rules.setSRC(address(this)), 'SRC20 contract already set in transfer rules');
     }
 
-    emit RestrictionsAndRulesUpdated(restrictions, rules);
+    emit RestrictionsAndRulesUpdated(_restrictions, _rules);
     return true;
   }
 
@@ -164,24 +155,24 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * signature obtained from MAP API, signed by authority accepted by token issuer.
    * Emits Transfer event.
    *
-   * @param to The address to send tokens to.
-   * @param value The amount of tokens to send.
-   * @param nonce Token transfer nonce, can not repeat nonce for subsequent
+   * @param _to The address to send tokens to.
+   * @param _value The amount of tokens to send.
+   * @param _nonce Token transfer nonce, can not repeat nonce for subsequent
    * token transfers.
-   * @param expirationTime Timestamp until transfer request is valid.
-   * @param hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
-   * @param signature Ethereum ECDSA signature of msgHash signed by one of authorities.
-   * @return True on success.
+   * @param _expirationTime Timestamp until transfer request is valid.
+   * @param _hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
+   * @param _signature Ethereum ECDSA signature of msgHash signed by one of authorities.
+   * @return true on success.
    */
   function transferToken(
-    address to,
-    uint256 value,
-    uint256 nonce,
-    uint256 expirationTime,
-    bytes32 hash,
-    bytes calldata signature
+    address _to,
+    uint256 _value,
+    uint256 _nonce,
+    uint256 _expirationTime,
+    bytes32 _hash,
+    bytes calldata _signature
   ) external returns (bool) {
-    return _transferToken(msg.sender, to, value, nonce, expirationTime, hash, signature);
+    return _transferToken(msg.sender, _to, _value, _nonce, _expirationTime, _hash, _signature);
   }
 
   /**
@@ -191,27 +182,27 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * Emits Transfer event.
    * Emits Approval event.
    *
-   * @param from The address to transfer from.
-   * @param to The address to send tokens to.
-   * @param value The amount of tokens to send.
-   * @param nonce Token transfer nonce, can not repeat nance for subsequent
+   * @param _from The address to transfer from.
+   * @param _to The address to send tokens to.
+   * @param _value The amount of tokens to send.
+   * @param _nonce Token transfer nonce, can not repeat nance for subsequent
    * token transfers.
-   * @param expirationTime Timestamp until transfer request is valid.
-   * @param hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
-   * @param signature Ethereum ECDSA signature of msgHash signed by one of authorities.
-   * @return True on success.
+   * @param _expirationTime Timestamp until transfer request is valid.
+   * @param _hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
+   * @param _signature Ethereum ECDSA signature of msgHash signed by one of authorities.
+   * @return true on success.
    */
   function transferTokenFrom(
-    address from,
-    address to,
-    uint256 value,
-    uint256 nonce,
-    uint256 expirationTime,
-    bytes32 hash,
-    bytes calldata signature
+    address _from,
+    address _to,
+    uint256 _value,
+    uint256 _nonce,
+    uint256 _expirationTime,
+    bytes32 _hash,
+    bytes calldata _signature
   ) external returns (bool) {
-    _transferToken(from, to, value, nonce, expirationTime, hash, signature);
-    _approve(from, msg.sender, _allowances[from][msg.sender].sub(value));
+    _transferToken(_from, _to, _value, _nonce, _expirationTime, _hash, _signature);
+    _approve(_from, msg.sender, allowances[_from][msg.sender].sub(_value));
     return true;
   }
 
@@ -222,17 +213,17 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * Emits Transfer event.
    * Allowed only to token owners. Require 'ForceTransfer' feature enabled.
    *
-   * @param from The address which you want to send tokens from.
-   * @param to The address to send tokens to.
-   * @param value The amount of tokens to send.
-   * @return True on success.
+   * @param _from The address which you want to send tokens from.
+   * @param _to The address to send tokens to.
+   * @param _value The amount of tokens to send.
+   * @return true on success.
    */
   function transferTokenForced(
-    address from,
-    address to,
-    uint256 value
-  ) external enabled(_features.ForceTransfer()) onlyOwner returns (bool) {
-    _transfer(from, to, value);
+    address _from,
+    address _to,
+    uint256 _value
+  ) external enabled(features.ForceTransfer()) onlyOwner returns (bool) {
+    _transfer(_from, _to, _value);
     return true;
   }
 
@@ -244,7 +235,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * @return Nonce for next transfer function.
    */
   function getTransferNonce() external view returns (uint256) {
-    return _nonce[msg.sender];
+    return nonce[msg.sender];
   }
 
   /**
@@ -252,8 +243,8 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    *
    * @return Nonce for next transfer function.
    */
-  function getTransferNonce(address account) external view returns (uint256) {
-    return _nonce[account];
+  function getTransferNonce(address _account) external view returns (uint256) {
+    return nonce[_account];
   }
 
   // Account token burning management
@@ -262,15 +253,15 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * account.
    * Emits Transfer event, with to address set to zero.
    *
-   * @return True on success.
+   * @return true on success.
    */
-  function burnAccount(address account, uint256 value)
+  function burnAccount(address _account, uint256 _value)
     external
-    enabled(_features.AccountBurning())
+    enabled(features.AccountBurning())
     onlyOwner
     returns (bool)
   {
-    _burn(account, value);
+    _burn(_account, _value);
     return true;
   }
 
@@ -281,10 +272,10 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * Emits Transfer event, with to address set to zero.
    * Allowed only to manager.
    *
-   * @return True on success.
+   * @return true on success.
    */
-  function burn(address account, uint256 value) external onlyManager returns (bool) {
-    _burn(account, value);
+  function burn(address _account, uint256 _value) external onlyManager returns (bool) {
+    _burn(_account, _value);
     return true;
   }
 
@@ -294,38 +285,32 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * Emits Transfer event, with from address set to zero.
    * Allowed only to manager.
    *
-   * @return True on success.
+   * @return true on success.
    */
-  function mint(address account, uint256 value) external onlyManager returns (bool) {
-    _mint(account, value);
+  function mint(address _account, uint256 _value) external onlyManager returns (bool) {
+    _mint(_account, _value);
     return true;
   }
 
   // ERC20 part-like interface methods
-  /**
-   * @dev Total number of tokens in existence.
-   */
-  function totalSupply() public view returns (uint256) {
-    return _totalSupply;
-  }
 
   /**
    * @dev Gets the balance of the specified address.
-   * @param owner The address to query the balance of.
+   * @param _owner The address to query the balance of.
    * @return A uint256 representing the amount owned by the passed address.
    */
-  function balanceOf(address owner) public view returns (uint256) {
-    return _balances[owner];
+  function balanceOf(address _owner) public view returns (uint256) {
+    return balances[_owner];
   }
 
   /**
    * @dev Function to check the amount of tokens that an owner allowed to a spender.
-   * @param owner address The address which owns the funds.
-   * @param spender address The address which will spend the funds.
+   * @param _owner address The address which owns the funds.
+   * @param _spender address The address which will spend the funds.
    * @return A uint256 specifying the amount of tokens still available for the spender.
    */
-  function allowance(address owner, address spender) public view returns (uint256) {
-    return _allowances[owner][spender];
+  function allowance(address _owner, address _spender) public view returns (uint256) {
+    return allowances[_owner][_spender];
   }
 
   /**
@@ -336,39 +321,39 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * backwards compatibility with contracts deployed before
    * Emit Approval event.
    *
-   * @param spender The address which will spend the funds.
-   * @param value The amount of tokens to be spent.
+   * @param _spender The address which will spend the funds.
+   * @param _value The amount of tokens to be spent.
    */
-  function approve(address spender, uint256 value) public returns (bool) {
-    _approve(msg.sender, spender, value);
+  function approve(address _spender, uint256 _value) public returns (bool) {
+    _approve(msg.sender, _spender, _value);
     return true;
   }
 
-  function transfer(address to, uint256 value) external returns (bool) {
-    require(_features.checkTransfer(msg.sender, to), 'Feature transfer check');
+  function transfer(address _to, uint256 _value) external returns (bool) {
+    require(features.checkTransfer(msg.sender, _to), 'Feature transfer check');
 
-    if (_rules != ITransferRules(0)) {
-      require(_rules.doTransfer(msg.sender, to, value), 'Transfer failed');
+    if (rules != ITransferRules(0)) {
+      require(rules.doTransfer(msg.sender, _to, _value), 'Transfer failed');
     } else {
-      _transfer(msg.sender, to, value);
+      _transfer(msg.sender, _to, _value);
     }
 
     return true;
   }
 
   function transferFrom(
-    address from,
-    address to,
-    uint256 value
+    address _from,
+    address _to,
+    uint256 _value
   ) public returns (bool) {
-    require(_features.checkTransfer(from, to), 'Feature transfer check');
+    require(features.checkTransfer(_from, _to), 'Feature transfer check');
 
-    if (_rules != ITransferRules(0)) {
-      _approve(from, msg.sender, _allowances[from][msg.sender].sub(value));
-      require(_rules.doTransfer(from, to, value), 'Transfer failed');
+    if (rules != ITransferRules(0)) {
+      _approve(_from, msg.sender, allowances[_from][msg.sender].sub(_value));
+      require(rules.doTransfer(_from, _to, _value), 'Transfer failed');
     } else {
-      _approve(from, msg.sender, _allowances[from][msg.sender].sub(value));
-      _transfer(from, to, value);
+      _approve(_from, msg.sender, allowances[_from][msg.sender].sub(_value));
+      _transfer(_from, _to, _value);
     }
 
     return true;
@@ -377,22 +362,22 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
   /**
    * @dev Atomically increase approved tokens to the spender on behalf of msg.sender.
    *
-   * @param spender The address which will spend the funds.
-   * @param value The amount of tokens that allowance will be increase for.
+   * @param _spender The address which will spend the funds.
+   * @param _value The amount of tokens that allowance will be increase for.
    */
-  function increaseAllowance(address spender, uint256 value) external returns (bool) {
-    _approve(msg.sender, spender, _allowances[msg.sender][spender].add(value));
+  function increaseAllowance(address _spender, uint256 _value) external returns (bool) {
+    _approve(msg.sender, _spender, allowances[msg.sender][_spender].add(_value));
     return true;
   }
 
   /**
    * @dev Atomically decrease approved tokens to the spender on behalf of msg.sender.
    *
-   * @param spender The address which will spend the funds.
-   * @param value The amount of tokens that allowance will be reduced for.
+   * @param _spender The address which will spend the funds.
+   * @param _value The amount of tokens that allowance will be reduced for.
    */
-  function decreaseAllowance(address spender, uint256 value) external returns (bool) {
-    _approve(msg.sender, spender, _allowances[msg.sender][spender].sub(value));
+  function decreaseAllowance(address _spender, uint256 _value) external returns (bool) {
+    _approve(msg.sender, _spender, allowances[msg.sender][_spender].sub(_value));
     return true;
   }
 
@@ -402,84 +387,84 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * signature obtained from MAP API, signed by authority accepted by token issuer.
    * Emits Transfer event.
    *
-   * @param from The address to transfer from.
-   * @param to The address to send tokens to.
-   * @param value The amount of tokens to send.
-   * @param nonce Token transfer nonce, can not repeat nance for subsequent
+   * @param _from The address to transfer from.
+   * @param _to The address to send tokens to.
+   * @param _value The amount of tokens to send.
+   * @param _nonce Token transfer nonce, can not repeat nance for subsequent
    * token transfers.
-   * @param expirationTime Timestamp until transfer request is valid.
-   * @param hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
-   * @param signature Ethereum ECDSA signature of msgHash signed by one of authorities.
-   * @return True on success.
+   * @param _expirationTime Timestamp until transfer request is valid.
+   * @param _hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
+   * @param _signature Ethereum ECDSA signature of msgHash signed by one of authorities.
+   * @return true on success.
    */
   function _transferToken(
-    address from,
-    address to,
-    uint256 value,
-    uint256 nonce,
-    uint256 expirationTime,
-    bytes32 hash,
-    bytes memory signature
+    address _from,
+    address _to,
+    uint256 _value,
+    uint256 _nonce,
+    uint256 _expirationTime,
+    bytes32 _hash,
+    bytes memory _signature
   ) internal returns (bool) {
-    if (address(_restrictions) != address(0)) {
-      require(_restrictions.authorize(from, to, value), 'transferToken restrictions failed');
+    if (address(restrictions) != address(0)) {
+      require(restrictions.authorize(_from, _to, _value), 'transferToken restrictions failed');
     }
 
-    require(now <= expirationTime, 'transferToken params expired');
-    require(nonce == _nonce[from], 'transferToken params wrong nonce');
+    require(now <= _expirationTime, 'transferToken params expired');
+    require(_nonce == nonce[_from], 'transferToken params wrong nonce');
 
-    bytes32 kyaHash = _assetRegistry.getKYAHash(address(this));
+    bytes32 kyaHash = assetRegistry.getKYAHash(address(this));
 
     require(
-      keccak256(abi.encodePacked(kyaHash, from, to, value, nonce, expirationTime)) == hash,
+      keccak256(abi.encodePacked(kyaHash, _from, _to, _value, _nonce, _expirationTime)) == _hash,
       'transferToken params bad hash'
     );
     require(
-      _roles.isAuthority(hash.toEthSignedMessageHash().recover(signature)),
+      roles.isAuthority(_hash.toEthSignedMessageHash().recover(_signature)),
       'transferToken params not authority'
     );
 
-    require(_features.checkTransfer(from, to), 'Feature transfer check');
-    _transfer(from, to, value);
+    require(features.checkTransfer(_from, _to), 'Feature transfer check');
+    _transfer(_from, _to, _value);
 
     return true;
   }
 
   /**
    * @dev Transfer token for a specified addresses.
-   * @param from The address to transfer from.
-   * @param to The address to transfer to.
-   * @param value The amount to be transferred.
+   * @param _from The address to transfer from.
+   * @param _to The address to transfer to.
+   * @param _value The amount to be transferred.
    */
   function _transfer(
-    address from,
-    address to,
-    uint256 value
+    address _from,
+    address _to,
+    uint256 _value
   ) internal {
-    require(to != address(0), 'Recipient is zero address');
+    require(_to != address(0), 'Recipient is zero address');
 
-    _balances[from] = _balances[from].sub(value);
-    _balances[to] = _balances[to].add(value);
+    balances[_from] = balances[_from].sub(_value);
+    balances[_to] = balances[_to].add(_value);
 
-    _nonce[from]++;
+    nonce[_from]++;
 
-    emit Transfer(from, to, value);
+    emit Transfer(_from, _to, _value);
   }
 
   /**
    * @dev Internal function that burns an amount of the token of a given
    * account.
    * Emit Transfer event.
-   * @param account The account whose tokens will be burnt.
-   * @param value The amount that will be burnt.
+   * @param _account The account whose tokens will be burnt.
+   * @param _value The amount that will be burnt.
    */
-  function _burn(address account, uint256 value) internal {
-    require(account != address(0), 'burning from zero address');
+  function _burn(address _account, uint256 _value) internal {
+    require(_account != address(0), 'burning from zero address');
 
-    _totalSupply = _totalSupply.sub(value);
-    _balances[account] = _balances[account].sub(value);
+    totalSupply = totalSupply.sub(_value);
+    balances[_account] = balances[_account].sub(_value);
 
-    emit Transfer(account, address(0), value);
+    emit Transfer(_account, address(0), _value);
   }
 
   /**
@@ -487,21 +472,21 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * account.
    * Emit Transfer event.
    *
-   * @param account The account where tokens will be minted.
-   * @param value The amount that will be minted.
+   * @param _account The account where tokens will be minted.
+   * @param _value The amount that will be minted.
    */
-  function _mint(address account, uint256 value) internal {
-    require(account != address(0), 'minting to zero address');
+  function _mint(address _account, uint256 _value) internal {
+    require(_account != address(0), 'minting to zero address');
 
-    _totalSupply = _totalSupply.add(value);
+    totalSupply = totalSupply.add(_value);
     require(
-      _totalSupply <= _maxTotalSupply || _maxTotalSupply == 0,
+      totalSupply <= maxTotalSupply || maxTotalSupply == 0,
       'trying to mint too many tokens!'
     );
 
-    _balances[account] = _balances[account].add(value);
+    balances[_account] = balances[_account].add(_value);
 
-    emit Transfer(address(0), account, value);
+    emit Transfer(address(0), _account, _value);
   }
 
   /**
@@ -512,21 +497,21 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * backwards compatibility with contracts deployed before
    * Emit Approval event.
    *
-   * @param owner The address that owns the tokens.
-   * @param spender The address that will spend the tokens.
-   * @param value The number of tokens that can be spent.
+   * @param _owner The address that owns the tokens.
+   * @param _spender The address that will spend the tokens.
+   * @param _value The number of tokens that can be spent.
    */
   function _approve(
-    address owner,
-    address spender,
-    uint256 value
+    address _owner,
+    address _spender,
+    uint256 _value
   ) internal {
-    require(owner != address(0), 'approve from the zero address');
-    require(spender != address(0), 'approve to the zero address');
+    require(_owner != address(0), 'approve from the zero address');
+    require(_spender != address(0), 'approve to the zero address');
 
-    _allowances[owner][spender] = value;
+    allowances[_owner][_spender] = _value;
 
-    emit Approval(owner, spender, value);
+    emit Approval(_owner, _spender, _value);
   }
 
   /**
@@ -537,7 +522,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    *
    * @param _addresses an array of addresses to transfer to
    * @param _values an array of values
-   * @return True on success
+   * @return true on success
    */
   function bulkTransfer(address[] calldata _addresses, uint256[] calldata _values)
     external
@@ -550,7 +535,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     for (uint256 i = 0; i < count; i++) {
       address to = _addresses[i];
       uint256 value = _values[i];
-      _approve(owner(), msg.sender, _allowances[owner()][msg.sender].sub(value));
+      _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
       _transfer(owner(), to, value);
     }
 
@@ -567,7 +552,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    *
    * @param _lotSize number of tokens in the lot
    * @param _transfers an array or encoded transfers to perform
-   * @return True on success
+   * @return true on success
    */
   function encodedBulkTransfer(uint160 _lotSize, uint256[] calldata _transfers)
     external
@@ -579,17 +564,15 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
       uint256 tr = _transfers[i];
       uint256 value = (tr >> 160) * _lotSize;
       address to = address(tr & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-      _approve(owner(), msg.sender, _allowances[owner()][msg.sender].sub(value));
+      _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
       _transfer(owner(), to, value);
     }
 
     return true;
   }
 
-  address payable public fundRaiserAddr;
-
-  function setFundRaiseAddr(address payable fundContractAddr) external onlyOwner returns (bool) {
-    fundRaiserAddr = fundContractAddr;
+  function setFundraiser(address payable _fundraiser) external onlyOwner returns (bool) {
+    fundraiser = _fundraiser;
 
     return true;
   }

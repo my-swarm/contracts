@@ -26,7 +26,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
   }
 
   modifier onlyDelegate(address src20) {
-    require(SRC20(src20)._roles().isDelegate(msg.sender), 'Caller not delegate');
+    require(SRC20(src20).roles().isDelegate(msg.sender), 'Caller not delegate');
     _;
   }
 

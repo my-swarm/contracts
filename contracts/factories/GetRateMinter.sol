@@ -30,7 +30,7 @@ contract GetRateMinter {
 
   modifier onlyTokenOwner(address src20) {
     require(
-      msg.sender == Ownable(src20).owner() || msg.sender == ISRC20(src20).fundRaiserAddr(),
+      msg.sender == Ownable(src20).owner() || msg.sender == ISRC20(src20).fundraiser(),
       'caller not token owner'
     );
     _;
@@ -101,7 +101,7 @@ contract GetRateMinter {
   {
     uint256 numSWMTokens = calcStake(_asset.getNetAssetValueUSD(src20));
 
-    if (msg.sender == ISRC20(src20).fundRaiserAddr())
+    if (msg.sender == ISRC20(src20).fundraiser())
       require(
         _registry.mintSupply(src20, Ownable(src20).owner(), numSWMTokens, numSRC20Tokens),
         'supply minting failed'

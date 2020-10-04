@@ -48,12 +48,7 @@ contract SRC20Factory {
     string memory kyaUrl,
     uint256 netAssetValueUSD,
     address[] memory addressList
-  )
-    public
-    returns (
-      bool
-    )
-  {
+  ) public returns (bool) {
     address token = address(new SRC20(name, symbol, decimals, maxTotalSupply, addressList));
 
     _registry.put(
@@ -64,7 +59,6 @@ contract SRC20Factory {
     );
 
     IAssetRegistry(addressList[5]).addAsset(token, kyaHash, kyaUrl, netAssetValueUSD);
-    console.log('emitting', token);
     emit SRC20Created(token);
 
     return true;

@@ -44,7 +44,7 @@ async function deployTokenContracts(baseContracts, options) {
   const {src20Registry, src20Factory, assetRegistry, getRateMinter} = baseContracts;
   const transferRules = await deployContract('TransferRules', [options.issuerAccount]);
   const featured = await deployContract('Featured', [options.issuerAccount, options.features || 0]);
-  const src20Roles = await deployContract('SRC20Roles', [
+  const roles = await deployContract('SRC20Roles', [
     options.issuerAccount,
     src20Registry.address,
     ZERO_ADDRESS,
@@ -62,7 +62,7 @@ async function deployTokenContracts(baseContracts, options) {
       options.issuerAccount,
       ZERO_ADDRESS, // restrictions - not implemented
       transferRules.address,
-      src20Roles.address,
+      roles.address,
       featured.address,
       assetRegistry.address,
       getRateMinter.address,
@@ -71,7 +71,7 @@ async function deployTokenContracts(baseContracts, options) {
   const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
   const src20 = await ethers.getContractAt('SRC20', src20Address);
 
-  return {transferRules, featured, src20Roles, src20};
+  return {transferRules, featured, roles, src20};
 }
 
 async function getEvent(transaction, eventName) {
