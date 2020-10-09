@@ -31,11 +31,11 @@ contract FundraiserMock is Fundraiser {
   }
 
   function getBufferedContributions(address contributor) public view returns (uint256) {
-    return unqualifiedContributions[contributor];
+    return pendingContributions[contributor];
   }
 
   function getBalanceToken(address contributor) public view returns (uint256) {
-    return qualifiedContributions[contributor] + unqualifiedContributions[contributor];
+    return qualifiedContributions[contributor] + pendingContributions[contributor];
   }
 
   function acceptContribution(address contributor) external pure returns (bool) {

@@ -535,6 +535,9 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     for (uint256 i = 0; i < count; i++) {
       address to = _addresses[i];
       uint256 value = _values[i];
+      // todo: if owner===sender, do we care about allowance?
+      // todo: or more generally. If this can only be done by delegates, why allowance?
+      // todo: owner wants to limit how much the delegate can bulk transfer? I guess
       _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
       _transfer(owner(), to, value);
     }

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "buidler test",
-    "compile": "buidler compile",
+    "compile": "buidler compile && node ./scripts/distribute-abis.js",
     "fundraise": "buidler test ./test/fundraising/ContributeFundsLocal.js",
     "deploy:base": "buidler run scripts/deploy-base.js --show-stack-traces --verbose --network",
     "deploy:issuance": "buidler run scripts/deploy-issuance.js --show-stack-traces --verbose --network",
@@ -28,6 +28,7 @@
     "ethereum-waffle": "^3.0.2",
     "ethers": "^5.0.8",
     "ganache-time-traveler": "^1.0.14",
+    "lodash": "^4.17.20",
     "moment": "^2.27.0",
     "prettier": "^2.1.2",
     "prettier-plugin-solidity": "^1.0.0-alpha.58",
@@ -35,6 +36,7 @@
     "solhint-plugin-prettier": "^0.0.5"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^2.5.1"
+    "@openzeppelin/contracts": "^2.5.1",
+    "json-format": "^1.0.1"
   }
 }

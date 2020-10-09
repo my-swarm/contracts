@@ -17,6 +17,7 @@ contract SRC20Roles is ISRC20Roles, DelegateRole, AuthorityRole, Managed, Ownabl
     address rules
   ) public Managed(manager) {
     _transferOwnership(owner);
+    _addDelegate(owner);
     if (rules != address(0)) {
       _addAuthority(rules);
     }
@@ -47,7 +48,8 @@ contract SRC20Roles is ISRC20Roles, DelegateRole, AuthorityRole, Managed, Ownabl
   }
 
   function isDelegate(address account) external view returns (bool) {
-    return _hasDelegate(account);
+    // todo: owner automatically a delegate? makes sense to me...
+    return isOwner() || _hasDelegate(account);
   }
 
   /**

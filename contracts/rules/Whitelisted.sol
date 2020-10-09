@@ -1,7 +1,6 @@
 pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/ownership/Ownable.sol';
-import '../interfaces/ISRC20.sol';
 
 /**
  * @title Whitelisted transfer restriction example
@@ -12,29 +11,36 @@ import '../interfaces/ISRC20.sol';
 contract Whitelisted is Ownable {
   mapping(address => bool) public _whitelisted;
 
-  function whitelistAccount(address account) external onlyOwner {
-    _whitelisted[account] = true;
+  event AccountWhitelisted(address account, address sender);
+  event AccountUnWhitelisted(address account, address sender);
+
+  function whitelistAccount(address _account) external onlyOwner {
+    _whitelisted[_account] = true;
+    emit AccountWhitelisted(_account, msg.sender);
   }
 
-  function bulkWhitelistAccount(address[] calldata accounts) external onlyOwner {
-    for (uint256 i = 0; i < accounts.length; i++) {
-      address account = accounts[i];
+  function bulkWhitelistAccount(address[] calldata _accounts) external onlyOwner {
+    for (uint256 i = 0; i < _accounts.length; i++) {
+      address account = _accounts[i];
       _whitelisted[account] = true;
+      emit AccountWhitelisted(account, msg.sender);
     }
   }
 
-  function unWhitelistAccount(address account) external onlyOwner {
-    delete _whitelisted[account];
+  function unWhitelistAccount(address _account) external onlyOwner {
+    delete _whitelisted[_account];
+    emit AccountUnWhitelisted(_account, msg.sender);
   }
 
-  function bulkUnWhitelistAccount(address[] calldata accounts) external onlyOwner {
-    for (uint256 i = 0; i < accounts.length; i++) {
-      address account = accounts[i];
+  function bulkUnWhitelistAccount(address[] calldata _accounts) external onlyOwner {
+    for (uint256 i = 0; i < _accounts.length; i++) {
+      address account = _accounts[i];
       delete _whitelisted[account];
+      emit AccountUnWhitelisted(account, msg.sender);
     }
   }
 
-  function isWhitelisted(address account) public view returns (bool) {
-    return _whitelisted[account];
+  function isWhitelisted(address _account) public view returns (bool) {
+    return _whitelisted[_account];
   }
 }

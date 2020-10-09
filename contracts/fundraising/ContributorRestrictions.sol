@@ -14,14 +14,14 @@ import '../roles/DelegateRole.sol';
  * the beginning of the fundraise.
  */
 contract ContributorRestrictions is IContributorRestrictions, Whitelisted, DelegateRole {
-  address fundraise;
+  address fundraiser;
   uint256 public maxCount;
   uint256 public minAmount;
   uint256 public maxAmount;
 
   modifier onlyAuthorised() {
     require(
-      msg.sender == owner() || msg.sender == fundraise || _hasDelegate(msg.sender),
+      msg.sender == owner() || msg.sender == fundraiser || _hasDelegate(msg.sender),
       'ContributorRestrictions: caller is not authorised'
     );
     _;
@@ -34,22 +34,22 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     uint256 _maxAmount
   ) public Ownable() {
     require(_maxAmount >= _minAmount, 'Maximum amount has to be >= minInvestmentAmount');
-    fundraise = _fundraiser;
+    fundraiser = _fundraiser;
     maxCount = _maxCount;
     minAmount = _minAmount;
     maxAmount = _maxAmount;
   }
 
   function checkMinInvestment(uint256 _amount) public view returns (bool) {
-    return minAmount == 0 ? true : _amount >= minAmount;
+    return minAmount == 0 || _amount >= minAmount;
   }
 
   function checkMaxInvestment(uint256 _amount) public view returns (bool) {
-    return maxAmount == 0 ? true : _amount <= maxAmount;
+    return maxAmount == 0 || _amount <= maxAmount;
   }
 
   function checkMaxContributors() public view returns (bool) {
-    return maxCount == 0 ? true : Fundraiser(fundraise).numContributors() < maxCount;
+    return maxCount == 0 || Fundraiser(fundraiser).numContributors() < maxCount;
   }
 
   function checkRestrictions(address _account) external view returns (bool) {
@@ -61,7 +61,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
   function whitelistAccount(address _account) external onlyAuthorised {
     _whitelisted[_account] = true;
     require(
-      Fundraiser(fundraise).acceptContributor(_account),
+      Fundraiser(fundraiser).acceptContributor(_account),
       'Whitelisting failed on processing contributions!'
     );
     emit AccountWhitelisted(_account, msg.sender);
@@ -70,12 +70,13 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
   function unWhitelistAccount(address _account) external onlyAuthorised {
     delete _whitelisted[_account];
     require(
-      Fundraiser(fundraise).removeContributor(_account),
+      Fundraiser(fundraiser).removeContributor(_account),
       'UnWhitelisting failed on processing contributions!'
     );
     emit AccountUnWhitelisted(_account, msg.sender);
   }
 
+  // todo: why are not the bulkk methods accepting/removing contributors?
   function bulkWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
@@ -84,11 +85,11 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     }
   }
 
-  function bulkUnWhitelistAccount(address[] calldata accounts) external onlyAuthorised {
-    uint256 accLen = accounts.length;
+  function bulkUnWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
+    uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
-      delete _whitelisted[accounts[i]];
-      emit AccountUnWhitelisted(accounts[i], msg.sender);
+      delete _whitelisted[_accounts[i]];
+      emit AccountUnWhitelisted(_accounts[i], msg.sender);
     }
   }
 }

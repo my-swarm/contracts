@@ -1,4 +1,4 @@
-pragma solidity ^0.5.10;
+pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
@@ -13,10 +13,20 @@ import '../interfaces/IContributorRestrictions.sol';
 contract Fundraiser {
   using SafeMath for uint256;
 
-  event ContributionReceived(address indexed account, uint256 amount);
-  event ContributionRefunded(address indexed account, uint256 amount);
+  event ContributorAdded(address account);
   event ContributorAccepted(address account);
   event ContributorRemoved(address account);
+
+  // new pending contribution added (by unqualified user)
+  event ContributionPending(address indexed account, uint256 amount);
+  // new qualified contribution added (by qualified user)
+  event ContributionAdded(address indexed account, uint256 amount);
+  // pending contribution converted to qualified
+  event PendingContributionAccepted(address indexed account, uint256 amount);
+
+  event ContributionRefunded(address indexed account, uint256 amount);
+  event ContributionWithdrawn(address indexed account, uint256 amount);
+
   event TokensClaimed(address indexed account, uint256 amount);
   event FundsWithdrawal(address indexed account, uint256 amount);
   event ReferralCollected(address indexed account, uint256 amount);
@@ -26,7 +36,7 @@ contract Fundraiser {
   // from constructor
   string public label;
   address public token;
-  uint256 public tokensToMint;
+  uint256 public supply;
   uint256 public startDate;
   uint256 public endDate;
   uint256 public softCap;
@@ -47,15 +57,15 @@ contract Fundraiser {
   // state
   uint256 public numContributors = 0;
   uint256 public amountQualified = 0;
-  uint256 public amountUnqualified = 0;
+  uint256 public amountPending = 0;
   uint256 public amountWithdrawn = 0;
   bool public isFinished = false;
-  bool public isCancelled = false;
+  bool public isCanceled = false;
   bool public isSetup = false;
   bool public isHardcapReached = false;
 
   // per contributor, these are contributors that have not been whitelisted yet
-  mapping(address => uint256) public unqualifiedContributions;
+  mapping(address => uint256) public pendingContributions;
 
   // per whitelisted contributor, qualified amount
   // a qualified amount is an amount that has passed min/max checks
@@ -65,7 +75,7 @@ contract Fundraiser {
   mapping(address => bool) public contributors;
 
   // referral link of contributor
-  mapping(address => address) public referral;
+  mapping(address => address) public referrals;
 
   // total funds directed to the affiliate from referrals
   mapping(address => uint256) public totalAffiliateClaim;
@@ -111,7 +121,7 @@ contract Fundraiser {
   constructor(
     string memory _label,
     address _token,
-    uint256 _tokensToMint,
+    uint256 _supply,
     uint256 _startDate,
     uint256 _endDate,
     uint256 _softCap,
@@ -121,7 +131,7 @@ contract Fundraiser {
     owner = msg.sender;
     label = _label;
     token = _token;
-    tokensToMint = _tokensToMint;
+    supply = _supply;
     startDate = _startDate;
     endDate = _endDate;
     softCap = _softCap;
@@ -131,7 +141,7 @@ contract Fundraiser {
   /**
    *  Set up additional parameters that didn't fit in the constructor
    *  All variables cannot be in the constructor because we get "stack too deep" error
-   *  NOTE : If tokenPrice is not zero, tokensToMint is ignored
+   *  NOTE : If tokenPrice is not zero, supply is ignored
    */
   function setup(
     address _baseCurrency,
@@ -141,9 +151,9 @@ contract Fundraiser {
     address _minter,
     bool _contributionsLocked
   ) external onlyOwner() {
-    require(_tokenPrice > 0 || tokensToMint > 0, 'Either price or amount to mint is needed');
+    require(_tokenPrice > 0 || supply > 0, 'Either price or amount to mint is needed');
     require(!isSetup, 'Contract is already set up');
-    require(!isCancelled, 'Fundsraiser is cancelled');
+    require(!isCanceled, 'Fundraiser is canceled');
     // I think this is a bullshit condition that makes testing ver annoying
     // I don't see a reason for this as long as setup is a condition for contributions and other actions
     // which it is by the ongoing modifier
@@ -164,8 +174,8 @@ contract Fundraiser {
    *
    *  @return true on success
    */
-  function cancelFundraise() external onlyOwner() returns (bool) {
-    isCancelled = true;
+  function cancel() external onlyOwner() returns (bool) {
+    isCanceled = true;
     contributionsLocked = false;
     return true;
   }
@@ -210,15 +220,16 @@ contract Fundraiser {
     onlyContributorRestrictions
     returns (bool)
   {
-    uint256 amount = unqualifiedContributions[contributor];
+    uint256 amount = pendingContributions[contributor];
     // process contribution
     if (amount > 0) {
-      unqualifiedContributions[contributor] = 0;
-      amountUnqualified = amountUnqualified.sub(amount);
+      pendingContributions[contributor] = 0;
+      amountPending = amountPending.sub(amount);
       string memory link = IAffiliateManager(affiliateManager).getAffiliateLink(
-        referral[contributor]
+        referrals[contributor]
       );
       _contribute(contributor, amount, link);
+      emit PendingContributionAccepted(contributor, pendingContributions[contributor]);
     }
     emit ContributorAccepted(contributor);
     return true;
@@ -254,12 +265,10 @@ contract Fundraiser {
    */
   function getRefund() external returns (bool) {
     require(
-      isCancelled == true ||
-        block.timestamp > endDate.add(expirationTime) ||
-        contributionsLocked == false,
-      'Fundraise has not finished!'
+      isCanceled || block.timestamp > endDate.add(expirationTime) || !contributionsLocked,
+      'Condition for refund not met (event canceled, expired or contributions not locked)!'
     );
-    if (contributionsLocked == false) {
+    if (!contributionsLocked) {
       _removeContributor(msg.sender);
       _removeAffiliate(msg.sender);
     }
@@ -314,6 +323,7 @@ contract Fundraiser {
     require(IERC20(token).transfer(msg.sender, amount), 'Token transfer failed');
 
     emit ReferralCollected(msg.sender, amount);
+    return true;
   }
 
   /**
@@ -329,32 +339,51 @@ contract Fundraiser {
     uint256 amount,
     string memory affiliateLink
   ) internal returns (bool) {
-    _addAffiliate(contributor, affiliateLink, amount);
+    require(
+      IContributorRestrictions(contributorRestrictions).checkMinInvestment(amount),
+      'Cannot invest less than minAmount'
+    );
 
-    // checks if contribution amount meets minimum requirements
-    if (!IContributorRestrictions(contributorRestrictions).checkMinInvestment(amount)) {
-      return false;
+    bool qualified = IContributorRestrictions(contributorRestrictions).isWhitelisted(contributor);
+    uint256 maxAmount = IContributorRestrictions(contributorRestrictions).maxInvestmentAmount();
+    uint256 refund = 0;
+
+    uint256 currentAmount = qualified
+      ? qualifiedContributions[contributor]
+      : pendingContributions[contributor];
+    uint256 newAmount = currentAmount.add(amount);
+    if (!IContributorRestrictions(contributorRestrictions).checkMaxInvestment(newAmount)) {
+      refund = newAmount.sub(maxAmount);
+      amount = amount.sub(refund);
     }
 
-    // check if user is whitelisted
-    if (IContributorRestrictions(contributorRestrictions).isWhitelisted(contributor)) {
-      _addContributor(contributor);
-      uint256 refund = _updateContributions(contributor, amount, true);
-      (bool pass, uint256 overAmount) = _checkHardCap(qualifiedContributions[contributor]);
-      if (overAmount > 0 || refund > 0) {
-        uint256 totalRefund = overAmount.add(refund);
-        _refund(contributor, totalRefund);
+    if (qualified) {
+      (bool hardcapReached, uint256 overHardcap) = _checkHardCap(amountQualified + amount);
+      if (hardcapReached) {
+        isHardcapReached = hardcapReached;
+        refund = refund.add(overHardcap);
+        amount = amount.sub(overHardcap);
       }
-      if (pass) {
-        isHardcapReached = true;
-      }
-    } else {
-      _updateContributions(contributor, amount, false);
     }
 
-    // @cicnos check if raise has reached cap
-    // check if qualifiedSums meet criteria
-    emit ContributionReceived(contributor, amount);
+    if (amount > 0) {
+      if (qualified) {
+        qualifiedContributions[contributor] = qualifiedContributions[contributor].add(amount);
+        amountQualified = amountQualified.add(amount);
+        _addContributor(contributor);
+        _addAffiliate(contributor, affiliateLink, amount);
+        emit ContributionPending(contributor, amount);
+      } else {
+        pendingContributions[contributor] = pendingContributions[contributor].add(amount);
+        amountPending = amountPending.add(amount);
+        emit ContributionAdded(contributor, amount);
+      }
+    }
+
+    if (refund > 0) {
+      _refund(contributor, refund);
+    }
+
     return true;
   }
 
@@ -372,47 +401,6 @@ contract Fundraiser {
     }
   }
 
-  /**
-   *  Updates investor contributions
-   *
-   *  NOTE: this skips the minAmount checks!
-   *  NOTE: the maxAmount check is still performed
-   *
-   *  @param contributor the address of the contributor we are processing
-   *         buffered contributions for
-   *  @return value that is above the max investment amount
-   */
-  function _updateContributions(
-    address contributor,
-    uint256 amount,
-    bool qualified
-  ) internal returns (uint256) {
-    uint256 maxInvestment = IContributorRestrictions(contributorRestrictions).minInvestmentAmount();
-    uint256 refund;
-    if (
-      maxInvestment == 0 ||
-      IContributorRestrictions(contributorRestrictions).checkMaxInvestment(amount)
-    ) {
-      if (qualified) {
-        qualifiedContributions[contributor] = qualifiedContributions[contributor].add(amount);
-        amountQualified = amountQualified.add(amount);
-      } else {
-        unqualifiedContributions[contributor] = unqualifiedContributions[contributor].add(amount);
-        amountUnqualified = amountUnqualified.add(amount);
-      }
-      refund = 0;
-    } else {
-      if (qualified) {
-        refund = (qualifiedContributions[contributor]).sub(maxInvestment);
-        qualifiedContributions[contributor] = maxInvestment;
-      } else {
-        refund = (unqualifiedContributions[contributor]).sub(maxInvestment);
-        unqualifiedContributions[contributor] = maxInvestment;
-      }
-    }
-    return refund;
-  }
-
   function _addAffiliate(
     address user,
     string memory affiliateLink,
@@ -424,8 +412,8 @@ contract Fundraiser {
       );
 
       if (affiliate != address(0)) {
-        if (referral[user] == address(0) || referral[user] == affiliate) {
-          referral[user] = affiliate;
+        if (referrals[user] == address(0) || referrals[user] == affiliate) {
+          referrals[user] = affiliate;
           uint256 claim = amount.mul(percentage).div(100);
           affiliateClaim[user] = affiliateClaim[user].add(claim);
           totalAffiliateClaim[affiliate] = totalAffiliateClaim[affiliate].add(claim);
@@ -435,12 +423,12 @@ contract Fundraiser {
   }
 
   function _removeAffiliate(address user) internal {
-    if (referral[user] != address(0)) {
-      totalAffiliateClaim[referral[user]] = totalAffiliateClaim[referral[user]].sub(
+    if (referrals[user] != address(0)) {
+      totalAffiliateClaim[referrals[user]] = totalAffiliateClaim[referrals[user]].sub(
         affiliateClaim[user]
       );
       affiliateClaim[user] = 0;
-      referral[user] = address(0);
+      referrals[user] = address(0);
     }
   }
 
@@ -486,8 +474,8 @@ contract Fundraiser {
     // find out the token price
     if (tokenPrice > 0) return amountQualified.div(tokenPrice);
     else {
-      tokenPrice = amountQualified.div(tokensToMint);
-      return tokensToMint;
+      tokenPrice = amountQualified.div(supply);
+      return supply;
     }
   }
 
@@ -508,13 +496,13 @@ contract Fundraiser {
   }
 
   function _fullRefund(address user) internal returns (bool) {
-    uint256 amount = qualifiedContributions[user].add(unqualifiedContributions[user]);
+    uint256 amount = qualifiedContributions[user].add(pendingContributions[user]);
 
     if (amount > 0) {
       amountQualified = amountQualified.sub(qualifiedContributions[user]);
-      amountUnqualified = amountUnqualified.sub(unqualifiedContributions[user]);
+      amountPending = amountPending.sub(pendingContributions[user]);
       delete qualifiedContributions[user];
-      delete unqualifiedContributions[user];
+      delete pendingContributions[user];
       _refund(user, amount);
       return true;
     } else {
@@ -523,9 +511,11 @@ contract Fundraiser {
   }
 
   function _refund(address contributor, uint256 amount) internal returns (bool) {
-    require(IERC20(baseCurrency).transfer(contributor, amount), 'ERC20 transfer failed!');
+    if (amount > 0) {
+      require(IERC20(baseCurrency).transfer(contributor, amount), 'ERC20 transfer failed!');
 
-    emit ContributionRefunded(contributor, amount);
+      emit ContributionRefunded(contributor, amount);
+    }
     return true;
   }
 }

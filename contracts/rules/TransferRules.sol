@@ -13,41 +13,42 @@ import '../interfaces/ITransferRestrictions.sol';
  */
 contract TransferRules is ITransferRules, ManualApproval, Whitelisted {
   modifier onlySRC20 {
-    require(msg.sender == address(_src20));
+    require(msg.sender == address(src20));
     _;
   }
 
-  constructor(address owner) public {
-    _transferOwnership(owner);
-    _whitelisted[owner] = true;
+  constructor(address _owner) public {
+    _transferOwnership(_owner);
+    _whitelisted[_owner] = true;
   }
 
   /**
    * @dev Set for what contract this rules are.
    *
-   * @param src20 - Address of SRC20 contract.
+   * @param _src20 - Address of SRC20 contract.
    */
-  function setSRC(address src20) external returns (bool) {
-    require(address(_src20) == address(0), 'SRC20 already set');
-    _src20 = ISRC20(src20);
+  function setSRC(address _src20) external returns (bool) {
+    require(address(src20) == address(0), 'SRC20 already set');
+    src20 = ISRC20(_src20);
     return true;
   }
 
   /**
    * @dev Checks if transfer passes transfer rules.
    *
-   * @param from The address to transfer from.
-   * @param to The address to send tokens to.
-   * @param value The amount of tokens to send.
+   * @param _from The address to transfer from.
+   * @param _to The address to send tokens to.
+   * @param _value The amount of tokens to send.
    */
   function authorize(
-    address from,
-    address to,
-    uint256 value
+    address _from,
+    address _to,
+    uint256 _value
   ) public view returns (bool) {
     uint256 v;
-    v = value; // eliminate compiler warning
-    return (isWhitelisted(from) || isGreyListed(from)) && (isWhitelisted(to) || isGreyListed(to));
+    v = _value; // eliminate compiler warning
+    return
+      (isWhitelisted(_from) || isGreylisted(_from)) && (isWhitelisted(_to) || isGreylisted(_to));
   }
 
   /**
@@ -55,23 +56,23 @@ contract TransferRules is ITransferRules, ManualApproval, Whitelisted {
    * on the whitelist funds should be transferred but if one of them are on the
    * grey list token-issuer/owner need to approve transfer.
    *
-   * @param from The address to transfer from.
-   * @param to The address to send tokens to.
-   * @param value The amount of tokens to send.
+   * @param _from The address to transfer from.
+   * @param _to The address to send tokens to.
+   * @param _value The amount of tokens to send.
    */
   function doTransfer(
-    address from,
-    address to,
-    uint256 value
+    address _from,
+    address _to,
+    uint256 _value
   ) external onlySRC20 returns (bool) {
-    require(authorize(from, to, value), 'Transfer not authorized');
+    require(authorize(_from, _to, _value), 'Transfer not authorized');
 
-    if (isGreyListed(from) || isGreyListed(to)) {
-      _transferRequest(from, to, value);
+    if (isGreylisted(_from) || isGreylisted(_to)) {
+      _requestTransfer(_from, _to, _value);
       return true;
     }
 
-    require(ISRC20(_src20).executeTransfer(from, to, value), 'SRC20 transfer failed');
+    require(ISRC20(src20).executeTransfer(_from, _to, _value), 'SRC20 transfer failed');
 
     return true;
   }

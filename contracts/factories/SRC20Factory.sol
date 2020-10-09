@@ -11,7 +11,17 @@ import '../token/AssetRegistry.sol';
 contract SRC20Factory {
   ISRC20Registry private _registry;
 
-  event SRC20Created(address token);
+  event SRC20Created(
+    address owner,
+    address token,
+    address transferRules,
+    string name,
+    string symbol,
+    uint8 decimals,
+    uint256 maxTotalSupply,
+    bytes32 kyaHash,
+    string kyaUrl
+  );
 
   /**
    * @dev Factory constructor expects SRC20 tokens registry.
@@ -59,8 +69,17 @@ contract SRC20Factory {
     );
 
     IAssetRegistry(addressList[5]).addAsset(token, kyaHash, kyaUrl, netAssetValueUSD);
-    emit SRC20Created(token);
-
+    emit SRC20Created(
+      addressList[0],
+      token,
+      addressList[2],
+      name,
+      symbol,
+      decimals,
+      maxTotalSupply,
+      kyaHash,
+      kyaUrl
+    );
     return true;
   }
 }

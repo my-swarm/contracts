@@ -10,29 +10,31 @@ import '@openzeppelin/contracts/ownership/Ownable.sol';
  * grey-listed account
  */
 contract ManualApproval is Ownable {
-  struct TransferReq {
+  struct TransferRequest {
     address from;
     address to;
     uint256 value;
   }
 
-  uint256 public _reqNumber;
-  ISRC20 public _src20;
+  uint256 public requestCounter = 1;
+  ISRC20 public src20;
 
-  mapping(uint256 => TransferReq) public _transferReq;
-  mapping(address => bool) public _greyList;
+  mapping(uint256 => TransferRequest) public transferRequests;
+  mapping(address => bool) public greylist;
 
-  event TransferRequest(uint256 indexed requestNumber, address from, address to, uint256 value);
+  event AccountGreylisted(address account, address sender);
+  event AccountUnGreylisted(address account, address sender);
+  event TransferRequested(uint256 indexed requestId, address from, address to, uint256 value);
 
-  event TransferApproval(
-    uint256 indexed requestNumber,
+  event TransferApproved(
+    uint256 indexed requestId,
     address indexed from,
     address indexed to,
     uint256 value
   );
 
-  event TransferRequestCanceled(
-    uint256 indexed requestNumber,
+  event TransferDenied(
+    uint256 indexed requestId,
     address indexed from,
     address indexed to,
     uint256 value
@@ -43,80 +45,87 @@ contract ManualApproval is Ownable {
   /**
    * @dev Owner of this contract have authority to approve tx which are valid.
    *
-   * @param reqNumber - transfer request number.
+   * @param _requestId - transfer request number.
    */
-  function transferApproval(uint256 reqNumber) external onlyOwner returns (bool) {
-    TransferReq memory req = _transferReq[reqNumber];
+  function approveTransfer(uint256 _requestId) external onlyOwner returns (bool) {
+    TransferRequest memory req = transferRequests[_requestId];
 
-    require(_src20.executeTransfer(address(this), req.to, req.value), 'SRC20 transfer failed');
+    require(src20.executeTransfer(address(this), req.to, req.value), 'SRC20 transfer failed');
 
-    delete _transferReq[reqNumber];
-    emit TransferApproval(reqNumber, req.from, req.to, req.value);
+    delete transferRequests[_requestId];
+    emit TransferApproved(_requestId, req.from, req.to, req.value);
     return true;
   }
 
   /**
-   * @dev Canceling transfer request and returning funds to from.
+   * @dev Deny (delete) the transfer request.
    *
-   * @param reqNumber - transfer request number.
+   * @param _requestId - transfer request number.
    */
-  function cancelTransferRequest(uint256 reqNumber) external returns (bool) {
-    TransferReq memory req = _transferReq[reqNumber];
-    require(req.from == msg.sender, 'Not owner of the transfer request');
+  function denyTransfer(uint256 _requestId) external returns (bool) {
+    TransferRequest memory req = transferRequests[_requestId];
+    // todo: it didn't have the isOwner() part.
+    //    imo issuer should be the one to deny/cancel the request primaryly no?
+    //    fair enough, the 'from' guy can cancel too
+    require(isOwner() || req.from == msg.sender, 'Not owner of the transfer request');
 
     require(
-      _src20.executeTransfer(address(this), req.from, req.value),
+      src20.executeTransfer(address(this), req.from, req.value),
       'SRC20: External transfer failed'
     );
 
-    delete _transferReq[reqNumber];
-    emit TransferRequestCanceled(reqNumber, req.from, req.to, req.value);
+    delete transferRequests[_requestId];
+    emit TransferDenied(_requestId, req.from, req.to, req.value);
 
     return true;
   }
 
   // Handling grey listing
-  function isGreyListed(address account) public view returns (bool) {
-    return _greyList[account];
+  function isGreylisted(address _account) public view returns (bool) {
+    return greylist[_account];
   }
 
-  function greyListAccount(address account) external onlyOwner returns (bool) {
-    _greyList[account] = true;
+  function greylistAccount(address _account) external onlyOwner returns (bool) {
+    greylist[_account] = true;
+    emit AccountGreylisted(_account, msg.sender);
     return true;
   }
 
-  function bulkGreyListAccount(address[] calldata accounts) external onlyOwner returns (bool) {
-    for (uint256 i = 0; i < accounts.length; i++) {
-      address account = accounts[i];
-      _greyList[account] = true;
+  function bulkGreylistAccount(address[] calldata _accounts) external onlyOwner returns (bool) {
+    for (uint256 i = 0; i < _accounts.length; i++) {
+      address account = _accounts[i];
+      greylist[account] = true;
+      emit AccountGreylisted(account, msg.sender);
     }
     return true;
   }
 
-  function unGreyListAccount(address account) external onlyOwner returns (bool) {
-    delete _greyList[account];
+  function unGreylistAccount(address _account) external onlyOwner returns (bool) {
+    delete greylist[_account];
+    emit AccountUnGreylisted(_account, msg.sender);
     return true;
   }
 
-  function bulkUnGreyListAccount(address[] calldata accounts) external onlyOwner returns (bool) {
-    for (uint256 i = 0; i < accounts.length; i++) {
-      address account = accounts[i];
-      delete _greyList[account];
+  function bulkUnGreylistAccount(address[] calldata _accounts) external onlyOwner returns (bool) {
+    for (uint256 i = 0; i < _accounts.length; i++) {
+      address account = _accounts[i];
+      delete greylist[account];
+      emit AccountUnGreylisted(account, msg.sender);
     }
     return true;
   }
 
-  function _transferRequest(
-    address from,
-    address to,
-    uint256 value
+  function _requestTransfer(
+    address _from,
+    address _to,
+    uint256 _value
   ) internal returns (bool) {
-    require(_src20.executeTransfer(from, address(this), value), 'SRC20 transfer failed');
+    require(src20.executeTransfer(_from, address(this), _value), 'SRC20 transfer failed');
 
-    _transferReq[_reqNumber] = TransferReq(from, to, value);
+    transferRequests[requestCounter] = TransferRequest(_from, _to, _value);
 
-    emit TransferRequest(_reqNumber, from, to, value);
-    _reqNumber = _reqNumber + 1;
+    emit TransferRequested(requestCounter, _from, _to, _value);
+    requestCounter = requestCounter + 1;
 
     return true;
   }

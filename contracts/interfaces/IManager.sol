@@ -5,9 +5,18 @@ pragma solidity ^0.5.0;
  * SWM token staking.
  */
 interface IManager {
-  event SRC20SupplyMinted(address src20, address swmAccount, uint256 swmValue, uint256 src20Value);
-  event SRC20StakeIncreased(address src20, address swmAccount, uint256 swmValue);
-  event SRC20StakeDecreased(address src20, address swmAccount, uint256 swmValue);
+  event SRC20SupplyIncreased(
+    address src20,
+    address swmAccount,
+    uint256 swmValue,
+    uint256 src20Value
+  );
+  event SRC20SupplyDecreased(
+    address src20,
+    address swmAccount,
+    uint256 swmValue,
+    uint256 src20Value
+  );
 
   function mintSupply(
     address src20,
@@ -19,13 +28,13 @@ interface IManager {
   function increaseSupply(
     address src20,
     address swmAccount,
-    uint256 srcValue
+    uint256 src20Value
   ) external returns (bool);
 
   function decreaseSupply(
     address src20,
     address swmAccount,
-    uint256 srcValue
+    uint256 src20Value
   ) external returns (bool);
 
   function renounceManagement(address src20) external returns (bool);
@@ -36,7 +45,7 @@ interface IManager {
 
   function getStake(address src20) external view returns (uint256);
 
-  function swmNeeded(address src20, uint256 srcValue) external view returns (uint256);
+  function swmNeeded(address src20, uint256 src20Value) external view returns (uint256);
 
   function getSrc20toSwmRatio(address src20) external returns (uint256);
 

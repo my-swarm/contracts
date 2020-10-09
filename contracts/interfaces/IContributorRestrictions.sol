@@ -1,9 +1,6 @@
 pragma solidity ^0.5.0;
 
 contract IContributorRestrictions {
-  event AccountWhitelisted(address account, address authority);
-  event AccountUnWhitelisted(address account, address authority);
-
   function maxContributors() external view returns (uint256);
 
   function minInvestmentAmount() external view returns (uint256);

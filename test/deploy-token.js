@@ -1,13 +1,9 @@
-const {ethers} = require('@nomiclabs/buidler');
 const {expect} = require('chai');
 const {
   deployBaseContracts,
   deployTokenContracts,
   deployFundraiserContracts,
-  getAccounts,
-  getFundraiserOptions,
-  getBaseContractsOptions,
-  getTokenContractsOptions
+  getAddresses,
   ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
 const {REGEX_ADDR} = require('./test-helpers');
@@ -15,26 +11,25 @@ const {REGEX_ADDR} = require('./test-helpers');
 describe('Properly deploys SRC20 token with all sidekick contracts', async () => {
   let baseContracts;
   let tokenContracts;
-  let swarmAccount;
-  let issuerAccount;
-  let options;
+  let swarmAddress;
+  let issuerAddress;
+  let tokenOptions;
 
   before(async () => {
-    baseContracts = await deployBaseContracts(await getBaseContractsOptions());
-    options = await getTokenContractsOptions();
-    tokenContracts = await deployTokenContracts(baseContracts, options);
-    const {addresses} = await getAccounts();
-    swarmAccount = addresses[0];
-    issuerAccount = addresses[1];
+    [baseContracts] = await deployBaseContracts();
+    [tokenContracts, tokenOptions] = await deployTokenContracts(baseContracts);
+    const addresses = await getAddresses();
+    swarmAddress = addresses[0];
+    issuerAddress = addresses[1];
   });
 
   it('Has SRC20 contract properly deployed', async () => {
     const {assetRegistry} = baseContracts;
     const {src20} = tokenContracts;
     expect(src20.address).to.match(REGEX_ADDR);
-    expect(await src20.owner()).to.equal(issuerAccount);
-    expect(await src20.maxTotalSupply()).to.equal(options.src20.supply);
-    expect(await src20.name()).to.equal(options.src20.name);
+    expect(await src20.owner()).to.equal(issuerAddress);
+    expect(await src20.maxTotalSupply()).to.equal(tokenOptions.src20.supply);
+    expect(await src20.name()).to.equal(tokenOptions.src20.name);
     expect(await src20.assetRegistry()).to.equal(assetRegistry.address);
   });
 
@@ -52,17 +47,15 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
   });
 
   it('Deploys fundraiser contracts', async () => {
-    const options = getFundraiserOptions();
-    const {fundraiser, contributorRestrictions} = await deployFundraiserContracts(
-      baseContracts,
-      tokenContracts.src20,
-      options
-    );
+    const [{fundraiser, contributorRestrictions}, options] = await deployFundraiserContracts({
+      ...baseContracts,
+      ...tokenContracts,
+    });
 
     expect(fundraiser.address).to.match(REGEX_ADDR);
     expect(await fundraiser.label()).to.equal(options.label);
     expect(await fundraiser.token()).to.equal(tokenContracts.src20.address);
-    expect(await fundraiser.tokensToMint()).to.equal(options.tokensToMint);
+    expect(await fundraiser.supply()).to.equal(options.supply);
     expect(await fundraiser.startDate()).to.equal(options.startDate);
     expect(await fundraiser.endDate()).to.equal(options.endDate);
     expect(await fundraiser.softCap()).to.equal(options.softCap);
@@ -77,10 +70,10 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
 
     expect(await fundraiser.numContributors()).to.equal(0);
     expect(await fundraiser.amountQualified()).to.equal(0);
-    expect(await fundraiser.amountUnqualified()).to.equal(0);
+    expect(await fundraiser.amountPending()).to.equal(0);
     expect(await fundraiser.amountWithdrawn()).to.equal(0);
     expect(await fundraiser.isFinished()).to.equal(false);
-    expect(await fundraiser.isCancelled()).to.equal(false);
+    expect(await fundraiser.isCanceled()).to.equal(false);
     expect(await fundraiser.isSetup()).to.equal(true);
     expect(await fundraiser.isHardcapReached()).to.equal(false);
   });

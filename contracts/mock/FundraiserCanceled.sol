@@ -12,7 +12,7 @@ contract FundraiserCanceled is Fundraiser {
   // array
   bool isOngoing = false;
   bool isFinished = false;
-  bool isCancelled = true;
+  bool isCanceled = true;
 
   constructor(
     string memory _label,
