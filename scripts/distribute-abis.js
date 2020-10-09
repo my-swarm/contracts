@@ -8,25 +8,47 @@ const jsonConfig = {
   size: 2,
 };
 
-const CONTRACTS = ['SRC20', 'SRC20Factory', 'SRC20Registry', 'Fundraiser', 'TransferRules'];
+const CONTRACTS = [
+  'AssetRegistry',
+  'Featured',
+  'GetRateMinter',
+  'SRC20Roles',
+  'SRC20Factory',
+  'SRC20Registry',
+  'TransferRules',
+  'SWMPriceOracle',
+  'SRC20',
+  'Fundraiser',
+  'ContributorRestrictions',
+  'AffiliateManager',
+];
 const ARTIFACTS_DIR = path.resolve(__dirname, '../artifacts');
 const SUBGRAPH_DIR = path.resolve(__dirname, '../../subgraph');
-const ISSUANCE_DIR = path.resolve(__dirname, '../../issuance/contracts');
+const ISSUANCE_DIR = path.resolve(__dirname, '../../issuance/@contracts');
 
 function sendToSubgraph(contractName, abi) {
   fs.writeFileSync(`${SUBGRAPH_DIR}/abis/${contractName}.json`, jsonFormat(abi, jsonConfig));
 }
 
-function readAbi(contractName) {
-  const artifacts = JSON.parse(fs.readFileSync(`${ARTIFACTS_DIR}/${contractName}.json`).toString());
-  return artifacts.abi;
+function sendToIssuance(contractName, abi, bytecode) {
+  fs.writeFileSync(`${ISSUANCE_DIR}/abis/${contractName}.json`, jsonFormat(abi, jsonConfig));
+  const bytecodesPath = `${ISSUANCE_DIR}/bytecodes.json`;
+  const bytecodes = JSON.parse(fs.readFileSync(bytecodesPath).toString());
+  bytecodes[contractName] = bytecode;
+  fs.writeFileSync(bytecodesPath, jsonFormat(bytecodes, jsonConfig));
+}
+
+function readArtifacts(contractName) {
+  return JSON.parse(fs.readFileSync(`${ARTIFACTS_DIR}/${contractName}.json`).toString());
 }
 
 console.log('Distributing abis...');
 
 for (const contractName of CONTRACTS) {
-  const abi = readAbi(contractName);
+  const artifacts = readArtifacts(contractName);
+  const {abi, bytecode} = artifacts;
   sendToSubgraph(contractName, abi);
+  sendToIssuance(contractName, abi, bytecode);
   console.log(contractName);
 }
 

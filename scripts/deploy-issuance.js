@@ -5,7 +5,6 @@ const {
   dumpContractAddresses,
   deployTokenContracts,
   deployFundraiserContracts,
-  acceptContributors,
 } = require('./deploy-helpers');
 const {
   stakeAndMint,
@@ -23,7 +22,10 @@ const {
   denyTransfer,
   contribute,
   massContribute,
+  acceptContributors,
 } = require('./token-helpers');
+
+const {exportContractAddresses} = require('./export-helpers');
 
 const {parseUnits} = ethers.utils;
 
@@ -93,25 +95,25 @@ async function main() {
   await approveTransfer(token3, 2);
   await denyTransfer(token3, 3);
 
-  /*
   // 3. fundraising token
-  let [token3, token3Options] = await deployToken({
+  let [token4, token4Options] = await deployToken({
     name: 'Testing Token: Fundraising',
-    symbol: 'TT3',
-  });
-  await distributeToken(swarm, usdc, contributors, 100);
-  const [fundraiserContracts3, fundraiserOptions3] = await deployFundraiserContracts({
-    ...baseContracts,
-    ...token2,
-  });
-  token3 = {...token3, ...fundraiserContracts3};
-  await massContribute(token3, contributors, [20, 10, 30, 50, 40]);
-  await acceptContributors([contributors[1], contributors[3], contributors[4]]);
-
-  // 4. fundraised token
-  const [token4, token4Options] = await deployToken({
-    name: 'Testing Token: Fundraised',
     symbol: 'TT4',
+  });
+  await distributeToken(swarm, usdc, ca.slice(0, 5), 1000);
+  const [fundraiserContracts4, fundraiserOptions4] = await deployFundraiserContracts({
+    ...baseContracts,
+    ...token4,
+  });
+  token4 = {...token4, ...fundraiserContracts4};
+  await massContribute(token4, contributors.slice(0, 5), [200, 100, 300, 500, 400]);
+  await acceptContributors(token4, [ca[1], ca[3], ca[4]]);
+
+  /*
+  // 4. fundraised token
+  const [token5, token5Options] = await deployToken({
+    name: 'Testing Token: Fundraised',
+    symbol: 'TT5',
   });
 */
   console.log('----------------------');
@@ -120,6 +122,10 @@ async function main() {
   console.log(`Issuer address: ${issuer.address}`);
   console.log('');
   dumpContractAddresses(baseContracts);
+  exportContractAddresses('token1', token1);
+  exportContractAddresses('token2', token2);
+  exportContractAddresses('token3', token3);
+  exportContractAddresses('token4', token4);
 }
 
 main()

@@ -20,21 +20,11 @@ async function stakeAndMint({src20, src20Registry, getRateMinter, swm}, nav, sup
   await getRateMinter.connect(issuer).stakeAndMint(src20.address, supply);
 }
 
-async function toWei(amount, token) {
-  console.log('toWei', amount, typeof amount);
-  if (typeof amount === 'number') {
-    const decimals = parseInt(await token.decimals());
-    amount = parseUnits(amount.toString(), decimals);
-  }
-  console.log(amount);
-  return amount;
-}
-
 async function updateAllowance(account, token, spenderAddress, allowance) {
   if (allowance === -1) {
     allowance = BigNumber.from(2).pow(256).sub(1);
   } else {
-    allowance = await toWei(allowance, token);
+    allowance = await sanitizeAmount(allowance, token);
   }
   console.log('approve', token.address, spenderAddress, allowance.toString());
   await token.connect(account).approve(spenderAddress, allowance);
@@ -42,61 +32,55 @@ async function updateAllowance(account, token, spenderAddress, allowance) {
 
 async function increaseSupply({src20, src20Registry}, diff) {
   const issuer = await getIssuer();
-  diff = await toWei(diff, src20);
-  console.log('increase supply', src20.address, await issuer.getAddress(), diff.toString());
   const swmAddress = await issuer.getAddress();
-  await src20Registry.connect(issuer).increaseSupply(src20.address, swmAddress, diff);
+  await src20Registry
+    .connect(issuer)
+    .increaseSupply(src20.address, swmAddress, await sanitizeAmount(diff, src20));
 }
 
 async function decreaseSupply({src20, src20Registry}, diff) {
   const issuer = await getIssuer();
-  diff = await toWei(diff, src20);
   const swmAddress = await issuer.getAddress();
-  await src20Registry.connect(issuer).decreaseSupply(src20.address, swmAddress, diff);
+  await src20Registry
+    .connect(issuer)
+    .decreaseSupply(src20.address, swmAddress, await sanitizeAmount(diff, src20));
 }
 
 async function distributeToken(signer, token, holderAddresses, perHolder) {
   for (const holderAddress of holderAddresses) {
-    token.connect(signer).transfer(holderAddress, await toWei(perHolder, token));
+    token.connect(signer).transfer(holderAddress, await sanitizeAmount(perHolder, token));
   }
 }
 
 async function transferToken(token, from, toAddress, amount) {
-  console.log('transferToken', await from.getAddress(), toAddress, amount);
-  if (typeof amount === 'number') {
-    const decimals = parseInt(await token.decimals());
-    amount = parseUnits(amount.toString(), decimals);
-  }
-  token.connect(from).transfer(toAddress, amount);
+  token.connect(from).transfer(toAddress, await sanitizeAmount(amount, token));
 }
 
 async function bulkTransfer({src20}, addresses, values) {
-  console.log('bulk transfer', addresses, values);
-  const decimals = await src20.decimals();
-  values = values.map(async (value) =>
-    typeof value === 'number' ? parseUnits(value.toString(), decimals) : value
-  );
   const issuer = await getIssuer();
-  await src20.connect(issuer).bulkTransfer(addresses, values);
+  await src20.connect(issuer).bulkTransfer(addresses, await sanitizeAmounts(values, src20));
 }
 
-async function contribute(usdc, fundraiser, as, amount, referral = '') {
-  console.log(`contribute ${usdc.address} -> ${fundraiser.address}: ${amount}`);
-  await usdc.connect(as).approve(fundraiser.address, amount);
-  await fundraiser.connect(as).contribute(amount, referral);
+async function contribute({usdc, fundraiser}, as, amount, referral = '') {
+  console.log(
+    `contribute ${usdc.address} -> ${fundraiser.address}: ${amount} (as ${await as.getAddress()}`
+  );
+  await usdc.connect(as).approve(fundraiser.address, await sanitizeAmount(amount, usdc));
+  await fundraiser.connect(as).contribute(await sanitizeAmount(amount, usdc), referral);
 }
 
 async function massContribute({usdc, fundraiser}, contributors, amounts) {
   for (const key in contributors) {
     if (amounts[key]) {
-      await contribute(usdc, fundraiser, contributors[key], amounts[key]);
+      await contribute({usdc, fundraiser}, contributors[key], amounts[key]);
     }
   }
 }
 
-async function acceptContributors(fundraiser, contributors) {
-  for (const contributor of contributors) {
-    await fundraiser.acceptContributor(contributor);
+async function acceptContributors({contributorRestrictions}, contributorAddresses) {
+  const issuer = await getIssuer();
+  for (const contributorAddress of contributorAddresses) {
+    await contributorRestrictions.connect(issuer).whitelistAccount(contributorAddress);
   }
 }
 
@@ -135,6 +119,24 @@ async function approveTransfer({transferRules}, transferId) {
 async function denyTransfer({transferRules}, transferId) {
   const issuer = await getIssuer();
   await transferRules.connect(issuer).denyTransfer(transferId);
+}
+
+// helper helers :)
+
+async function sanitizeAmount(amount, token) {
+  if (typeof amount === 'number') {
+    const decimals = parseInt(await token.decimals());
+    amount = parseUnits(amount.toString(), decimals);
+  }
+  return amount;
+}
+
+async function sanitizeAmounts(amounts, token) {
+  const decimals = await token.decimals();
+  amounts = amounts.map(async (value) =>
+    typeof value === 'number' ? parseUnits(value.toString(), decimals) : value
+  );
+  return amounts;
 }
 
 module.exports = {

@@ -34,10 +34,10 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
   });
 
   it('Has all other contracts inside ', async () => {
-    const {src20, roles, featured, transferRules} = tokenContracts;
+    const {src20, roles, features, transferRules} = tokenContracts;
 
     expect(await src20.roles()).to.equal(roles.address);
-    expect(await src20.features()).to.equal(featured.address);
+    expect(await src20.features()).to.equal(features.address);
     expect(await src20.rules()).to.equal(transferRules.address);
   });
 

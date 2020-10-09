@@ -1,5 +1,7 @@
 pragma solidity ^0.5.0;
 
+//import '@nomiclabs/buidler/console.sol';
+
 import '../interfaces/IContributorRestrictions.sol';
 import '../rules/Whitelisted.sol';
 import '../fundraising/Fundraiser.sol';
@@ -8,10 +10,8 @@ import '../roles/DelegateRole.sol';
 /**
  * @title ContributorRestrictions
  *
- * Serves to implement all the various restrictions that a Fundraise can have.
- * A Fundraise contract always points to only one ContributorRestrictions contract.
- * The owner of the Fundraise contract sets up ContributorRestrictions contract at
- * the beginning of the fundraise.
+ * Various restrictions that a Fundraiser can have.
+ * Each Fundraiser contract points to one. Issuer sets it up when setting u fundraiser.
  */
 contract ContributorRestrictions is IContributorRestrictions, Whitelisted, DelegateRole {
   address fundraiser;
@@ -76,8 +76,10 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     emit AccountUnWhitelisted(_account, msg.sender);
   }
 
-  // todo: why are not the bulkk methods accepting/removing contributors?
+  // todo: why are not the bulk methods accepting/removing contributors?
   function bulkWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
+    // todo: I disabled this method because it would have to call Fundraiser in cycle and that's a gas problem?
+    require(false, 'Bulk whitelist not imlemented');
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
       _whitelisted[_accounts[i]] = true;
@@ -86,6 +88,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
   }
 
   function bulkUnWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
+    require(false, 'Bulk unwhitelist not imlemented');
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
       delete _whitelisted[_accounts[i]];

@@ -105,14 +105,13 @@ async function deployBaseContracts(customOptions = {}) {
 
 async function deployTokenContracts(baseContracts, customOptions = {}) {
   const options = _.merge(await getTokenContractsOptions(), customOptions);
-  console.log({options});
   const {issuer} = options;
   const issuerAddress = await issuer.getAddress();
   const {src20Registry, src20Factory, assetRegistry, getRateMinter} = baseContracts;
   const transferRules = options.transferRules
     ? await deployContract('TransferRules', [issuerAddress], issuer)
     : undefined;
-  const featured = await deployContract('Featured', [issuerAddress, options.features || 0], issuer);
+  const features = await deployContract('Featured', [issuerAddress, options.features || 0], issuer);
   const roles = await deployContract(
     'SRC20Roles',
     [issuerAddress, src20Registry.address, transferRules ? transferRules.address : ZERO_ADDRESS],
@@ -134,7 +133,7 @@ async function deployTokenContracts(baseContracts, customOptions = {}) {
         ZERO_ADDRESS, // restrictions - not implemented
         transferRules ? transferRules.address : ZERO_ADDRESS,
         roles.address,
-        featured.address,
+        features.address,
         assetRegistry.address,
         getRateMinter.address,
       ]
@@ -142,7 +141,7 @@ async function deployTokenContracts(baseContracts, customOptions = {}) {
   const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
   const src20 = await ethers.getContractAt('SRC20', src20Address);
 
-  return [{...baseContracts, transferRules, featured, roles, src20}, options];
+  return [{...baseContracts, transferRules, features, roles, src20}, options];
 }
 
 async function deployFundraiser(contracts, options) {
@@ -164,13 +163,7 @@ async function deployFundraiser(contracts, options) {
 
 async function deployContributorRestrictions(fundraiser, options) {
   const [, issuer] = await ethers.getSigners();
-  console.log('deploy ContributorRestrictions', [
-    fundraiser.address,
-    options.contributors.maxNum,
-    options.contributors.minAmount,
-    options.contributors.maxAmount,
-  ]);
-  return await deployContract(
+  const result = await deployContract(
     'ContributorRestrictions',
     [
       fundraiser.address,
@@ -180,6 +173,7 @@ async function deployContributorRestrictions(fundraiser, options) {
     ],
     issuer
   );
+  return result;
 }
 
 async function setupFundraiser(fundraiser, contributorRestrictions, contracts, options) {
@@ -192,7 +186,6 @@ async function setupFundraiser(fundraiser, contributorRestrictions, contracts, o
     contracts.getRateMinter.address,
     options.contributionsLocked
   );
-  console.log(await fundraiser.contributorRestrictions());
 }
 
 async function deployFundraiserContracts(contracts, customOptions = {}) {
@@ -200,8 +193,6 @@ async function deployFundraiserContracts(contracts, customOptions = {}) {
   const fundraiser = await deployFundraiser(contracts, options);
   const contributorRestrictions = await deployContributorRestrictions(fundraiser, options);
   await setupFundraiser(fundraiser, contributorRestrictions, contracts, options);
-  console.log(await contributorRestrictions.address);
-  console.log(await fundraiser.contributorRestrictions());
 
   return [{fundraiser, contributorRestrictions}, options];
 }

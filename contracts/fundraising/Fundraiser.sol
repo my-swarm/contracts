@@ -1,5 +1,7 @@
 pragma solidity ^0.5.0;
 
+//import '@nomiclabs/buidler/console.sol';
+
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '../interfaces/IGetRateMinter.sol';
@@ -183,24 +185,24 @@ contract Fundraiser {
   /**
    *  contribute funds with an affiliate link
    *
-   *  @param amount the amount of the contribution
-   *  @param affiliateLink (optional) affiliate link used
+   *  @param _amount the amount of the contribution
+   *  @param _affiliateLink (optional) affiliate link used
    *  @return true on success
    */
-  function contribute(uint256 amount, string calldata affiliateLink)
+  function contribute(uint256 _amount, string calldata _affiliateLink)
     external
     ongoing
     returns (bool)
   {
-    require(amount > 0, 'Amount has to be greater than 0');
+    require(_amount > 0, 'Amount has to be greater than 0');
 
     require(
-      IERC20(baseCurrency).transferFrom(msg.sender, address(this), amount),
+      IERC20(baseCurrency).transferFrom(msg.sender, address(this), _amount),
       'ERC20 transfer failed'
     );
 
     require(
-      _contribute(msg.sender, amount, affiliateLink),
+      _contribute(msg.sender, _amount, _affiliateLink),
       'Contribution does not meet the minimum requirement'
     );
 
@@ -211,27 +213,27 @@ contract Fundraiser {
    *  Once a contributor has been Whitelisted, this function gets called to
    *  process his buffered/pending transaction
    *
-   *  @param contributor the contributor we want to add
+   *  @param _contributor the contributor we want to add
    *  @return true on success
    */
-  function acceptContributor(address contributor)
+  function acceptContributor(address _contributor)
     external
     ongoing
     onlyContributorRestrictions
     returns (bool)
   {
-    uint256 amount = pendingContributions[contributor];
+    uint256 amount = pendingContributions[_contributor];
     // process contribution
     if (amount > 0) {
-      pendingContributions[contributor] = 0;
+      pendingContributions[_contributor] = 0;
       amountPending = amountPending.sub(amount);
       string memory link = IAffiliateManager(affiliateManager).getAffiliateLink(
-        referrals[contributor]
+        referrals[_contributor]
       );
-      _contribute(contributor, amount, link);
-      emit PendingContributionAccepted(contributor, pendingContributions[contributor]);
+      _contribute(_contributor, amount, link);
+      emit PendingContributionAccepted(_contributor, pendingContributions[_contributor]);
     }
-    emit ContributorAccepted(contributor);
+    emit ContributorAccepted(_contributor);
     return true;
   }
 
@@ -240,20 +242,20 @@ contract Fundraiser {
    *  This function can only be called by the
    *  restrictions/whitelisting contract
    *
-   *  @param contributor the contributor we want to remove
+   *  @param _contributor the contributor we want to remove
    *  @return true on success
    */
-  function removeContributor(address contributor)
+  function removeContributor(address _contributor)
     external
     ongoing
     onlyContributorRestrictions
     returns (bool)
   {
-    _removeContributor(contributor);
-    _removeAffiliate(contributor);
-    _fullRefund(contributor);
+    _removeContributor(_contributor);
+    _removeAffiliate(_contributor);
+    _fullRefund(_contributor);
 
-    emit ContributorRemoved(contributor);
+    emit ContributorRemoved(_contributor);
     return true;
   }
 
@@ -329,116 +331,116 @@ contract Fundraiser {
   /**
    *  Worker function for contributions
    *
-   *  @param contributor the address of the contributor
-   *  @param amount the amount of the contribution
+   *  @param _contributor the address of the contributor
+   *  @param _amount the amount of the contribution
    *
    *  @return true on success
    */
   function _contribute(
-    address contributor,
-    uint256 amount,
-    string memory affiliateLink
+    address _contributor,
+    uint256 _amount,
+    string memory _affiliateLink
   ) internal returns (bool) {
     require(
-      IContributorRestrictions(contributorRestrictions).checkMinInvestment(amount),
+      IContributorRestrictions(contributorRestrictions).checkMinInvestment(_amount),
       'Cannot invest less than minAmount'
     );
 
-    bool qualified = IContributorRestrictions(contributorRestrictions).isWhitelisted(contributor);
-    uint256 maxAmount = IContributorRestrictions(contributorRestrictions).maxInvestmentAmount();
+    bool qualified = IContributorRestrictions(contributorRestrictions).isWhitelisted(_contributor);
+    uint256 maxAmount = IContributorRestrictions(contributorRestrictions).maxAmount();
     uint256 refund = 0;
 
     uint256 currentAmount = qualified
-      ? qualifiedContributions[contributor]
-      : pendingContributions[contributor];
-    uint256 newAmount = currentAmount.add(amount);
+      ? qualifiedContributions[_contributor]
+      : pendingContributions[_contributor];
+    uint256 newAmount = currentAmount.add(_amount);
     if (!IContributorRestrictions(contributorRestrictions).checkMaxInvestment(newAmount)) {
       refund = newAmount.sub(maxAmount);
-      amount = amount.sub(refund);
+      _amount = _amount.sub(refund);
     }
 
     if (qualified) {
-      (bool hardcapReached, uint256 overHardcap) = _checkHardCap(amountQualified + amount);
+      (bool hardcapReached, uint256 overHardcap) = _checkHardCap(amountQualified + _amount);
       if (hardcapReached) {
         isHardcapReached = hardcapReached;
         refund = refund.add(overHardcap);
-        amount = amount.sub(overHardcap);
+        _amount = _amount.sub(overHardcap);
       }
     }
 
-    if (amount > 0) {
+    if (_amount > 0) {
       if (qualified) {
-        qualifiedContributions[contributor] = qualifiedContributions[contributor].add(amount);
-        amountQualified = amountQualified.add(amount);
-        _addContributor(contributor);
-        _addAffiliate(contributor, affiliateLink, amount);
-        emit ContributionPending(contributor, amount);
+        qualifiedContributions[_contributor] = qualifiedContributions[_contributor].add(_amount);
+        amountQualified = amountQualified.add(_amount);
+        _addContributor(_contributor);
+        _addAffiliate(_contributor, _affiliateLink, _amount);
+        emit ContributionPending(_contributor, _amount);
       } else {
-        pendingContributions[contributor] = pendingContributions[contributor].add(amount);
-        amountPending = amountPending.add(amount);
-        emit ContributionAdded(contributor, amount);
+        pendingContributions[_contributor] = pendingContributions[_contributor].add(_amount);
+        amountPending = amountPending.add(_amount);
+        emit ContributionAdded(_contributor, _amount);
       }
     }
 
     if (refund > 0) {
-      _refund(contributor, refund);
+      _refund(_contributor, refund);
     }
 
     return true;
   }
 
-  function _addContributor(address user) internal {
-    if (!contributors[user]) {
+  function _addContributor(address _user) internal {
+    if (!contributors[_user]) {
       numContributors = numContributors.add(1);
-      contributors[user] = true;
+      contributors[_user] = true;
     }
   }
 
-  function _removeContributor(address user) internal {
-    if (contributors[user]) {
+  function _removeContributor(address _user) internal {
+    if (contributors[_user]) {
       numContributors = numContributors.sub(1);
-      contributors[user] = false;
+      contributors[_user] = false;
     }
   }
 
   function _addAffiliate(
-    address user,
-    string memory affiliateLink,
-    uint256 amount
+    address _user,
+    string memory _affiliateLink,
+    uint256 _amount
   ) internal {
-    if (bytes(affiliateLink).length > 0) {
+    if (bytes(_affiliateLink).length > 0) {
       (address affiliate, uint256 percentage) = IAffiliateManager(affiliateManager).getAffiliate(
-        affiliateLink
+        _affiliateLink
       );
 
       if (affiliate != address(0)) {
-        if (referrals[user] == address(0) || referrals[user] == affiliate) {
-          referrals[user] = affiliate;
-          uint256 claim = amount.mul(percentage).div(100);
-          affiliateClaim[user] = affiliateClaim[user].add(claim);
+        if (referrals[_user] == address(0) || referrals[_user] == affiliate) {
+          referrals[_user] = affiliate;
+          uint256 claim = _amount.mul(percentage).div(100);
+          affiliateClaim[_user] = affiliateClaim[_user].add(claim);
           totalAffiliateClaim[affiliate] = totalAffiliateClaim[affiliate].add(claim);
         }
       }
     }
   }
 
-  function _removeAffiliate(address user) internal {
-    if (referrals[user] != address(0)) {
-      totalAffiliateClaim[referrals[user]] = totalAffiliateClaim[referrals[user]].sub(
-        affiliateClaim[user]
+  function _removeAffiliate(address _user) internal {
+    if (referrals[_user] != address(0)) {
+      totalAffiliateClaim[referrals[_user]] = totalAffiliateClaim[referrals[_user]].sub(
+        affiliateClaim[_user]
       );
-      affiliateClaim[user] = 0;
-      referrals[user] = address(0);
+      affiliateClaim[_user] = 0;
+      referrals[_user] = address(0);
     }
   }
 
-  function _checkHardCap(uint256 amount) internal view returns (bool, uint256) {
+  function _checkHardCap(uint256 _amount) internal view returns (bool, uint256) {
     bool pass;
     uint256 refund;
 
-    if (amount >= hardCap) {
+    if (_amount >= hardCap) {
       pass = true;
-      refund = amount.sub(hardCap);
+      refund = _amount.sub(hardCap);
     } else {
       pass = false;
       refund = 0;
@@ -446,11 +448,11 @@ contract Fundraiser {
     return (pass, refund);
   }
 
-  function _forwardFunds(address proxy, uint256 amount) internal {
-    IERC20(baseCurrency).transfer(proxy, amount);
+  function _forwardFunds(address _proxy, uint256 _amount) internal {
+    IERC20(baseCurrency).transfer(_proxy, _amount);
   }
 
-  function _retrieveFunds(address proxy, uint256 amount) internal {
+  function _retrieveFunds(address _proxy, uint256 _amount) internal {
     // proxy should hold the code to allow for funds to be retrieved
   }
 
@@ -485,36 +487,36 @@ contract Fundraiser {
    *
    *  @return true on success
    */
-  function _withdraw(address user) internal returns (bool) {
+  function _withdraw(address _user) internal returns (bool) {
     amountWithdrawn = amountQualified;
     amountQualified = 0;
 
-    require(IERC20(baseCurrency).transfer(user, amountWithdrawn), 'ERC20 transfer failed');
-    emit FundsWithdrawal(user, amountWithdrawn);
+    require(IERC20(baseCurrency).transfer(_user, amountWithdrawn), 'ERC20 transfer failed');
+    emit FundsWithdrawal(_user, amountWithdrawn);
 
     return true;
   }
 
-  function _fullRefund(address user) internal returns (bool) {
-    uint256 amount = qualifiedContributions[user].add(pendingContributions[user]);
+  function _fullRefund(address _user) internal returns (bool) {
+    uint256 amount = qualifiedContributions[_user].add(pendingContributions[_user]);
 
     if (amount > 0) {
-      amountQualified = amountQualified.sub(qualifiedContributions[user]);
-      amountPending = amountPending.sub(pendingContributions[user]);
-      delete qualifiedContributions[user];
-      delete pendingContributions[user];
-      _refund(user, amount);
+      amountQualified = amountQualified.sub(qualifiedContributions[_user]);
+      amountPending = amountPending.sub(pendingContributions[_user]);
+      delete qualifiedContributions[_user];
+      delete pendingContributions[_user];
+      _refund(_user, amount);
       return true;
     } else {
       return false;
     }
   }
 
-  function _refund(address contributor, uint256 amount) internal returns (bool) {
-    if (amount > 0) {
-      require(IERC20(baseCurrency).transfer(contributor, amount), 'ERC20 transfer failed!');
+  function _refund(address _contributor, uint256 _amount) internal returns (bool) {
+    if (_amount > 0) {
+      require(IERC20(baseCurrency).transfer(_contributor, _amount), 'ERC20 transfer failed!');
 
-      emit ContributionRefunded(contributor, amount);
+      emit ContributionRefunded(_contributor, _amount);
     }
     return true;
   }
