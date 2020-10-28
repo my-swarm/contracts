@@ -129,28 +129,28 @@ contract('SRC20', async function ([
   describe('Handling KYA updates and delegates', function () {
     it('should change KYA data and return changed data to owner', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      ({logs: this.logs} = await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {
+      ({logs: this.logs} = await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {
         from: delegate0,
       }));
 
-      expectEvent.inLogs(this.logs, 'AssetKYAUpdated', {
+      expectEvent.inLogs(this.logs, 'KyaUpdated', {
         src20: this.token.address,
         kyaHash: helpers.utils.bufferToHex(kyaHash),
         kyaUrl: kyaUrl,
       });
 
-      const kya = await this.assetRegistry.getKYA(this.token.address);
+      const kya = await this.assetRegistry.getKya(this.token.address);
       assert.equal(kya[0], helpers.utils.bufferToHex(kyaHash));
       assert.equal(kya[1], kyaUrl);
     });
 
     it('should allow updating KYA to delegate', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      ({logs: this.logs} = await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {
+      ({logs: this.logs} = await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {
         from: delegate0,
       }));
 
-      expectEvent.inLogs(this.logs, 'AssetKYAUpdated', {
+      expectEvent.inLogs(this.logs, 'KyaUpdated', {
         src20: this.token.address,
         kyaHash: helpers.utils.bufferToHex(kyaHash),
         kyaUrl: kyaUrl,
@@ -159,7 +159,7 @@ contract('SRC20', async function ([
 
     it('should not allow updating KYA from public account', async function () {
       await shouldFail.reverting.withMessage(
-        this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0}),
+        this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0}),
         'Caller not delegate'
       );
     });
@@ -168,7 +168,7 @@ contract('SRC20', async function ([
   describe('Handling transferToken with rules', async function () {
     it('should allow transfer with authorization signature from authority', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      ({logs: this.logs} = await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {
+      ({logs: this.logs} = await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {
         from: delegate0,
       }));
 
@@ -203,7 +203,7 @@ contract('SRC20', async function ([
 
     it('should not allow authorization signature from not authority account', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      ({logs: this.logs} = await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {
+      ({logs: this.logs} = await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {
         from: delegate0,
       }));
 
@@ -283,7 +283,7 @@ contract('SRC20', async function ([
   describe('Allowances functionality', function () {
     it('should successfully approve and transferred all approved tokens', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      ({logs: this.logs} = await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {
+      ({logs: this.logs} = await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {
         from: delegate0,
       }));
 
@@ -321,7 +321,7 @@ contract('SRC20', async function ([
 
     it('should allow spending approved tokens with multiple transfers', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      ({logs: this.logs} = await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {
+      ({logs: this.logs} = await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {
         from: delegate0,
       }));
 
@@ -388,7 +388,7 @@ contract('SRC20', async function ([
 
     it('should increase allowance increaseAllowance', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      ({logs: this.logs} = await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {
+      ({logs: this.logs} = await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {
         from: delegate0,
       }));
 
@@ -537,7 +537,7 @@ contract('SRC20', async function ([
   describe('Handling of on-chain transfer rules', function () {
     it('should allow transfer without on-chain restrictions', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      ({logs: this.logs} = await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {
+      ({logs: this.logs} = await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {
         from: delegate0,
       }));
 
@@ -572,7 +572,7 @@ contract('SRC20', async function ([
 
     it('should allow transfer with successful on-chain restrictions', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.successfulRestriction.address,
         this.successfulRestriction.address,
@@ -610,7 +610,7 @@ contract('SRC20', async function ([
 
     it('should not allow transfer with failed on-chain restrictions', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.failedRestriction.address,
         this.failedRestriction.address,
@@ -638,7 +638,7 @@ contract('SRC20', async function ([
 
     it('should be able to present token data to on-chain rule contract', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenDataRestrictionMock.address,
         this.tokenDataRestrictionMock.address,
@@ -718,7 +718,7 @@ contract('SRC20', async function ([
   describe('handling transfer rules', function () {
     it('should be able to whitelist account', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,
@@ -732,7 +732,7 @@ contract('SRC20', async function ([
 
     it('should be able to grey list account', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,
@@ -746,7 +746,7 @@ contract('SRC20', async function ([
 
     it('should be able to bulk whitelist account', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,
@@ -761,7 +761,7 @@ contract('SRC20', async function ([
 
     it('should be able to bulk grey list account', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,
@@ -778,7 +778,7 @@ contract('SRC20', async function ([
 
     it('should be able to transfer when from and to are whitelisted address', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,
@@ -804,7 +804,7 @@ contract('SRC20', async function ([
 
     it('should not be able to transfer when from or to are not whitelisted address', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,
@@ -821,7 +821,7 @@ contract('SRC20', async function ([
 
     it('should be able to request transfer of funds when from or to are greylisted', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,
@@ -849,7 +849,7 @@ contract('SRC20', async function ([
 
     it('should be able to execute transfer request when from or to are greylisted', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,
@@ -875,7 +875,7 @@ contract('SRC20', async function ([
 
     it('should be able to cancel transfer request as a owner', async function () {
       await this.roles.addDelegate(delegate0, {from: owner});
-      await this.assetRegistry.updateKYA(this.token.address, kyaHash, kyaUrl, {from: delegate0});
+      await this.assetRegistry.updateKya(this.token.address, kyaHash, kyaUrl, {from: delegate0});
       await this.token.updateRestrictionsAndRules(
         this.tokenTransferRules.address,
         this.tokenTransferRules.address,

@@ -1,4 +1,5 @@
 const moment = require('moment');
+const bre = require('@nomiclabs/buidler');
 const {ethers} = require('@nomiclabs/buidler');
 const _ = require('lodash');
 
@@ -35,7 +36,7 @@ async function getTokenContractsOptions() {
   const [, issuer] = await ethers.getSigners();
   return {
     issuer,
-    features: 0, // token features bitmap
+    features: 15, // token features bitmap: all anabled (1 + 2 + 4 + 8)
     transferRules: false,
     src20: {
       name: 'Testing Security Token',
@@ -55,9 +56,9 @@ function getFundraiserOptions() {
     supply: ethers.utils.parseUnits('100000'), // 10k baby
     startDate: moment().unix(),
     endDate: moment().add(1, 'month').unix(),
-    softCap: ethers.utils.parseUnits('5000'),
-    hardCap: ethers.utils.parseUnits('10000'),
-    tokenPrice: ethers.utils.parseUnits('1'), // 1 token = 1 usd
+    softCap: ethers.utils.parseUnits('5000', 6),
+    hardCap: ethers.utils.parseUnits('10000', 6),
+    tokenPrice: 0, // ethers.utils.parseUnits('1'), // 1 token = 1 usd
     contributionsLocked: false,
     contributors: {
       maxNum: 0,
@@ -89,6 +90,8 @@ async function deployBaseContracts(customOptions = {}) {
   const usdc = await deployContract('ERC20Mock', options.stablecoinParams);
   await swm.transfer(issuerAddress, options.issuerSwmBalance);
 
+  const disperse = bre.network.name === 'local' ? await deployContract('Disperse', []) : null;
+
   const addresses = {
     swm,
     swmPriceOracle,
@@ -99,6 +102,7 @@ async function deployBaseContracts(customOptions = {}) {
     setRateMinter,
     affiliateManager,
     usdc,
+    disperse,
   };
   return [addresses, options];
 }
@@ -111,7 +115,7 @@ async function deployTokenContracts(baseContracts, customOptions = {}) {
   const transferRules = options.transferRules
     ? await deployContract('TransferRules', [issuerAddress], issuer)
     : undefined;
-  const features = await deployContract('Featured', [issuerAddress, options.features || 0], issuer);
+  const features = await deployContract('Features', [issuerAddress, options.features || 0], issuer);
   const roles = await deployContract(
     'SRC20Roles',
     [issuerAddress, src20Registry.address, transferRules ? transferRules.address : ZERO_ADDRESS],
@@ -217,6 +221,13 @@ function dumpContractAddresses(contracts) {
   }
 }
 
+async function advanceTimeAndBlock(time) {
+  const provider = bre.ethers.provider;
+  let block = await provider.getBlock('latest');
+  console.log('BLOOOK', {block});
+  return provider.send('evm_mine', [block['timestamp'] + time]);
+}
+
 module.exports = {
   ZERO_ADDRESS,
   getSigners,
@@ -225,10 +236,12 @@ module.exports = {
   getTokenContractsOptions,
   getFundraiserOptions,
   deployBaseContracts,
+  deployContract,
   deployTokenContracts,
   deployFundraiser,
   deployContributorRestrictions,
   setupFundraiser,
   deployFundraiserContracts,
   dumpContractAddresses,
+  advanceTimeAndBlock,
 };

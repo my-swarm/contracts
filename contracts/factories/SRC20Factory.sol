@@ -15,12 +15,11 @@ contract SRC20Factory {
     address owner,
     address token,
     address transferRules,
+    address features,
     string name,
     string symbol,
     uint8 decimals,
-    uint256 maxTotalSupply,
-    bytes32 kyaHash,
-    string kyaUrl
+    uint256 maxTotalSupply
   );
 
   /**
@@ -45,7 +44,7 @@ contract SRC20Factory {
    * addressList[1]: restrictions,
    * addressList[2]: rules,
    * addressList[3]: roles,
-   * addressList[4]: featured,
+   * addressList[4]: features,
    * addressList[5]: assetRegistry,
    * addressList[6]: minter
    */
@@ -68,18 +67,17 @@ contract SRC20Factory {
       addressList[6] // minter
     );
 
-    IAssetRegistry(addressList[5]).addAsset(token, kyaHash, kyaUrl, netAssetValueUSD);
     emit SRC20Created(
       addressList[0],
       token,
       addressList[2],
+      addressList[4],
       name,
       symbol,
       decimals,
-      maxTotalSupply,
-      kyaHash,
-      kyaUrl
+      maxTotalSupply
     );
+    IAssetRegistry(addressList[5]).addAsset(token, kyaHash, kyaUrl, netAssetValueUSD);
     return true;
   }
 }

@@ -7,11 +7,12 @@ import './SRC20Detailed.sol';
 import '../interfaces/ISRC20.sol';
 import '../interfaces/ISRC20Managed.sol';
 import '../interfaces/ITransferRules.sol';
-import '../interfaces/IFeatured.sol';
+import '../interfaces/IFeatures.sol';
 import '../interfaces/ISRC20Roles.sol';
 import '../interfaces/ISRC20.sol';
 import '../interfaces/ITransferRestrictions.sol';
 import '../interfaces/IAssetRegistry.sol';
+import '../fundraising/Fundraiser.sol';
 
 /**
  * @title SRC20 contract
@@ -29,7 +30,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
   mapping(address => uint256) private nonce;
 
   ISRC20Roles public roles;
-  IFeatured public features;
+  IFeatures public features;
   IAssetRegistry public assetRegistry;
 
   /**
@@ -48,7 +49,8 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    */
   ITransferRules public rules;
 
-  address payable public fundraiser;
+  address public fundraiser;
+  event FundraiserAdded(address fundraiser);
 
   modifier onlyAuthority() {
     require(roles.isAuthority(msg.sender), 'Caller not authority');
@@ -75,7 +77,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
   //  addressList[1] restrictions,
   //  addressList[2] rules,
   //  addressList[3] roles,
-  //  addressList[4] featured,
+  //  addressList[4] features,
   //  addressList[5] assetRegistry
   constructor(
     string memory _name,
@@ -88,7 +90,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     _transferOwnership(_addressList[0]);
     _updateRestrictionsAndRules(_addressList[1], _addressList[2]);
     roles = ISRC20Roles(_addressList[3]);
-    features = IFeatured(_addressList[4]);
+    features = IFeatures(_addressList[4]);
     assetRegistry = IAssetRegistry(_addressList[5]);
   }
 
@@ -413,7 +415,7 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     require(now <= _expirationTime, 'transferToken params expired');
     require(_nonce == nonce[_from], 'transferToken params wrong nonce');
 
-    bytes32 kyaHash = assetRegistry.getKYAHash(address(this));
+    bytes32 kyaHash = assetRegistry.getKyaHash(address(this));
 
     require(
       keccak256(abi.encodePacked(kyaHash, _from, _to, _value, _nonce, _expirationTime)) == _hash,
@@ -521,20 +523,20 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    * first to set up the delegate's allowance.
    *
    * @param _addresses an array of addresses to transfer to
-   * @param _values an array of values
+   * @param _amounts an array of amounts
    * @return true on success
    */
-  function bulkTransfer(address[] calldata _addresses, uint256[] calldata _values)
+  function bulkTransfer(address[] calldata _addresses, uint256[] calldata _amounts)
     external
     onlyDelegate
     returns (bool)
   {
-    require(_addresses.length == _values.length, 'Input dataset length mismatch');
+    require(_addresses.length == _amounts.length, 'Input dataset length mismatch');
 
     uint256 count = _addresses.length;
     for (uint256 i = 0; i < count; i++) {
       address to = _addresses[i];
-      uint256 value = _values[i];
+      uint256 value = _amounts[i];
       // todo: if owner===sender, do we care about allowance?
       // todo: or more generally. If this can only be done by delegates, why allowance?
       // todo: owner wants to limit how much the delegate can bulk transfer? I guess
@@ -574,9 +576,10 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     return true;
   }
 
-  function setFundraiser(address payable _fundraiser) external onlyOwner returns (bool) {
-    fundraiser = _fundraiser;
-
+  function setFundraiser() external returns (bool) {
+    require(Fundraiser(msg.sender).token() == address(this), 'Can only call for own token');
+    fundraiser = msg.sender;
+    emit FundraiserAdded(msg.sender);
     return true;
   }
 }

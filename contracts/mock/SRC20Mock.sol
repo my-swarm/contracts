@@ -17,7 +17,7 @@ contract SRC20Mock is SRC20 {
     //  addressList[1] restrictions,
     //  addressList[2] rules,
     //  addressList[3] roles,
-    //  addressList[4] featured,
+    //  addressList[4] features,
     //  addressList[5] assetRegistry
     uint256 _totalSupply
   ) public SRC20(_name, _symbol, _decimals, _maxTotalSupply, _addressList) {

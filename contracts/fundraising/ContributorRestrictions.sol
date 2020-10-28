@@ -76,13 +76,15 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     emit AccountUnWhitelisted(_account, msg.sender);
   }
 
-  // todo: why are not the bulk methods accepting/removing contributors?
+  // todo: this wasn't automatically accepting contributors. Sad!
   function bulkWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
-    // todo: I disabled this method because it would have to call Fundraiser in cycle and that's a gas problem?
-    require(false, 'Bulk whitelist not imlemented');
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
       _whitelisted[_accounts[i]] = true;
+      require(
+        Fundraiser(fundraiser).acceptContributor(_accounts[i]),
+        'Whitelisting failed on processing contributions!'
+      );
       emit AccountWhitelisted(_accounts[i], msg.sender);
     }
   }

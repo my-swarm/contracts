@@ -6,31 +6,32 @@ import '../interfaces/IManager.sol';
 import '../interfaces/INetAssetValueUSD.sol';
 import '../interfaces/IPriceUSD.sol';
 import '../interfaces/ISRC20.sol';
+import '@nomiclabs/buidler/console.sol';
 
 /**
  * @title GetRateMinter
  * @dev Serves as proxy (manager) for SRC20 minting/burning.
  */
 contract GetRateMinter {
-  IManager public _registry;
-  INetAssetValueUSD public _asset;
-  IPriceUSD public _SWMPriceOracle;
+  IManager public registry;
+  INetAssetValueUSD public asset;
+  IPriceUSD public SWMPriceOracle;
 
   using SafeMath for uint256;
 
   constructor(
-    address registry,
-    address asset,
-    address SWMRate
+    address _registry,
+    address _asset,
+    address _swmRate
   ) public {
-    _registry = IManager(registry);
-    _asset = INetAssetValueUSD(asset);
-    _SWMPriceOracle = IPriceUSD(SWMRate);
+    registry = IManager(_registry);
+    asset = INetAssetValueUSD(_asset);
+    SWMPriceOracle = IPriceUSD(_swmRate);
   }
 
-  modifier onlyTokenOwner(address src20) {
+  modifier onlyTokenOwner(address _src20) {
     require(
-      msg.sender == Ownable(src20).owner() || msg.sender == ISRC20(src20).fundraiser(),
+      msg.sender == Ownable(_src20).owner() || msg.sender == ISRC20(_src20).fundraiser(),
       'caller not token owner'
     );
     _;
@@ -44,39 +45,38 @@ contract GetRateMinter {
    *  Note: The stake requirement depends only on the asset USD value and USD/SWM exchange rate (SWM price).
    *        It doesn't depend on the number of tokens to be minted!
    *
-   *  @param netAssetValueUSD Tokenized Asset Value in USD
+   *  @param _nav Tokenized Asset Value in USD
    *  @return the number of SWM tokens
    */
-  function calcStake(uint256 netAssetValueUSD) public view returns (uint256) {
-    uint256 NAV = netAssetValueUSD;
+  function calcStake(uint256 _nav) public view returns (uint256) {
     uint256 stakeUSD;
 
     // Up to 500,000 NAV the stake is flat at 2,500 USD
-    if (NAV >= 0 && NAV <= 500000) stakeUSD = 2500;
+    if (_nav >= 0 && _nav <= 500000) stakeUSD = 2500;
 
     // From 500K up to 1M stake is 0.5%
-    if (NAV > 500000 && NAV <= 1000000) stakeUSD = NAV.mul(5).div(1000);
+    if (_nav > 500000 && _nav <= 1000000) stakeUSD = _nav.mul(5).div(1000);
 
     // From 1M up to 5M stake is 0.45%
-    if (NAV > 1000000 && NAV <= 5000000) stakeUSD = NAV.mul(45).div(10000);
+    if (_nav > 1000000 && _nav <= 5000000) stakeUSD = _nav.mul(45).div(10000);
 
     // From 5M up to 15M stake is 0.40%
-    if (NAV > 5000000 && NAV <= 15000000) stakeUSD = NAV.mul(4).div(1000);
+    if (_nav > 5000000 && _nav <= 15000000) stakeUSD = _nav.mul(4).div(1000);
 
     // From 15M up to 50M stake is 0.25%
-    if (NAV > 15000000 && NAV <= 50000000) stakeUSD = NAV.mul(25).div(10000);
+    if (_nav > 15000000 && _nav <= 50000000) stakeUSD = _nav.mul(25).div(10000);
 
     // From 50M up to 100M stake is 0.20%
-    if (NAV > 50000000 && NAV <= 100000000) stakeUSD = NAV.mul(2).div(1000);
+    if (_nav > 50000000 && _nav <= 100000000) stakeUSD = _nav.mul(2).div(1000);
 
     // From 100M up to 150M stake is 0.15%
-    if (NAV > 100000000 && NAV <= 150000000) stakeUSD = NAV.mul(15).div(10000);
+    if (_nav > 100000000 && _nav <= 150000000) stakeUSD = _nav.mul(15).div(10000);
 
     // From 150M up stake is 0.10%
-    if (NAV > 150000000) stakeUSD = NAV.mul(1).div(1000);
+    if (_nav > 150000000) stakeUSD = _nav.mul(1).div(1000);
 
     // 0.04 is returned as (4, 100)
-    (uint256 numerator, uint256 denominator) = _SWMPriceOracle.getPrice();
+    (uint256 numerator, uint256 denominator) = SWMPriceOracle.getPrice();
 
     // 10**18 because we return Wei
     return stakeUSD.mul(denominator).div(numerator).mul(10**18);
@@ -90,27 +90,30 @@ contract GetRateMinter {
    *  2. Mint the SRC20 tokens
    *  Only the Owner of the SRC20 token can call this function
    *
-   *  @param src20 The address of the SRC20 token to mint tokens for
-   *  @param numSRC20Tokens Number of SRC20 tokens to mint
+   *  @param _src20 The address of the SRC20 token to mint tokens for
+   *  @param _src20Amount Number of SRC20 tokens to mint
    *  @return true on success
    */
-  function stakeAndMint(address src20, uint256 numSRC20Tokens)
+  function stakeAndMint(address _src20, uint256 _src20Amount)
     external
-    onlyTokenOwner(src20)
+    onlyTokenOwner(_src20)
     returns (bool)
   {
-    uint256 numSWMTokens = calcStake(_asset.getNetAssetValueUSD(src20));
+    uint256 swmAmount = calcStake(asset.getNav(_src20));
 
-    if (msg.sender == ISRC20(src20).fundraiser())
+    if (msg.sender == ISRC20(_src20).fundraiser()) {
+      console.log('StakeAndMint fundraiser');
       require(
-        _registry.mintSupply(src20, Ownable(src20).owner(), numSWMTokens, numSRC20Tokens),
+        registry.mintSupply(_src20, Ownable(_src20).owner(), swmAmount, _src20Amount),
         'supply minting failed'
       );
-    else
+    } else {
+      console.log('StakeAndMint NOT fundraiser');
       require(
-        _registry.mintSupply(src20, msg.sender, numSWMTokens, numSRC20Tokens),
+        registry.mintSupply(_src20, msg.sender, swmAmount, _src20Amount),
         'supply minting failed'
       );
+    }
 
     return true;
   }

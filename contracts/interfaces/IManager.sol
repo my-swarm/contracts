@@ -8,44 +8,44 @@ interface IManager {
   event SRC20SupplyIncreased(
     address src20,
     address swmAccount,
-    uint256 swmValue,
-    uint256 src20Value
+    uint256 swmAmount,
+    uint256 src20Amount
   );
   event SRC20SupplyDecreased(
     address src20,
     address swmAccount,
-    uint256 swmValue,
-    uint256 src20Value
+    uint256 swmAmount,
+    uint256 src20Amount
   );
 
   function mintSupply(
     address src20,
     address swmAccount,
-    uint256 swmValue,
-    uint256 src20Value
+    uint256 swmAmount,
+    uint256 src20Amount
   ) external returns (bool);
 
   function increaseSupply(
     address src20,
     address swmAccount,
-    uint256 src20Value
+    uint256 src20Amount
   ) external returns (bool);
 
   function decreaseSupply(
     address src20,
     address swmAccount,
-    uint256 src20Value
+    uint256 src20Amount
   ) external returns (bool);
 
   function renounceManagement(address src20) external returns (bool);
 
   function transferManagement(address src20, address newManager) external returns (bool);
 
-  function calcTokens(address src20, uint256 swmValue) external view returns (uint256);
+  function calcTokens(address src20, uint256 swmAmount) external view returns (uint256);
 
   function getStake(address src20) external view returns (uint256);
 
-  function swmNeeded(address src20, uint256 src20Value) external view returns (uint256);
+  function swmNeeded(address src20, uint256 src20Amount) external view returns (uint256);
 
   function getSrc20toSwmRatio(address src20) external returns (uint256);
 

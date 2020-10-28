@@ -6,11 +6,10 @@ import './IPausable.sol';
 /**
  * @dev Support for "SRC20 feature" modifier.
  */
-contract IFeatured is IPausable, IFreezable {
+contract IFeatures is IPausable, IFreezable {
+  event FeaturesUpdated(bool forceTransfer, bool tokenFreeze, bool accountFreeze, bool accountBurn);
   event AccountFrozen(address indexed account);
   event AccountUnfrozen(address indexed account);
-  event TokenFrozen();
-  event TokenUnfrozen();
 
   uint8 public constant ForceTransfer = 0x01;
   uint8 public constant Pausable = 0x02;
@@ -31,7 +30,7 @@ contract IFeatured is IPausable, IFreezable {
 
   function isTokenPaused() external view returns (bool);
 
-  function pauseToken() external;
+  function freezeToken() external;
 
-  function unPauseToken() external;
+  function unfreezeToken() external;
 }

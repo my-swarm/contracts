@@ -1,10 +1,12 @@
 require('dotenv').config({path: '.env'});
 const {
+  deployContract,
   deployBaseContracts,
   getAddresses,
   dumpContractAddresses,
   deployTokenContracts,
   deployFundraiserContracts,
+  advanceTimeAndBlock,
 } = require('./deploy-helpers');
 const {
   stakeAndMint,
@@ -23,9 +25,11 @@ const {
   contribute,
   massContribute,
   acceptContributors,
+  removeContributors,
+  refund,
 } = require('./token-helpers');
 
-const {exportContractAddresses} = require('./export-helpers');
+const {exportBaseContractAddresses, exportTokenContractAddresses} = require('./export-helpers');
 
 const {parseUnits} = ethers.utils;
 
@@ -51,8 +55,8 @@ async function main() {
     name: 'Testing Token: Unminted',
     symbol: 'TT1',
   });
-
-  // 2. minted token
+  /*
+  // 2. whitelist token
   const [token2, token2Options] = await deployToken(
     {
       name: 'Testing Token: Minted with Whitelist',
@@ -74,58 +78,136 @@ async function main() {
   await transferToken(token2.src20, contributors[0], ca[2], 300);
   await transferToken(token2.src20, contributors[1], ca[2], 100);
 
+  // 3. graylist token
   const [token3, token3Options] = await deployToken(
     {
       name: 'Testing Token: Minted with Greylist',
       symbol: 'TT3',
     },
-    {transferRules: true}
+    {transferRules: true, features: 5}
   );
   await stakeAndMint(token3, token3Options.src20.nav, token3Options.src20.supply.div(2));
   await updateAllowance(issuer, token3.swm, token3.src20Registry.address, -1); // unlimited allowance to simplify
 
   await updateAllowance(issuer, token3.src20, issuerAddress, -1); // also allow myself to spend src for bulk
-  await bulkTransfer(token3, ca.slice(0, 5), [1000, 2000, 3000, 4000, 5000]);
-  await greylist(token3, ca.slice(0, 5));
+  await bulkTransfer(token3, ca.slice(0, 8), [5000, 2000, 3000, 4000, 5000, 1000, 1000, 1000]);
+  await greylist(token3, ca.slice(0, 8));
   await ungreylist(token3, [ca[3], ca[4]]);
   await greylist(token3, ca[3]);
   await transferToken(token3.src20, contributors[0], ca[1], 200);
   await transferToken(token3.src20, contributors[0], ca[2], 300);
   await transferToken(token3.src20, contributors[0], ca[3], 400);
+  await transferToken(token3.src20, contributors[0], ca[5], 500);
+  await transferToken(token3.src20, contributors[0], ca[6], 500);
+  await transferToken(token3.src20, contributors[0], ca[6], 100);
+  await transferToken(token3.src20, contributors[0], ca[7], 500);
   await approveTransfer(token3, 2);
   await denyTransfer(token3, 3);
-
-  // 3. fundraising token
+*/
+  // 4. fundraising token
   let [token4, token4Options] = await deployToken({
     name: 'Testing Token: Fundraising',
     symbol: 'TT4',
   });
-  await distributeToken(swarm, usdc, ca.slice(0, 5), 1000);
+  await distributeToken(swarm, usdc, ca, 1000);
   const [fundraiserContracts4, fundraiserOptions4] = await deployFundraiserContracts({
     ...baseContracts,
     ...token4,
   });
   token4 = {...token4, ...fundraiserContracts4};
-  await massContribute(token4, contributors.slice(0, 5), [200, 100, 300, 500, 400]);
-  await acceptContributors(token4, [ca[1], ca[3], ca[4]]);
+  // day 1
+  await contribute(token4, contributors[0], 200);
+  await contribute(token4, contributors[1], 100);
+  // day 2
+  advanceTimeAndBlock(24 * 3600);
+  await contribute(token4, contributors[2], 300);
+  await contribute(token4, contributors[3], 500);
+  await acceptContributors(token4, [ca[0], ca[1], ca[2]]);
+  // day 3
+  advanceTimeAndBlock(24 * 3600);
+  await contribute(token4, contributors[4], 400);
+  await contribute(token4, contributors[5], 500);
+  await acceptContributors(token4, [ca[3], ca[5]]);
+  await removeContributors(token4, [ca[4]]);
+  // day 4
+  advanceTimeAndBlock(24 * 3600);
+  await contribute(token4, contributors[6], 500);
+  await contribute(token4, contributors[7], 500);
+  await removeContributors(token4, [ca[5]]);
+  // day 5
+  advanceTimeAndBlock(24 * 3600);
+  await contribute(token4, contributors[8], 500);
+  await contribute(token4, contributors[9], 500);
+  await acceptContributors(token4, [ca[4], ca[7]]);
+  // day 6
+  advanceTimeAndBlock(24 * 3600);
+  await removeContributors(token4, [ca[6]]);
+  await refund(token4, contributors[3]);
 
-  /*
-  // 4. fundraised token
-  const [token5, token5Options] = await deployToken({
+  await acceptContributors(token4, ca.slice(10, 20));
+
+  // day 8
+  advanceTimeAndBlock(2 * 24 * 3600);
+  await contribute(token4, contributors[10], 700);
+  await contribute(token4, contributors[11], 400);
+  // day 9
+  advanceTimeAndBlock(24 * 3600);
+  await contribute(token4, contributors[12], 800);
+  // day 11
+  advanceTimeAndBlock(2 * 24 * 3600);
+  await contribute(token4, contributors[13], 700);
+  // day 14
+  advanceTimeAndBlock(3 * 24 * 3600);
+  await contribute(token4, contributors[14], 400);
+  await contribute(token4, contributors[15], 700);
+  // day 15
+  advanceTimeAndBlock(24 * 3600);
+  await contribute(token4, contributors[16], 1000);
+  // day 18
+  advanceTimeAndBlock(3 * 24 * 3600);
+  await contribute(token4, contributors[17], 300);
+  // contributors[17] is the last one
+
+  // expected result:
+  // 0, 1, 2, 7: qualified
+  // 4, 5, 6: removed
+  // 3: refunded
+  // 8, 9: pending
+  // total qualified: 200 + 100 + 300 + 500 = 1100
+  // total pending: 500 + 500 = 1000
+  // total refunded: 400 + 500 + 500 + 500 = 1900
+
+  // 5. fundraised token
+  let [token5] = await deployToken({
     name: 'Testing Token: Fundraised',
     symbol: 'TT5',
   });
-*/
+  await distributeToken(swarm, usdc, ca, 1000);
+  const [fundraiserContracts5] = await deployFundraiserContracts({
+    ...baseContracts,
+    ...token5,
+  });
+  token5 = {...token5, ...fundraiserContracts5};
+  await massContribute(
+    token5,
+    contributors,
+    contributors.map((x) => Math.floor(Math.random() * 10) * 100)
+  );
+  await acceptContributors(token5, ca);
+  await advanceTimeAndBlock(40 * 24 * 3600); // make sure we are after end date
+
   console.log('----------------------');
   console.log('Prerequisites deployed');
   console.log(`Deployer address: ${swarm.address}`);
   console.log(`Issuer address: ${issuer.address}`);
   console.log('');
   dumpContractAddresses(baseContracts);
-  exportContractAddresses('token1', token1);
-  exportContractAddresses('token2', token2);
-  exportContractAddresses('token3', token3);
-  exportContractAddresses('token4', token4);
+  exportBaseContractAddresses(baseContracts);
+  exportTokenContractAddresses('token1', token1);
+  // exportTokenContractAddresses('token2', token2);
+  // exportTokenContractAddresses('token3', token3);
+  exportTokenContractAddresses('token4', token4);
+  exportTokenContractAddresses('token5', token5);
 }
 
 main()

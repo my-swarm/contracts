@@ -8,7 +8,7 @@ import '../../interfaces/IFreezable.sol';
  * unfreezing and checking accounts' status.
  */
 contract Freezable is IFreezable {
-  mapping(address => bool) private _frozen;
+  mapping(address => bool) private frozen;
 
   event AccountFrozen(address indexed account);
   event AccountUnfrozen(address indexed account);
@@ -16,17 +16,17 @@ contract Freezable is IFreezable {
   /**
    * @dev Freeze an account
    */
-  function _freezeAccount(address account) internal {
-    _frozen[account] = true;
-    emit AccountFrozen(account);
+  function _freezeAccount(address _account) internal {
+    frozen[_account] = true;
+    emit AccountFrozen(_account);
   }
 
   /**
    * @dev Unfreeze an account
    */
-  function _unfreezeAccount(address account) internal {
-    _frozen[account] = false;
-    emit AccountUnfrozen(account);
+  function _unfreezeAccount(address _account) internal {
+    frozen[_account] = false;
+    emit AccountUnfrozen(_account);
   }
 
   /**
@@ -34,7 +34,7 @@ contract Freezable is IFreezable {
    * of accounts are frozen also.
    * @return bool
    */
-  function _isAccountFrozen(address account) internal view returns (bool) {
-    return _frozen[account];
+  function _isAccountFrozen(address _account) internal view returns (bool) {
+    return frozen[_account];
   }
 }

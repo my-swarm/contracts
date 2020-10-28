@@ -61,5 +61,7 @@ interface ISRC20 {
 
   function decreaseAllowance(address spender, uint256 value) external returns (bool);
 
+  function setFundraiser() external returns (bool);
+
   function fundraiser() external returns (address);
 }

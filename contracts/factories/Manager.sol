@@ -15,20 +15,7 @@ import '../interfaces/IManager.sol';
 contract Manager is IManager, Ownable {
   using SafeMath for uint256;
 
-  event SRC20SupplyIncreased(
-    address src20,
-    address swmAccount,
-    uint256 swmValue,
-    uint256 src20Value
-  );
-  event SRC20SupplyDecreased(
-    address src20,
-    address swmAccount,
-    uint256 swmValue,
-    uint256 src20Value
-  );
-
-  mapping(address => SRC20) internal _registry;
+  mapping(address => SRC20) internal registry;
 
   struct SRC20 {
     address owner;
@@ -37,23 +24,23 @@ contract Manager is IManager, Ownable {
     address minter;
   }
 
-  IERC20 private _swmERC20;
+  IERC20 private swmERC20;
 
-  constructor(address swmERC20) public {
-    require(swmERC20 != address(0), 'SWM ERC20 is zero address');
+  constructor(address _swmERC20) public {
+    require(_swmERC20 != address(0), 'SWM ERC20 is zero address');
 
-    _swmERC20 = IERC20(swmERC20);
+    swmERC20 = IERC20(_swmERC20);
   }
 
-  modifier onlyTokenOwner(address src20) {
-    require(_isTokenOwner(src20), 'Caller not token owner.');
+  modifier onlyTokenOwner(address _src20) {
+    require(_isTokenOwner(_src20), 'Caller not token owner.');
     _;
   }
 
   // Note that, similarly to the role of token owner, there is only one manager per src20 token contract.
   // Only one address can have this role.
-  modifier onlyMinter(address src20) {
-    require(msg.sender == _registry[src20].minter, 'Caller not token minter.');
+  modifier onlyMinter(address _src20) {
+    require(msg.sender == registry[_src20].minter, 'Caller not token minter.');
     _;
   }
 
@@ -67,32 +54,31 @@ contract Manager is IManager, Ownable {
    * address.
    * Emits SRC20SupplyMinted event.
    *
-   * @param src20 SRC20 token address.
-   * @param swmAccount SWM ERC20 account holding enough SWM tokens (>= swmValue)
+   * @param _src20 SRC20 token address.
+   * @param _swmAccount SWM ERC20 account holding enough SWM tokens (>= swmAmount)
    * with manager contract address approved to transferFrom.
-   * @param swmValue SWM stake value.
-   * @param src20Value SRC20 tokens to mint
+   * @param _swmAmount SWM stake value.
+   * @param _src20Amount SRC20 tokens to mint
    * @return true on success.
    * todo: do we even need this method? the increaseSupply one does the same and computes stake too
    * todo: the difference is that this one is called by getRateMinter
    */
   function mintSupply(
-    address src20,
-    address swmAccount,
-    uint256 swmValue,
-    uint256 src20Value
-  ) external onlyMinter(src20) returns (bool) {
-    require(swmAccount != address(0), 'SWM account is zero');
-    require(swmValue != 0, 'SWM value is zero');
-    require(src20Value != 0, 'SRC20 value is zero');
-    require(_registry[src20].owner != address(0), 'SRC20 token contract not registered');
+    address _src20,
+    address _swmAccount,
+    uint256 _swmAmount,
+    uint256 _src20Amount
+  ) external onlyMinter(_src20) returns (bool) {
+    require(_swmAccount != address(0), 'SWM account address is zero');
+    require(_swmAmount != 0, 'SWM amount is zero');
+    require(_src20Amount != 0, 'SRC20 amount is zero');
+    require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
-    _registry[src20].stake = _registry[src20].stake.add(swmValue);
+    require(swmERC20.transferFrom(_swmAccount, address(this), _swmAmount));
+    require(ISRC20Managed(_src20).mint(registry[_src20].owner, _src20Amount));
+    registry[_src20].stake = registry[_src20].stake.add(_swmAmount);
 
-    require(_swmERC20.transferFrom(swmAccount, address(this), swmValue));
-    require(ISRC20Managed(src20).mint(_registry[src20].owner, src20Value));
-
-    emit SRC20SupplyIncreased(src20, swmAccount, swmValue, src20Value);
+    emit SRC20SupplyIncreased(_src20, _swmAccount, _swmAmount, _src20Amount);
 
     return true;
   }
@@ -101,28 +87,29 @@ contract Manager is IManager, Ownable {
    * @dev This is function token issuer can call in order to increase his SRC20 supply this
    * and stake his tokens.
    *
-   * @param src20 Address of src20 token contract
-   * @param swmAccount Account from which stake tokens are going to be deducted
-   * @param src20Value Value of desired SRC20 token value
+   * @param _src20 Address of src20 token contract
+   * @param _swmAccount Account from which stake tokens are going to be deducted
+   * @param _src20Amount Value of desired SRC20 token value
    * @return true if success
    * todo: isn't swmAccount always the sender? why whould I increase from someone elses wallet?
    */
   function increaseSupply(
-    address src20,
-    address swmAccount,
-    uint256 src20Value
-  ) external onlyTokenOwner(src20) returns (bool) {
-    require(swmAccount != address(0), 'SWM account is zero');
-    require(src20Value != 0, 'SWM value is zero');
-    require(_registry[src20].owner != address(0), 'SRC20 token contract not registered');
+    address _src20,
+    address _swmAccount,
+    uint256 _src20Amount
+  ) external onlyTokenOwner(_src20) returns (bool) {
+    require(_swmAccount != address(0), 'SWM account is zero');
+    require(_src20Amount != 0, 'SWM value is zero');
+    require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
-    uint256 swmValue = _swmNeeded(src20, src20Value);
+    // computed with the same ratio as in original mint
+    uint256 swmAmount = _swmNeeded(_src20, _src20Amount);
 
-    require(_swmERC20.transferFrom(swmAccount, address(this), swmValue));
-    require(ISRC20Managed(src20).mint(_registry[src20].owner, src20Value));
+    require(swmERC20.transferFrom(_swmAccount, address(this), swmAmount));
+    require(ISRC20Managed(_src20).mint(registry[_src20].owner, _src20Amount));
+    registry[_src20].stake = registry[_src20].stake.add(swmAmount);
 
-    _registry[src20].stake = _registry[src20].stake.add(swmValue);
-    emit SRC20SupplyIncreased(src20, swmAccount, swmValue, src20Value);
+    emit SRC20SupplyIncreased(_src20, _swmAccount, swmAmount, _src20Amount);
 
     return true;
   }
@@ -131,27 +118,27 @@ contract Manager is IManager, Ownable {
    * @dev This is function token issuer can call in order to decrease his SRC20 supply
    * and his stake back
    *
-   * @param src20 Address of src20 token contract
-   * @param swmAccount Account to which stake tokens will be returned
-   * @param src20Value Value of desired SRC20 token value
+   * @param _src20 Address of src20 token contract
+   * @param _swmAccount Account to which stake tokens will be returned
+   * @param _src20Amount Value of desired SRC20 token value
    * @return true if success
    */
   function decreaseSupply(
-    address src20,
-    address swmAccount,
-    uint256 src20Value
-  ) external onlyTokenOwner(src20) returns (bool) {
-    require(swmAccount != address(0), 'SWM account is zero');
-    require(src20Value != 0, 'SWM value is zero');
-    require(_registry[src20].owner != address(0), 'SRC20 token contract not registered');
+    address _src20,
+    address _swmAccount,
+    uint256 _src20Amount
+  ) external onlyTokenOwner(_src20) returns (bool) {
+    require(_swmAccount != address(0), 'SWM account is zero');
+    require(_src20Amount != 0, 'SWM value is zero');
+    require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
-    uint256 swmValue = _swmNeeded(src20, src20Value);
+    uint256 swmAmount = _swmNeeded(_src20, _src20Amount);
 
-    require(_swmERC20.transfer(swmAccount, swmValue));
-    require(ISRC20Managed(src20).burn(_registry[src20].owner, src20Value));
+    require(swmERC20.transfer(_swmAccount, swmAmount));
+    require(ISRC20Managed(_src20).burn(registry[_src20].owner, _src20Amount));
+    registry[_src20].stake = registry[_src20].stake.sub(swmAmount);
 
-    _registry[src20].stake = _registry[src20].stake.sub(swmValue);
-    emit SRC20SupplyDecreased(src20, swmAccount, swmValue, src20Value);
+    emit SRC20SupplyDecreased(_src20, _swmAccount, swmAmount, _src20Amount);
 
     return true;
   }
@@ -159,13 +146,13 @@ contract Manager is IManager, Ownable {
   /**
    * @dev Allows manager to renounce management.
    *
-   * @param src20 SRC20 token address.
+   * @param _src20 SRC20 token address.
    * @return true on success.
    */
-  function renounceManagement(address src20) external onlyOwner returns (bool) {
-    require(_registry[src20].owner != address(0), 'SRC20 token contract not registered');
+  function renounceManagement(address _src20) external onlyOwner returns (bool) {
+    require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
-    require(ISRC20Roles(_registry[src20].roles).renounceManagement());
+    require(ISRC20Roles(registry[_src20].roles).renounceManagement());
 
     return true;
   }
@@ -173,15 +160,15 @@ contract Manager is IManager, Ownable {
   /**
    * @dev Allows manager to transfer management to another address.
    *
-   * @param src20 SRC20 token address.
-   * @param newManager New manager address.
+   * @param _src20 SRC20 token address.
+   * @param _newManager New manager address.
    * @return true on success.
    */
-  function transferManagement(address src20, address newManager) public onlyOwner returns (bool) {
-    require(_registry[src20].owner != address(0), 'SRC20 token contract not registered');
-    require(newManager != address(0), 'newManager address is zero');
+  function transferManagement(address _src20, address _newManager) public onlyOwner returns (bool) {
+    require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
+    require(_newManager != address(0), 'newManager address is zero');
 
-    require(ISRC20Roles(_registry[src20].roles).transferManagement(newManager));
+    require(ISRC20Roles(registry[_src20].roles).transferManagement(_newManager));
 
     return true;
   }
@@ -190,86 +177,85 @@ contract Manager is IManager, Ownable {
    * @dev External function allowing consumers to check corresponding SRC20 amount
    * to supplied SWM amount.
    *
-   * @param src20 SRC20 token to check for.this
-   * @param swmValue SWM value.
+   * @param _src20 SRC20 token to check for.this
+   * @param _swmAmount SWM value.
    * @return Amount of SRC20 tokens.
    */
-  function calcTokens(address src20, uint256 swmValue) external view returns (uint256) {
-    return _calcTokens(src20, swmValue);
+  function calcTokens(address _src20, uint256 _swmAmount) external view returns (uint256) {
+    return _calcTokens(_src20, _swmAmount);
   }
 
   /**
    * @dev External view function for calculating SWM tokens needed for increasing/decreasing
    * src20 token supply.
    *
-   * @param src20 Address of src20 contract
-   * @param src20Value Amount of src20 tokens.this
+   * @param _src20 Address of src20 contract
+   * @param _src20Amount Amount of src20 tokens.this
    * @return Amount of SWM tokens
    */
-  function swmNeeded(address src20, uint256 src20Value) external view returns (uint256) {
-    return _swmNeeded(src20, src20Value);
+  function swmNeeded(address _src20, uint256 _src20Amount) external view returns (uint256) {
+    return _swmNeeded(_src20, _src20Amount);
   }
 
   /**
    * @dev External function for calculating how much SWM tokens are needed to be staked
    * in order to get 1 SRC20 token
    *
-   * @param src20 Address of src20 token contract
+   * @param _src20 Address of src20 token contract
    * @return Amount of SWM tokens
    */
-  function getSrc20toSwmRatio(address src20) external returns (uint256) {
-    uint256 totalSupply = ISRC20(src20).totalSupply();
-    return totalSupply.mul(10**18).div(_registry[src20].stake);
+  function getSrc20toSwmRatio(address _src20) external returns (uint256) {
+    uint256 totalSupply = ISRC20(_src20).totalSupply();
+    return totalSupply.mul(10**18).div(registry[_src20].stake);
   }
 
   /**
    * @dev External view function to get current SWM stake
    *
-   * @param src20 Address of SRC20 token contract
+   * @param _src20 Address of SRC20 token contract
    * @return Current stake in wei SWM tokens
    */
-  function getStake(address src20) external view returns (uint256) {
-    return _registry[src20].stake;
+  function getStake(address _src20) external view returns (uint256) {
+    return registry[_src20].stake;
   }
 
   /**
    * @dev Get address of token owner
    *
-   * @param src20 Address of SRC20 token contract
+   * @param _src20 Address of SRC20 token contract
    * @return Address of token owner
    */
-  function getTokenOwner(address src20) external view returns (address) {
-    return _registry[src20].owner;
+  function getTokenOwner(address _src20) external view returns (address) {
+    return registry[_src20].owner;
   }
 
   /**
    * @dev Internal function calculating new SRC20 values based on minted ones. On every
    * new minting of supply new SWM and SRC20 values are saved for further calculations.
    *
-   * @param src20 SRC20 token address.
-   * @param swmValue SWM stake value.
+   * @param _src20 SRC20 token address.
+   * @param _swmAmount SWM stake value.
    * @return Amount of SRC20 tokens.
    */
-  function _calcTokens(address src20, uint256 swmValue) internal view returns (uint256) {
-    require(src20 != address(0), 'Token address is zero');
-    require(swmValue != 0, 'SWM value is zero');
-    require(_registry[src20].owner != address(0), 'SRC20 token contract not registered');
+  function _calcTokens(address _src20, uint256 _swmAmount) internal view returns (uint256) {
+    require(_src20 != address(0), 'Token address is zero');
+    require(_swmAmount != 0, 'SWM value is zero');
+    require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
-    uint256 totalSupply = ISRC20(src20).totalSupply();
+    uint256 totalSupply = ISRC20(_src20).totalSupply();
 
-    return swmValue.mul(totalSupply).div(_registry[src20].stake);
+    return _swmAmount.mul(totalSupply).div(registry[_src20].stake);
   }
 
-  function _swmNeeded(address src20, uint256 src20Value) internal view returns (uint256) {
-    uint256 totalSupply = ISRC20(src20).totalSupply();
-
-    return src20Value.mul(_registry[src20].stake).div(totalSupply);
+  function _swmNeeded(address _src20, uint256 _src20Amount) internal view returns (uint256) {
+    uint256 totalSupply = ISRC20(_src20).totalSupply();
+    return _src20Amount.mul(registry[_src20].stake).div(totalSupply);
   }
 
   /**
    * @return true if `msg.sender` is the token owner of the registered SRC20 contract.
    */
-  function _isTokenOwner(address src20) internal view returns (bool) {
-    return msg.sender == _registry[src20].owner;
+  function _isTokenOwner(address _src20) internal view returns (bool) {
+    return msg.sender == registry[_src20].owner;
   }
 }

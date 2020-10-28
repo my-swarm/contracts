@@ -1,12 +1,12 @@
 pragma solidity ^0.5.0;
 
-//import '@nomiclabs/buidler/console.sol';
-
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '../interfaces/IGetRateMinter.sol';
 import '../interfaces/IAffiliateManager.sol';
 import '../interfaces/IContributorRestrictions.sol';
+import '../interfaces/ISRC20.sol';
+import '@nomiclabs/buidler/console.sol';
 
 /**
  * @title The Fundraise Contract
@@ -15,9 +15,29 @@ import '../interfaces/IContributorRestrictions.sol';
 contract Fundraiser {
   using SafeMath for uint256;
 
-  event ContributorAdded(address account);
+  event FundraiserCreated(
+    string label,
+    address token,
+    uint256 supply,
+    uint256 startDate,
+    uint256 endDate,
+    uint256 softCap,
+    uint256 hardCap
+  );
+
+  event FundraiserSetup(
+    address baseCurrency,
+    uint256 tokenPrice,
+    address affiliateManager,
+    address contributorRestrictions,
+    address minter,
+    bool contributionsLocked
+  );
+  event FundraiserCanceled();
+  event FundraiserFinished();
+
   event ContributorAccepted(address account);
-  event ContributorRemoved(address account);
+  event ContributorRemoved(address account, bool forced);
 
   // new pending contribution added (by unqualified user)
   event ContributionPending(address indexed account, uint256 amount);
@@ -27,10 +47,9 @@ contract Fundraiser {
   event PendingContributionAccepted(address indexed account, uint256 amount);
 
   event ContributionRefunded(address indexed account, uint256 amount);
-  event ContributionWithdrawn(address indexed account, uint256 amount);
 
   event TokensClaimed(address indexed account, uint256 amount);
-  event FundsWithdrawal(address indexed account, uint256 amount);
+  event Withdrawn(address indexed account, uint256 amount);
   event ReferralCollected(address indexed account, uint256 amount);
 
   address private owner;
@@ -138,6 +157,8 @@ contract Fundraiser {
     endDate = _endDate;
     softCap = _softCap;
     hardCap = _hardCap;
+
+    emit FundraiserCreated(label, token, supply, startDate, endDate, softCap, hardCap);
   }
 
   /**
@@ -161,6 +182,8 @@ contract Fundraiser {
     // which it is by the ongoing modifier
     // require(block.timestamp < startDate, 'Set up should be done before start date');
 
+    ISRC20(token).setFundraiser();
+
     baseCurrency = _baseCurrency;
     tokenPrice = _tokenPrice;
     affiliateManager = _affiliateManager;
@@ -168,6 +191,15 @@ contract Fundraiser {
     contributionsLocked = _contributionsLocked;
     minter = _minter;
     isSetup = true;
+
+    emit FundraiserSetup(
+      baseCurrency,
+      tokenPrice,
+      affiliateManager,
+      contributorRestrictions,
+      minter,
+      contributionsLocked
+    );
   }
 
   /**
@@ -177,8 +209,10 @@ contract Fundraiser {
    *  @return true on success
    */
   function cancel() external onlyOwner() returns (bool) {
+    // todo: allow cancel if finished ??
     isCanceled = true;
     contributionsLocked = false;
+    emit FundraiserCanceled();
     return true;
   }
 
@@ -201,11 +235,7 @@ contract Fundraiser {
       'ERC20 transfer failed'
     );
 
-    require(
-      _contribute(msg.sender, _amount, _affiliateLink),
-      'Contribution does not meet the minimum requirement'
-    );
-
+    _contribute(msg.sender, _amount, _affiliateLink);
     return true;
   }
 
@@ -224,14 +254,14 @@ contract Fundraiser {
   {
     uint256 amount = pendingContributions[_contributor];
     // process contribution
-    if (amount > 0) {
+    if (amount != 0) {
       pendingContributions[_contributor] = 0;
       amountPending = amountPending.sub(amount);
       string memory link = IAffiliateManager(affiliateManager).getAffiliateLink(
         referrals[_contributor]
       );
-      _contribute(_contributor, amount, link);
-      emit PendingContributionAccepted(_contributor, pendingContributions[_contributor]);
+      uint256 realAmount = _contribute(_contributor, amount, link);
+      emit PendingContributionAccepted(_contributor, amount);
     }
     emit ContributorAccepted(_contributor);
     return true;
@@ -254,8 +284,7 @@ contract Fundraiser {
     _removeContributor(_contributor);
     _removeAffiliate(_contributor);
     _fullRefund(_contributor);
-
-    emit ContributorRemoved(_contributor);
+    emit ContributorRemoved(_contributor, true);
     return true;
   }
 
@@ -266,15 +295,15 @@ contract Fundraiser {
    *  @return true on success
    */
   function getRefund() external returns (bool) {
+    bool isExpired = block.timestamp > endDate.add(expirationTime);
     require(
-      isCanceled || block.timestamp > endDate.add(expirationTime) || !contributionsLocked,
+      isCanceled || isExpired || !contributionsLocked,
       'Condition for refund not met (event canceled, expired or contributions not locked)!'
     );
-    if (!contributionsLocked) {
-      _removeContributor(msg.sender);
-      _removeAffiliate(msg.sender);
-    }
     require(_fullRefund(msg.sender), 'There are no funds to refund');
+    _removeContributor(msg.sender);
+    _removeAffiliate(msg.sender);
+    emit ContributorRemoved(msg.sender, false);
     return true;
   }
 
@@ -286,7 +315,7 @@ contract Fundraiser {
    */
   function stakeAndMint() external onlyOwner() returns (bool) {
     // This has all the conditions and will revert if they are not met
-    uint256 amountToMint = _finishFundraise();
+    uint256 amountToMint = _finish();
 
     IGetRateMinter(minter).stakeAndMint(token, amountToMint);
 
@@ -334,13 +363,13 @@ contract Fundraiser {
    *  @param _contributor the address of the contributor
    *  @param _amount the amount of the contribution
    *
-   *  @return true on success
+   *  @return uint256 Actual contributed amount (subtracted when hardcap overflow etc.)
    */
   function _contribute(
     address _contributor,
     uint256 _amount,
     string memory _affiliateLink
-  ) internal returns (bool) {
+  ) internal returns (uint256) {
     require(
       IContributorRestrictions(contributorRestrictions).checkMinInvestment(_amount),
       'Cannot invest less than minAmount'
@@ -368,25 +397,25 @@ contract Fundraiser {
       }
     }
 
-    if (_amount > 0) {
-      if (qualified) {
-        qualifiedContributions[_contributor] = qualifiedContributions[_contributor].add(_amount);
-        amountQualified = amountQualified.add(_amount);
-        _addContributor(_contributor);
-        _addAffiliate(_contributor, _affiliateLink, _amount);
-        emit ContributionPending(_contributor, _amount);
-      } else {
-        pendingContributions[_contributor] = pendingContributions[_contributor].add(_amount);
-        amountPending = amountPending.add(_amount);
-        emit ContributionAdded(_contributor, _amount);
-      }
+    require(_amount > 0, 'Hardcap already reached');
+
+    if (qualified) {
+      qualifiedContributions[_contributor] = qualifiedContributions[_contributor].add(_amount);
+      amountQualified = amountQualified.add(_amount);
+      _addContributor(_contributor);
+      _addAffiliate(_contributor, _affiliateLink, _amount);
+      emit ContributionAdded(_contributor, _amount);
+    } else {
+      pendingContributions[_contributor] = pendingContributions[_contributor].add(_amount);
+      amountPending = amountPending.add(_amount);
+      emit ContributionPending(_contributor, _amount);
     }
 
     if (refund > 0) {
       _refund(_contributor, refund);
     }
 
-    return true;
+    return _amount;
   }
 
   function _addContributor(address _user) internal {
@@ -461,7 +490,7 @@ contract Fundraiser {
    *
    *  @return true on success
    */
-  function _finishFundraise() internal returns (uint256) {
+  function _finish() internal returns (uint256) {
     require(!isFinished, 'Already finished');
     require(block.timestamp < endDate.add(expirationTime), 'Expiration time passed');
     require(amountQualified >= softCap, 'SoftCap not reached');
@@ -472,11 +501,18 @@ contract Fundraiser {
     // lock the fundraise amount... it will be somewhere between the soft and hard caps
     contributionsLocked = true;
     isFinished = true;
+    emit FundraiserFinished();
 
     // find out the token price
-    if (tokenPrice > 0) return amountQualified.div(tokenPrice);
-    else {
+    if (tokenPrice > 0) {
+      console.log('Token price > 0');
+      console.log('Amount qualified', amountQualified);
+      return amountQualified.div(tokenPrice);
+    } else {
+      console.log('Token price = 0');
+      console.log('Supply', supply);
       tokenPrice = amountQualified.div(supply);
+      console.log('Token price', tokenPrice);
       return supply;
     }
   }
@@ -492,7 +528,7 @@ contract Fundraiser {
     amountQualified = 0;
 
     require(IERC20(baseCurrency).transfer(_user, amountWithdrawn), 'ERC20 transfer failed');
-    emit FundsWithdrawal(_user, amountWithdrawn);
+    emit Withdrawn(_user, amountWithdrawn);
 
     return true;
   }

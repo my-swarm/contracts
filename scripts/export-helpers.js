@@ -7,7 +7,7 @@ const jsonConfig = {
   size: 2,
 };
 
-const EXPORTABLE_CONTRACTS = [
+const TOKEN_CONTRACTS = [
   'transferRules',
   'features',
   'roles',
@@ -16,21 +16,50 @@ const EXPORTABLE_CONTRACTS = [
   'contributorRestrictions',
 ];
 
-const EXPORT_PATH = path.resolve(__dirname, '../../issuance/dev_data/addresses.json');
+const BASE_CONTRACTS = {
+  swm: 'SwmToken',
+  swmPriceOracle: 'SWMPriceOracle',
+  src20Registry: 'SRC20Registry',
+  src20Factory: 'SRC20Factory',
+  assetRegistry: 'AssetRegistry',
+  getRateMinter: 'GetRateMinter',
+  setRateMinter: 'SetRateMinter',
+  affiliateManager: 'AffiliateManager',
+  usdc: 'USDC',
+  disperse: 'Disperse',
+};
 
-function exportContractAddresses(tokenId, contracts) {
-  const data = JSON.parse(readFileSync(EXPORT_PATH).toString()) || {};
-  for (const contractName of EXPORTABLE_CONTRACTS) {
+const BASE_CONTRACTS_PATH = path.resolve(
+  __dirname,
+  '../../issuance/@contracts/addresses/local.json'
+);
+const TOKEN_CONTRACTS_PATH = path.resolve(
+  __dirname,
+  '../../issuance/dev_data/addresses/local.json'
+);
+
+function exportBaseContractAddresses(contracts) {
+  const data = {};
+  for ([contractName, contract] of Object.entries(contracts)) {
+    data[BASE_CONTRACTS[contractName]] = contract.address;
+  }
+  writeFileSync(BASE_CONTRACTS_PATH, jsonFormat(data, jsonConfig));
+}
+
+function exportTokenContractAddresses(tokenId, contracts) {
+  const data = JSON.parse(readFileSync(TOKEN_CONTRACTS_PATH).toString()) || {};
+  for (const contractName of TOKEN_CONTRACTS) {
     if (!data[tokenId]) {
       data[tokenId] = {};
     }
     data[tokenId][contractName] = contracts[contractName]
-      ? contracts[contractName].address
+      ? contracts[contractName].address.toLowerCase()
       : undefined;
   }
-  writeFileSync(EXPORT_PATH, jsonFormat(data, jsonConfig));
+  writeFileSync(TOKEN_CONTRACTS_PATH, jsonFormat(data, jsonConfig));
 }
 
 module.exports = {
-  exportContractAddresses,
+  exportTokenContractAddresses,
+  exportBaseContractAddresses,
 };

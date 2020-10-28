@@ -13,7 +13,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
   struct AssetType {
     bytes32 kyaHash;
     string kyaUrl;
-    uint256 netAssetValueUSD;
+    uint256 nav;
   }
 
   address public _src20Factory;
@@ -37,92 +37,88 @@ contract AssetRegistry is IAssetRegistry, Ownable {
   /**
    * Add an asset to the AssetRegistry
    *
-   * @param src20 the token address.
-   * @param kyaHash SHA256 hash of KYA document.
-   * @param kyaUrl URL of token's KYA document (ipfs, http, etc.).
+   * @param _src20 the token address.
+   * @param _kyaHash SHA256 hash of KYA document.
+   * @param _kyaUrl URL of token's KYA document (ipfs, http, etc.).
    *               or address(0) if no rules should be checked on chain.
    * @return True on success.
    */
   function addAsset(
-    address src20,
-    bytes32 kyaHash,
-    string calldata kyaUrl,
-    uint256 netAssetValueUSD
+    address _src20,
+    bytes32 _kyaHash,
+    string calldata _kyaUrl,
+    uint256 _nav
   ) external onlyFactory returns (bool) {
-    require(assetList[src20].netAssetValueUSD == 0, 'Asset already added, try update functions');
+    require(assetList[_src20].nav == 0, 'Asset already added, try update functions');
 
-    assetList[src20].kyaHash = kyaHash;
-    assetList[src20].kyaUrl = kyaUrl;
-    assetList[src20].netAssetValueUSD = netAssetValueUSD;
+    assetList[_src20].kyaHash = _kyaHash;
+    assetList[_src20].kyaUrl = _kyaUrl;
+    assetList[_src20].nav = _nav;
 
-    emit AssetAdded(src20, kyaHash, kyaUrl, netAssetValueUSD);
+    emit AssetAdded(_src20, _kyaHash, _kyaUrl, _nav);
     return true;
   }
 
   /**
    * Gets the currently valid Net Asset Value value for a token.
    *
-   * @param src20 the token address.
+   * @param _src20 the token address.
    * @return The current Net Asset Value of the token.
    */
-  function getNetAssetValueUSD(address src20) external view returns (uint256) {
-    return assetList[src20].netAssetValueUSD;
+  function getNav(address _src20) external view returns (uint256) {
+    return assetList[_src20].nav;
   }
 
   /**
    * Sets the currently valid Net Asset Value value for a token.
    *
-   * @param src20 the token address.
-   * @param netAssetValueUSD the new value we're setting
+   * @param _src20 the token address.
+   * @param _nav the new value we're setting
    * @return True on success.
    */
-  function updateNetAssetValueUSD(address src20, uint256 netAssetValueUSD)
-    external
-    onlyDelegate(src20)
-    returns (bool)
-  {
-    assetList[src20].netAssetValueUSD = netAssetValueUSD;
-    emit AssetNVAUSDUpdated(src20, netAssetValueUSD);
+  function updateNav(address _src20, uint256 _nav) external onlyDelegate(_src20) returns (bool) {
+    assetList[_src20].nav = _nav;
+    emit NavUpdated(_src20, _nav);
     return true;
   }
 
   /**
    * Retrieve token's KYA document's hash and url.
    *
-   * @param src20 the token this applies to
+   * @param _src20 the token this applies to
    *
    * @return Hash of KYA document.
    * @return URL of KYA document.
    */
-  function getKYA(address src20) public view returns (bytes32, string memory) {
-    return (assetList[src20].kyaHash, assetList[src20].kyaUrl);
+  function getKya(address _src20) public view returns (bytes32, string memory) {
+    return (assetList[_src20].kyaHash, assetList[_src20].kyaUrl);
   }
 
-  function getKYAHash(address src20) public view returns (bytes32) {
-    return assetList[src20].kyaHash;
+  function getKyaHash(address _src20) public view returns (bytes32) {
+    return assetList[_src20].kyaHash;
   }
 
   /**
    * @dev Update KYA document, sending document hash and url.
    * Hash is SHA256 hash of document content.
-   * Emits AssetKYAUpdated event.
+   * Emits KyaUpdated event.
    * Allowed to be called by owner's delegate only.
    *
-   * @param src20 the token this applies to.
-   * @param kyaHash SHA256 hash of KYA document.
-   * @param kyaUrl URL of token's KYA document (ipfs, http, etc.).
+   * @param _src20 the token this applies to.
+   * @param _kyaHash SHA256 hash of KYA document.
+   * @param _kyaUrl URL of token's KYA document (ipfs, http, etc.).
    *               or address(0) if no rules should be checked on chain.
    * @return True on success.
    */
-  function updateKYA(
-    address src20,
-    bytes32 kyaHash,
-    string calldata kyaUrl
-  ) external onlyDelegate(src20) returns (bool) {
-    assetList[src20].kyaHash = kyaHash;
-    assetList[src20].kyaUrl = kyaUrl;
+  function updateKya(
+    address _src20,
+    bytes32 _kyaHash,
+    string calldata _kyaUrl
+  ) external onlyDelegate(_src20) returns (bool) {
+    assetList[_src20].kyaHash = _kyaHash;
+    assetList[_src20].kyaUrl = _kyaUrl;
 
-    emit AssetKYAUpdated(src20, kyaHash, kyaUrl);
+    emit KyaUpdated(_src20, _kyaHash, _kyaUrl);
     return true;
   }
 }

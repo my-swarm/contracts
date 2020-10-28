@@ -76,9 +76,9 @@ contract SRC20Registry is ISRC20Registry, Manager {
     require(_factories.has(msg.sender), 'factory not registered');
     require(_authorizedMinters[minter] == true, 'minter not authorized');
 
-    _registry[token].owner = tokenOwner;
-    _registry[token].roles = roles;
-    _registry[token].minter = minter;
+    registry[token].owner = tokenOwner;
+    registry[token].roles = roles;
+    registry[token].minter = minter;
 
     emit SRC20Registered(token, tokenOwner);
 
@@ -94,9 +94,9 @@ contract SRC20Registry is ISRC20Registry, Manager {
    */
   function remove(address token) external onlyOwner returns (bool) {
     require(token != address(0), 'token is zero address');
-    require(_registry[token].owner != address(0), 'token not registered');
+    require(registry[token].owner != address(0), 'token not registered');
 
-    delete _registry[token];
+    delete registry[token];
 
     emit SRC20Removed(token);
 
@@ -110,7 +110,7 @@ contract SRC20Registry is ISRC20Registry, Manager {
    * @return True if registry contains token.
    */
   function contains(address token) external view returns (bool) {
-    return _registry[token].owner != address(0);
+    return registry[token].owner != address(0);
   }
 
   /**
@@ -136,7 +136,7 @@ contract SRC20Registry is ISRC20Registry, Manager {
    *  @return address of authorized minter.
    */
   function getMinter(address src20) external view returns (address) {
-    return _registry[src20].minter;
+    return registry[src20].minter;
   }
 
   /**

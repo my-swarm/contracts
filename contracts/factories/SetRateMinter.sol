@@ -9,10 +9,10 @@ import '../interfaces/INetAssetValueUSD.sol';
  * @dev Serves as proxy (manager) for SRC20 minting/burning.
  */
 contract SetRateMinter is Ownable {
-  IManager public _registry;
+  IManager public registry;
 
-  constructor(address registry) public {
-    _registry = IManager(registry);
+  constructor(address _registry) public {
+    registry = IManager(_registry);
   }
 
   /**
@@ -23,20 +23,23 @@ contract SetRateMinter is Ownable {
    *  2. Mint the SRC20 tokens
    *  Only the Owner of the SRC20 token can call this function
    *
-   * @param src20 SRC20 token address.
-   * @param swmAccount SWM ERC20 account holding enough SWM tokens (>= swmValue)
+   * @param _src20 SRC20 token address.
+   * @param _swmAccount SWM ERC20 account holding enough SWM tokens (>= swmAmount)
    * with manager contract address approved to transferFrom.
-   * @param swmValue SWM stake value.
-   * @param src20Value SRC20 tokens to mint
+   * @param _swmAmount SWM stake value.
+   * @param _src20Amount SRC20 tokens to mint
    * @return true on success
    */
   function mintSupply(
-    address src20,
-    address swmAccount,
-    uint256 swmValue,
-    uint256 src20Value
+    address _src20,
+    address _swmAccount,
+    uint256 _swmAmount,
+    uint256 _src20Amount
   ) external onlyOwner returns (bool) {
-    require(_registry.mintSupply(src20, swmAccount, swmValue, src20Value), 'supply minting failed');
+    require(
+      registry.mintSupply(_src20, _swmAccount, _swmAmount, _src20Amount),
+      'supply minting failed'
+    );
 
     return true;
   }

@@ -62,9 +62,6 @@ async function bulkTransfer({src20}, addresses, values) {
 }
 
 async function contribute({usdc, fundraiser}, as, amount, referral = '') {
-  console.log(
-    `contribute ${usdc.address} -> ${fundraiser.address}: ${amount} (as ${await as.getAddress()}`
-  );
   await usdc.connect(as).approve(fundraiser.address, await sanitizeAmount(amount, usdc));
   await fundraiser.connect(as).contribute(await sanitizeAmount(amount, usdc), referral);
 }
@@ -82,6 +79,17 @@ async function acceptContributors({contributorRestrictions}, contributorAddresse
   for (const contributorAddress of contributorAddresses) {
     await contributorRestrictions.connect(issuer).whitelistAccount(contributorAddress);
   }
+}
+
+async function removeContributors({contributorRestrictions}, contributorAddresses) {
+  const issuer = await getIssuer();
+  for (const contributorAddress of contributorAddresses) {
+    await contributorRestrictions.connect(issuer).unWhitelistAccount(contributorAddress);
+  }
+}
+
+async function refund({fundraiser}, contributor) {
+  await fundraiser.connect(contributor).getRefund();
 }
 
 async function ungreywhitelist(transferRules, addresses, add = true, white = true) {
@@ -148,6 +156,8 @@ module.exports = {
   contribute,
   massContribute,
   acceptContributors,
+  removeContributors,
+  refund,
   updateAllowance,
   increaseSupply,
   decreaseSupply,
