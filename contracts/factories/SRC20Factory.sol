@@ -1,5 +1,4 @@
 pragma solidity ^0.5.0;
-import '@nomiclabs/buidler/console.sol';
 import '../token/SRC20.sol';
 import '../interfaces/ISRC20Registry.sol';
 import '../token/AssetRegistry.sol';
@@ -15,6 +14,7 @@ contract SRC20Factory {
     address owner,
     address token,
     address transferRules,
+    address roles,
     address features,
     string name,
     string symbol,
@@ -71,6 +71,7 @@ contract SRC20Factory {
       addressList[0],
       token,
       addressList[2],
+      addressList[3],
       addressList[4],
       name,
       symbol,

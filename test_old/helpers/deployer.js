@@ -1,22 +1,22 @@
-const { ethers, config } = require("@nomiclabs/buidler");
-const { readArtifact } = require("@nomiclabs/buidler/plugins");
+const {ethers, config} = require('@nomiclabs/buidler');
+const {readArtifact} = require('@nomiclabs/buidler/plugins');
 require('dotenv').config({path: '.env'});
 const moment = require('moment');
-const {linkBytecode} = require('./utils')
+const {linkBytecode} = require('./utils');
 
 const {
-    SWM_PRICE_USD_NUMERATOR,
-    SWM_PRICE_USD_DENOMINATOR,
-    SRC20_FEATURES,
-    TOKEN_OWNER,
-    DEVELOPMENT_SWM_TOKEN_OWNER,
-    TOKEN_NAME,
-    SYMBOL,
-    DECIMALS,
-    MAX_TOTAL_SUPPLY,
-    KYA_HASH,
-    KYA_URL,
-    NET_ASSET_VALUE,
+  SWM_PRICE_USD_NUMERATOR,
+  SWM_PRICE_USD_DENOMINATOR,
+  SRC20_FEATURES,
+  TOKEN_OWNER,
+  DEVELOPMENT_SWM_TOKEN_OWNER,
+  TOKEN_NAME,
+  SYMBOL,
+  DECIMALS,
+  MAX_TOTAL_SUPPLY,
+  KYA_HASH,
+  KYA_URL,
+  NET_ASSET_VALUE,
 } = process.env;
 
 const ercTotalSupply = ethers.utils.parseUnits('100000000');
@@ -24,7 +24,7 @@ const label = 'TestFundraise';
 const src20tokenSupply = ethers.utils.parseUnits('1000000');
 const investmentAmount = ethers.utils.parseUnits('500');
 const startDate = moment().unix() + 60; // one minute from the current time
-const endDate = moment().unix() + (60 * 60 * 72); // three days from current time;
+const endDate = moment().unix() + 60 * 60 * 72; // three days from current time;
 const softCap = ethers.BigNumber.from('100000000000');
 const hardCap = ethers.BigNumber.from('1000000000000');
 const maxNumberOfContributors = 0;
@@ -32,12 +32,11 @@ const minAmount = ethers.BigNumber.from('50000000');
 const maxAmount = ethers.BigNumber.from('1000000000');
 
 module.exports = {
-    deployContracts,
+  deployContracts,
 };
 
 async function deployContracts(root) {
-
-  const accounts= await ethers.getSigners();
+  const accounts = await ethers.getSigners();
   const deployer = accounts[0];
   const deployerAddress = await deployer.getAddress();
 
@@ -85,7 +84,11 @@ async function deployContracts(root) {
   await root.transferRules.deployed();
 
   const SRC20Roles = await ethers.getContractFactory('SRC20Roles');
-  root.src20Roles = await SRC20Roles.deploy(deployerAddress, root.src20Registry.address, root.transferRules.address);
+  root.src20Roles = await SRC20Roles.deploy(
+    deployerAddress,
+    root.src20Registry.address,
+    root.transferRules.address
+  );
   await root.src20Roles.deployed();
 
   const Featured = await ethers.getContractFactory('Featured');
@@ -101,18 +104,18 @@ async function deployContracts(root) {
     KYA_URL,
     NET_ASSET_VALUE,
     [
-        deployerAddress,
-        root.transferRules.address,
-        root.transferRules.address,
-        root.src20Roles.address,
-        root.featured.address,
-        root.assetRegistry.address,
-        root.getRateMinter.address
-    ],
+      deployerAddress,
+      root.transferRules.address,
+      root.transferRules.address,
+      root.src20Roles.address,
+      root.featured.address,
+      root.assetRegistry.address,
+      root.getRateMinter.address,
+    ]
   );
 
   const receipt = await tx.wait(1);
-  root.src20Address = ethers.utils.defaultAbiCoder.decode(['address'], receipt.logs[5].data)[0]
+  root.src20Address = ethers.utils.defaultAbiCoder.decode(['address'], receipt.logs[5].data)[0];
   root.src20 = await ethers.getContractAt('SRC20', root.src20Address);
 
   const AffiliateManager = await ethers.getContractFactory('AffiliateManager');
@@ -132,7 +135,7 @@ async function deployContracts(root) {
     endDate,
     softCap,
     hardCap
-  )
+  );
   await root.swarmPoweredFundraise.deployed();
 
   const ContributorRestrictions = await ethers.getContractFactory('ContributorRestrictions');

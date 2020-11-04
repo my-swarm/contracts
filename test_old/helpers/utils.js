@@ -1,16 +1,14 @@
-const { ethers, config } = require("@nomiclabs/buidler");
-const { readArtifact } = require("@nomiclabs/buidler/plugins");
+const {ethers, config} = require('@nomiclabs/buidler');
+const {readArtifact} = require('@nomiclabs/buidler/plugins');
 
 module.exports = {
-    linkBytecode,
+  linkBytecode,
 };
 
 function linkBytecode(artifact, libraries) {
   let bytecode = artifact.bytecode;
 
-  for (const [fileName, fileReferences] of Object.entries(
-    artifact.linkReferences
-  )) {
+  for (const [fileName, fileReferences] of Object.entries(artifact.linkReferences)) {
     for (const [libName, fixups] of Object.entries(fileReferences)) {
       const addr = libraries[libName];
       if (addr === undefined) {

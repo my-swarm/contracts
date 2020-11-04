@@ -4,7 +4,6 @@ const moment = require('moment');
 const helpers = require('../token/helpers');
 const {encodeTransfer} = require('../token/utils');
 
-
 const SwarmPoweredFundraiseMock = artifacts.require('SwarmPoweredFundraiseMock');
 const SwarmPoweredFundraiseFinished = artifacts.require('SwarmPoweredFundraiseFinished');
 const SwarmPoweredFundraiseCanceled = artifacts.require('SwarmPoweredFundraiseCanceled');
@@ -19,7 +18,13 @@ const UniswapProxy = artifacts.require('UniswapProxy');
 const UniswapMock = artifacts.require('UniswapMock');
 const maxContributors = 100;
 
-contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authority*/, owner, issuer, contributor]) {
+contract('SwarmPoweredFundraise', async function ([
+  _,
+  whitelistManager /*authority*/,
+  owner,
+  issuer,
+  contributor,
+]) {
   const ercTotalSupply = new BN(123456789);
   const amount = new BN(198);
   const minAmountBCY = new BN(9);
@@ -30,30 +35,27 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
   //const currencyRegistry = helpers.accounts.ACCOUNT1.address;
   const SRC20tokenSupply = 10000;
   const startDate = moment().unix(); // current time
-  const endDate = moment().unix() + (60 * 60 * 72); // three days from current time;
+  const endDate = moment().unix() + 60 * 60 * 72; // three days from current time;
   const softCapBCY = 1111;
   const hardCapBCY = 5555;
   const contributionsLocked = false;
 
   beforeEach(async function () {
-
     // Currency stuff
     this.daiExchange = await UniswapMock.new({from: owner});
     await this.daiExchange.setTokenToETHRate(1, {from: owner});
     this.uniswapProxy = await UniswapProxy.new({from: owner});
     await this.uniswapProxy.addOrUpdateExchange(
-      "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359", // DAI
+      '0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359', // DAI
       this.daiExchange.address,
       {from: owner}
     );
     this.currencyRegistry = await CurrencyRegistry.new({from: owner});
+    await this.currencyRegistry.addCurrency(constants.ZERO_ADDRESS, this.uniswapProxy.address, {
+      from: owner,
+    });
     await this.currencyRegistry.addCurrency(
-      constants.ZERO_ADDRESS,
-      this.uniswapProxy.address,
-      {from: owner}
-    );
-    await this.currencyRegistry.addCurrency(
-      "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359",
+      '0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359',
       this.uniswapProxy.address,
       {from: owner}
     );
@@ -82,11 +84,9 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
       this.acceptedTokenExchange.address,
       {from: owner}
     );
-    await this.currencyRegistry.addCurrency(
-      this.acceptedToken.address,
-      this.uniswapProxy.address,
-      {from: owner}
-    );
+    await this.currencyRegistry.addCurrency(this.acceptedToken.address, this.uniswapProxy.address, {
+      from: owner,
+    });
 
     // so that contributor can contribute...
     await this.acceptedToken.transfer(contributor, amount, {from: owner});
@@ -114,11 +114,7 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
       {from: owner}
     );
 
-    this.contributionRules = await ContributionRules.new(
-      minAmountBCY,
-      maxAmountBCY,
-      {from: owner}
-    );
+    this.contributionRules = await ContributionRules.new(minAmountBCY, maxAmountBCY, {from: owner});
 
     await this.swarmPoweredFundraiseMock.setupContract(
       minAmountBCY,
@@ -154,7 +150,6 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
   });
 
   describe('Handling incoming contributions', function () {
-
     it('should allow anyone to contribute ETH to the contract', async function () {
       // check the current state of the contract
       let beforeBalance = await this.swarmPoweredFundraiseMock.getBalanceETH(contributor);
@@ -169,9 +164,15 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
       //console.log('afterBalance:', afterBalance.toString());
       //console.log('actualBalance:', actualBalance.toString());
 
-      let bb = await this.swarmPoweredFundraiseMock.getQualifiedContributions(contributor, constants.ZERO_ADDRESS);
+      let bb = await this.swarmPoweredFundraiseMock.getQualifiedContributions(
+        contributor,
+        constants.ZERO_ADDRESS
+      );
       //console.log('getQualifiedContributions:', bb.toString());
-      bb = await this.swarmPoweredFundraiseMock.getBufferedContributions(contributor, constants.ZERO_ADDRESS);
+      bb = await this.swarmPoweredFundraiseMock.getBufferedContributions(
+        contributor,
+        constants.ZERO_ADDRESS
+      );
       //console.log('getBufferedContributions:', bb.toString());
 
       assert.equal(beforeBalance.add(amount).eq(afterBalance), true);
@@ -179,15 +180,25 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
 
     it('should allow anyone to contribute accepted currency (ERC20 token) to the contract', async function () {
       // check the current state of the contract
-      const beforeBalance = await this.swarmPoweredFundraiseMock.getBalanceToken(contributor, this.acceptedToken.address);
+      const beforeBalance = await this.swarmPoweredFundraiseMock.getBalanceToken(
+        contributor,
+        this.acceptedToken.address
+      );
 
       // contribute
       await this.acceptedToken.transfer(contributor, amount, {from: owner});
-      await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {from: contributor});
-      await this.swarmPoweredFundraiseMock.contribute(this.acceptedToken.address, amount, "", {from: contributor});
+      await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {
+        from: contributor,
+      });
+      await this.swarmPoweredFundraiseMock.contribute(this.acceptedToken.address, amount, '', {
+        from: contributor,
+      });
 
       // check that the funds are added to the contributions of the msg.sender
-      const afterBalance = await this.swarmPoweredFundraiseMock.getBalanceToken(contributor, this.acceptedToken.address);
+      const afterBalance = await this.swarmPoweredFundraiseMock.getBalanceToken(
+        contributor,
+        this.acceptedToken.address
+      );
 
       assert.equal(beforeBalance.add(amount).eq(afterBalance), true);
     });
@@ -195,28 +206,34 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
     it('should not allow anyone to contribute not-acceptable currency (ERC20 token) to the contract', async function () {
       // contribute
       await shouldFail.reverting.withMessage(
-         this.swarmPoweredFundraiseMock.contribute(this.notAcceptedToken.address, amount, "", {from: owner}),
+        this.swarmPoweredFundraiseMock.contribute(this.notAcceptedToken.address, amount, '', {
+          from: owner,
+        }),
         'Unsupported contribution currency'
       );
     });
-
   });
 
   describe('Handling contribution limits', function () {
     it('should fail to qualify ETH if it does not satisfy contribution rules - min amount', async function () {
-
       // Whiteliste the contributor first
       // this.contributorRestrictions.whitelistAccount(contributor, {from: owner});
 
       // check the current state of the contract
-      let beforeBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(contributor, constants.ZERO_ADDRESS);
+      let beforeBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(
+        contributor,
+        constants.ZERO_ADDRESS
+      );
       //console.log('beforeBalance:', beforeBalance);
 
       let lessThanMinAmount = minAmountBCY - 1;
       // contribute funds
       await this.swarmPoweredFundraiseMock.send(lessThanMinAmount, {from: contributor});
 
-      let afterBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(contributor, constants.ZERO_ADDRESS);
+      let afterBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(
+        contributor,
+        constants.ZERO_ADDRESS
+      );
       //console.log('afterBalance:', afterBalance.toString());
 
       // check that the funds are added to the contributions of the msg.sender
@@ -227,16 +244,29 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
     });
 
     it('should fail to qualify ERC20 if it does not satisfy contribution rules - min amount in ERC20', async function () {
-      await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {from: contributor});
+      await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {
+        from: contributor,
+      });
 
       let lessThanMinAmount = minAmountBCY - 1;
 
-      let beforeBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(contributor, this.acceptedToken.address);
+      let beforeBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(
+        contributor,
+        this.acceptedToken.address
+      );
       //console.log('getQualifiedContributions before:', beforeBalance.toString());
 
-      await this.swarmPoweredFundraiseMock.contribute(this.acceptedToken.address, lessThanMinAmount, '', {from: contributor});
+      await this.swarmPoweredFundraiseMock.contribute(
+        this.acceptedToken.address,
+        lessThanMinAmount,
+        '',
+        {from: contributor}
+      );
 
-      let afterBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(contributor, this.acceptedToken.address);
+      let afterBalance = await this.swarmPoweredFundraiseMock.getQualifiedContributions(
+        contributor,
+        this.acceptedToken.address
+      );
       //console.log('getQualifiedContributions after:', afterBalance.toString());
 
       assert.equal(beforeBalance.eq(afterBalance), true);
@@ -244,24 +274,32 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
 
     it('should fail if it does not satisfy contribution rules - max contributors', async function () {
       await this.swarmPoweredFundraiseMock.setNumContributorsToMax();
-      await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {from: contributor});
+      await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {
+        from: contributor,
+      });
       ////console.log('numberOfContributors: ', await this.swarmPoweredFundraiseMock.numberOfContributors.call().toString());
       await shouldFail.reverting.withMessage(
-          this.swarmPoweredFundraiseMock.contribute(this.acceptedToken.address, amount, '', {from: contributor}),
-          'Max number of contributors exceeded!'
+        this.swarmPoweredFundraiseMock.contribute(this.acceptedToken.address, amount, '', {
+          from: contributor,
+        }),
+        'Max number of contributors exceeded!'
       );
     });
 
     it('should reject ETH contributions after the fundraising has finished', async function () {
       await shouldFail.reverting.withMessage(
-          this.swarmPoweredFundraiseFinished.send(amount, {from: whitelistManager}),
-          'Only owner can send ETH if fundraise has finished!');
+        this.swarmPoweredFundraiseFinished.send(amount, {from: whitelistManager}),
+        'Only owner can send ETH if fundraise has finished!'
+      );
     });
 
     it('should reject token contributions after the fundraising has finished', async function () {
       await shouldFail.reverting.withMessage(
-        this.swarmPoweredFundraiseFinished.contribute(this.acceptedToken.address, amount, '', {from: contributor}),
-        'Fundraise has finished!'); // Fundraise has finished!
+        this.swarmPoweredFundraiseFinished.contribute(this.acceptedToken.address, amount, '', {
+          from: contributor,
+        }),
+        'Fundraise has finished!'
+      ); // Fundraise has finished!
     });
 
     it('should reject ETH contributions after the fundraising has been cancelled', async function () {
@@ -279,13 +317,18 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
 
     it('should reject contribution if ERC20 token is not accepted', async function () {
       // contribute
-      await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {from: contributor});
+      await this.acceptedToken.approve(this.swarmPoweredFundraiseMock.address, amount, {
+        from: contributor,
+      });
       await shouldFail.reverting.withMessage(
-        this.swarmPoweredFundraiseMock.contribute(this.notAcceptedToken.address, amount, '', {from: contributor}),
-          'Unsupported contribution currency');
+        this.swarmPoweredFundraiseMock.contribute(this.notAcceptedToken.address, amount, '', {
+          from: contributor,
+        }),
+        'Unsupported contribution currency'
+      );
     });
   });
-/*
+  /*
   describe('Handling withdrawals of the contributions', function () { // @TODO move to new file
     it('should allow contributor to withdraw his investments in ETH if fundraising is finished', async function () {
       const beforeBalance = await this.swarmPoweredFundraiseMock.getBalanceETH(contributor);
@@ -331,6 +374,4 @@ contract('SwarmPoweredFundraise', async function ([_, whitelistManager /*authori
 
   });
   */
-
-
 });

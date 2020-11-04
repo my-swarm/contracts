@@ -55,7 +55,7 @@ async function main() {
     name: 'Testing Token: Unminted',
     symbol: 'TT1',
   });
-  /*
+
   // 2. whitelist token
   const [token2, token2Options] = await deployToken(
     {
@@ -103,7 +103,7 @@ async function main() {
   await transferToken(token3.src20, contributors[0], ca[7], 500);
   await approveTransfer(token3, 2);
   await denyTransfer(token3, 3);
-*/
+
   // 4. fundraising token
   let [token4, token4Options] = await deployToken({
     name: 'Testing Token: Fundraising',
@@ -191,7 +191,7 @@ async function main() {
   await massContribute(
     token5,
     contributors,
-    contributors.map((x) => Math.floor(Math.random() * 10) * 100)
+    contributors.map((x) => 500)
   );
   await acceptContributors(token5, ca);
   await advanceTimeAndBlock(40 * 24 * 3600); // make sure we are after end date

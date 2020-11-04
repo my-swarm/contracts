@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.0;discount=10
 
 //import '@nomiclabs/buidler/console.sol';
 

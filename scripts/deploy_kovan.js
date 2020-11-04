@@ -8,7 +8,7 @@ let Bob = ethers.Wallet.fromMnemonic(mnemonic, "m/44'/60'/0'/0/1").connect(provi
 let Charlie = ethers.Wallet.fromMnemonic(mnemonic, "m/44'/60'/0'/0/2").connect(provider);
 
 function parseABI(file) {
-  const json = fs.readFileSync('./artifacts/'+file+'.json');
+  const json = fs.readFileSync('./artifacts/' + file + '.json');
   const obj = JSON.parse(json);
   return obj.abi;
 }
@@ -47,59 +47,66 @@ async function approveAll(contribute, reserve) {
 }
 
 async function setup() {
-
   const wallet = await Alice.getAddress();
   const supply = ethers.utils.parseUnits('1000000000');
 
   const SWM = await ethers.getContractFactory('SwarmTokenMock');
   this.swm = await SWM.deploy(wallet, supply);
   await this.swm.deployed();
-  console.log("Swarm address is ", this.swm.address);
+  console.log('Swarm address is ', this.swm.address);
 
   const SWMPriceOracle = await ethers.getContractFactory('SWMPriceOracle');
   this.swmPriceOracle = await SWMPriceOracle.deploy(100, 100);
   await this.swmPriceOracle.deployed();
-  console.log("Address is ", this.swmPriceOracle.address);
+  console.log('Address is ', this.swmPriceOracle.address);
 
   const SRC20Registry = await ethers.getContractFactory('SRC20Registry');
   this.src20Registry = await SRC20Registry.deploy(this.swm.address);
   await this.src20Registry.deployed();
-  console.log("src20Registry address is ", this.src20Registry.address);
+  console.log('src20Registry address is ', this.src20Registry.address);
 
   const SRC20Factory = await ethers.getContractFactory('SRC20Factory');
   this.src20Factory = await SRC20Factory.deploy(this.src20Registry.address);
   await this.src20Factory.deployed();
-  console.log("src20Factory address is ", this.src20Factory.address);
+  console.log('src20Factory address is ', this.src20Factory.address);
 
   const AssetRegistry = await ethers.getContractFactory('AssetRegistry');
   this.assetRegistry = await AssetRegistry.deploy(this.src20Factory.address);
   await this.assetRegistry.deployed();
-  console.log("assetRegistry address is ", this.assetRegistry.address);
+  console.log('assetRegistry address is ', this.assetRegistry.address);
 
   const GetRateMinter = await ethers.getContractFactory('GetRateMinter');
-  this.getRateMinter = await GetRateMinter.deploy(this.src20Registry.address, this.assetRegistry.address, this.swmPriceOracle.address);
+  this.getRateMinter = await GetRateMinter.deploy(
+    this.src20Registry.address,
+    this.assetRegistry.address,
+    this.swmPriceOracle.address
+  );
   await this.getRateMinter.deployed();
-  console.log("getRateMinter address is ", this.getRateMinter.address);
+  console.log('getRateMinter address is ', this.getRateMinter.address);
 
   const SetRateMinter = await ethers.getContractFactory('SetRateMinter');
   this.setRateMinter = await SetRateMinter.deploy(this.src20Registry.address);
   await this.setRateMinter.deployed();
-  console.log("setRateMinter address is ", this.setRateMinter.address);
+  console.log('setRateMinter address is ', this.setRateMinter.address);
 
   const Featured = await ethers.getContractFactory('Featured');
   this.featured = await Featured.deploy(wallet, '0x0000000000000000000000000000000000000000');
   await this.featured.deployed();
-  console.log("featured address is ", this.featured.address);
+  console.log('featured address is ', this.featured.address);
 
   const SRC20Roles = await ethers.getContractFactory('SRC20Roles');
-  this.src20Roles = await SRC20Roles.deploy(wallet ,this.src20Registry.address , '0x0000000000000000000000000000000000000000');
+  this.src20Roles = await SRC20Roles.deploy(
+    wallet,
+    this.src20Registry.address,
+    '0x0000000000000000000000000000000000000000'
+  );
   await this.src20Roles.deployed();
-  console.log("src20Roles address is ", this.src20Roles.address);
+  console.log('src20Roles address is ', this.src20Roles.address);
 
   const TransferRules = await ethers.getContractFactory('TransferRules');
   this.transferRules = await TransferRules.deploy(wallet);
   await this.transferRules.deployed();
-  console.log("transferRules address is ", this.transferRules.address);
+  console.log('transferRules address is ', this.transferRules.address);
 
   let filter = this.src20Factory.filters.SRC20Created(null);
 
@@ -112,31 +119,31 @@ async function setup() {
     'https://www.swarm.fund',
     0,
     [
-        wallet,
-        this.transferRules.address,
-        this.transferRules.address,
-        this.src20Roles.address,
-        this.featured.address,
-        this.assetRegistry.address,
-        this.getRateMinter.address
+      wallet,
+      this.transferRules.address,
+      this.transferRules.address,
+      this.src20Roles.address,
+      this.featured.address,
+      this.assetRegistry.address,
+      this.getRateMinter.address,
     ],
     overrides
   );
 
   this.src20TokenAddress = filter.address;
-  console.log("src20TokenAddress is: ", this.src20TokenAddress);
+  console.log('src20TokenAddress is: ', this.src20TokenAddress);
 
   const AffiliateManager = await ethers.getContractFactory('AffiliateManager');
   this.affiliateManager = await AffiliateManager.deploy();
   await this.affiliateManager.deployed();
-  console.log("affiliateManager address is ", this.affiliateManager.address);
+  console.log('affiliateManager address is ', this.affiliateManager.address);
 
   const startDate = moment().unix() + 60; // 1 minute from the current time
-  const endDate = moment().unix() + (60 * 60 * 72); // three days from current time;
+  const endDate = moment().unix() + 60 * 60 * 72; // three days from current time;
 
   const SwarmPoweredFundraise = await ethers.getContractFactory('SwarmPoweredFundraise');
   this.swarmPoweredFundraise = await SwarmPoweredFundraise.deploy(
-    "Fundraise",
+    'Fundraise',
     this.src20TokenAddress,
     ethers.utils.parseUnits('1000000'),
     startDate,
@@ -146,7 +153,7 @@ async function setup() {
     overrides
   );
   await this.swarmPoweredFundraise.deployed();
-  console.log("swarmPoweredFundraise address is ", this.swarmPoweredFundraise.address);
+  console.log('swarmPoweredFundraise address is ', this.swarmPoweredFundraise.address);
 
   const ContributorRestrictions = await ethers.getContractFactory('ContributorRestrictions');
   this.contributorRestrictions = await ContributorRestrictions.deploy(
@@ -157,18 +164,18 @@ async function setup() {
     overrides
   );
   await this.contributorRestrictions.deployed();
-  console.log("contributorRestrictions address is ", this.contributorRestrictions.address);
+  console.log('contributorRestrictions address is ', this.contributorRestrictions.address);
 
   const USDC = await ethers.getContractFactory('ERC20Mock');
   this.usdc = await USDC.deploy(
-    "USDC",
-    "USDC",
+    'USDC',
+    'USDC',
     18,
     ethers.utils.parseUnits('100000000'),
     overrides
   );
   await this.usdc.deployed();
-  console.log("USDC address is ", this.usdc.address);
+  console.log('USDC address is ', this.usdc.address);
 
   await this.swarmPoweredFundraise.setupContract(
     this.usdc.address,
@@ -178,32 +185,32 @@ async function setup() {
     this.getRateMinter.address,
     true,
     overrides
-  )
-   // this.swm = new ethers.Contract(swarmTokenMockAddress, parseABI('ERC20'), provider);
-   // this.src20 = new ethers.Contract(src20TokenAddress, parseABI('SRC20'), provider);
-   //
-   // const startDate = moment().unix() + 60 * 30; // 30 minutes from the current time
-   // const endDate = moment().unix() + (60 * 60 * 72); // three days from current time;
-   // console.log("StartDate: ", startDate, "EndDate: ", endDate);
+  );
+  // this.swm = new ethers.Contract(swarmTokenMockAddress, parseABI('ERC20'), provider);
+  // this.src20 = new ethers.Contract(src20TokenAddress, parseABI('SRC20'), provider);
+  //
+  // const startDate = moment().unix() + 60 * 30; // 30 minutes from the current time
+  // const endDate = moment().unix() + (60 * 60 * 72); // three days from current time;
+  // console.log("StartDate: ", startDate, "EndDate: ", endDate);
 
-   // const USDC = await ethers.getContractFactory('ERC20Mock');
-   // this.usdc = await USDC.deploy("USDC", "USDC", 6, ethers.BigNumber.from('1000000000000'));
-   // await this.usdc.deployed();
-   // console.log(this.usdc.address);
+  // const USDC = await ethers.getContractFactory('ERC20Mock');
+  // this.usdc = await USDC.deploy("USDC", "USDC", 6, ethers.BigNumber.from('1000000000000'));
+  // await this.usdc.deployed();
+  // console.log(this.usdc.address);
 
-   // const SwarmPoweredFundraise = await ethers.getContractFactory('SwarmPoweredFundraise');
-   // this.swarmPoweredFundraise = await SwarmPoweredFundraise.deploy(
-   //   "Fundraise",
-   //   src20TokenAddress,
-   //   ethers.utils.parseUnits('1000000'),
-   //   startDate,
-   //   endDate,
-   //   ethers.utils.parseUnits('100000'),
-   //   ethers.utils.parseUnits('1000000'),
-   //   overrides
-   // );
-   // await this.swarmPoweredFundraise.deployed();
-   // console.log("SwarmPoweredFundraise address: ", this.swarmPoweredFundraise.address);
+  // const SwarmPoweredFundraise = await ethers.getContractFactory('SwarmPoweredFundraise');
+  // this.swarmPoweredFundraise = await SwarmPoweredFundraise.deploy(
+  //   "Fundraise",
+  //   src20TokenAddress,
+  //   ethers.utils.parseUnits('1000000'),
+  //   startDate,
+  //   endDate,
+  //   ethers.utils.parseUnits('100000'),
+  //   ethers.utils.parseUnits('1000000'),
+  //   overrides
+  // );
+  // await this.swarmPoweredFundraise.deployed();
+  // console.log("SwarmPoweredFundraise address: ", this.swarmPoweredFundraise.address);
 }
 
 async function invest(contribute) {
