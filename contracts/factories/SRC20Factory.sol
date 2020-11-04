@@ -8,7 +8,7 @@ import '../token/AssetRegistry.sol';
  * properties and features.
  */
 contract SRC20Factory {
-  ISRC20Registry private _registry;
+  ISRC20Registry private registry;
 
   event SRC20Created(
     address owner,
@@ -25,10 +25,10 @@ contract SRC20Factory {
   /**
    * @dev Factory constructor expects SRC20 tokens registry.
    * Each created token will be registered in registry.
-   * @param registry address of SRC20Registry contract.
+   * @param _registry address of SRC20Registry contract.
    */
-  constructor(address registry) public {
-    _registry = ISRC20Registry(registry);
+  constructor(address _registry) public {
+    registry = ISRC20Registry(_registry);
   }
 
   /**
@@ -49,36 +49,36 @@ contract SRC20Factory {
    * addressList[6]: minter
    */
   function create(
-    string memory name,
-    string memory symbol,
-    uint8 decimals,
-    uint256 maxTotalSupply,
-    bytes32 kyaHash,
-    string memory kyaUrl,
-    uint256 netAssetValueUSD,
-    address[] memory addressList
+    string memory _name,
+    string memory _symbol,
+    uint8 _decimals,
+    uint256 _maxTotalSupply,
+    bytes32 _kyaHash,
+    string memory _kyaUrl,
+    uint256 _netAssetValueUSD,
+    address[] memory _addressList
   ) public returns (bool) {
-    address token = address(new SRC20(name, symbol, decimals, maxTotalSupply, addressList));
+    address token = address(new SRC20(_name, _symbol, _decimals, _maxTotalSupply, _addressList));
 
-    _registry.put(
+    registry.put(
       token,
-      addressList[3], // roles
-      addressList[0], // tokenOwner
-      addressList[6] // minter
+      _addressList[3], // roles
+      _addressList[0], // tokenOwner
+      _addressList[6] // minter
     );
 
     emit SRC20Created(
-      addressList[0],
+      _addressList[0],
       token,
-      addressList[2],
-      addressList[3],
-      addressList[4],
-      name,
-      symbol,
-      decimals,
-      maxTotalSupply
+      _addressList[2],
+      _addressList[3],
+      _addressList[4],
+      _name,
+      _symbol,
+      _decimals,
+      _maxTotalSupply
     );
-    IAssetRegistry(addressList[5]).addAsset(token, kyaHash, kyaUrl, netAssetValueUSD);
+    IAssetRegistry(_addressList[5]).addAsset(token, _kyaHash, _kyaUrl, _netAssetValueUSD);
     return true;
   }
 }

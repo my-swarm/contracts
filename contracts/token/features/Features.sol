@@ -53,7 +53,7 @@ contract Features is IFeatures, Pausable, Freezable, Ownable {
    * @return True if the transfer is allowed
    */
   function checkTransfer(address _from, address _to) external view returns (bool) {
-    return !_isAccountFrozen(_from) && !_isAccountFrozen(_to) && !paused();
+    return !_isAccountFrozen(_from) && !_isAccountFrozen(_to) && !paused;
   }
 
   /**
@@ -81,18 +81,6 @@ contract Features is IFeatures, Pausable, Freezable, Ownable {
    */
   function unfreezeAccount(address _account) external enabled(AccountFreezing) onlyOwner {
     _unfreezeAccount(_account);
-  }
-
-  /**
-   * @dev Check if token is frozen. Token issuer can freeze token
-   * at any time and stop all accounts from making transfers. When
-   * token is frozen, isFrozen(account) returns true for every
-   * account.
-   *
-   * @return True if token is frozen.
-   */
-  function isTokenPaused() external view returns (bool) {
-    return paused();
   }
 
   /**

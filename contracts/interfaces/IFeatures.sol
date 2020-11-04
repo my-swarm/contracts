@@ -28,8 +28,6 @@ contract IFeatures is IPausable, IFreezable {
 
   function unfreezeAccount(address account) external;
 
-  function isTokenPaused() external view returns (bool);
-
   function freezeToken() external;
 
   function unfreezeToken() external;

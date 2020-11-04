@@ -25,8 +25,6 @@ contract ISRC20Roles {
 
   function removeDelegate(address account) external returns (bool);
 
-  function manager() external view returns (address);
-
   function isManager(address account) external view returns (bool);
 
   function transferManagement(address newManager) external returns (bool);

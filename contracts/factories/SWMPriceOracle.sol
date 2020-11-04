@@ -21,17 +21,17 @@ contract SWMPriceOracle is IPriceUSD, Ownable {
     uint256 newPriceDenominator
   );
 
-  uint256 public _priceNumerator;
-  uint256 public _priceDenominator;
+  uint256 public priceNumerator;
+  uint256 public priceDenominator;
 
-  constructor(uint256 priceNumerator, uint256 priceDenominator) public {
-    require(priceNumerator > 0, 'numerator must not be zero');
-    require(priceDenominator > 0, 'denominator must not be zero');
+  constructor(uint256 _priceNumerator, uint256 _priceDenominator) public {
+    require(_priceNumerator > 0, 'numerator must not be zero');
+    require(_priceDenominator > 0, 'denominator must not be zero');
 
-    _priceNumerator = priceNumerator;
-    _priceDenominator = priceDenominator;
+    priceNumerator = _priceNumerator;
+    priceDenominator = _priceDenominator;
 
-    emit UpdatedSWMPriceUSD(0, 0, priceNumerator, priceNumerator);
+    emit UpdatedSWMPriceUSD(0, 0, _priceNumerator, _priceNumerator);
   }
 
   /**
@@ -41,8 +41,8 @@ contract SWMPriceOracle is IPriceUSD, Ownable {
    *  @return _priceNumerator, The numerator of the currently valid price of SWM in USD
    *  @return _priceDenominator, The denominator of the currently valid price of SWM in USD
    */
-  function getPrice() external view returns (uint256 priceNumerator, uint256 priceDenominator) {
-    return (_priceNumerator, _priceDenominator);
+  function getPrice() external view returns (uint256 _priceNumerator, uint256 _priceDenominator) {
+    return (priceNumerator, priceDenominator);
   }
 
   /**
@@ -50,22 +50,22 @@ contract SWMPriceOracle is IPriceUSD, Ownable {
    *  currently valid price of SWM in USD
    *
    *  To update to 0.00378 call with (378, 100000)
-   *  @param priceNumerator The new SWM price in USD
-   *  @param priceDenominator The new SWM price in USD
+   *  @param _priceNumerator The new SWM price in USD
+   *  @param _priceDenominator The new SWM price in USD
    *  @return true on success
    */
-  function updatePrice(uint256 priceNumerator, uint256 priceDenominator)
+  function updatePrice(uint256 _priceNumerator, uint256 _priceDenominator)
     external
     onlyOwner
     returns (bool)
   {
-    require(priceNumerator > 0, 'numerator must not be zero');
-    require(priceDenominator > 0, 'denominator must not be zero');
+    require(_priceNumerator > 0, 'numerator must not be zero');
+    require(_priceDenominator > 0, 'denominator must not be zero');
 
-    emit UpdatedSWMPriceUSD(_priceNumerator, _priceDenominator, priceNumerator, priceDenominator);
+    emit UpdatedSWMPriceUSD(priceNumerator, priceDenominator, _priceNumerator, _priceDenominator);
 
-    _priceNumerator = priceNumerator;
-    _priceDenominator = priceDenominator;
+    priceNumerator = _priceNumerator;
+    priceDenominator = _priceDenominator;
 
     return true;
   }

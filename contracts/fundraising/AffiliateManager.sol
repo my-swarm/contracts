@@ -26,15 +26,15 @@ contract AffiliateManager is Ownable, DelegateRole {
    *  @return true on success
    */
   function setupAffiliate(
-    address affiliate,
-    string calldata affiliateLink,
-    uint256 percentage // multiply by 100 => 5 = 0.5%
+    address _affiliate,
+    string calldata _affiliateLink,
+    uint256 _percentage // multiply by 100 => 5 = 0.5%
   ) external onlyOwner() returns (bool) {
-    require(percentage <= 100, 'Percentage greater than 100 not allowed');
-    require(percentage > 0, 'Percentage has to be greater than 0');
-    affiliates[affiliate].affiliateLink = affiliateLink;
-    affiliates[affiliate].percentage = percentage;
-    affiliateLinks[affiliateLink] = affiliate;
+    require(_percentage <= 100, 'Percentage greater than 100 not allowed');
+    require(_percentage > 0, 'Percentage has to be greater than 0');
+    affiliates[_affiliate].affiliateLink = _affiliateLink;
+    affiliates[_affiliate].percentage = _percentage;
+    affiliateLinks[_affiliateLink] = _affiliate;
 
     return true;
   }
@@ -42,28 +42,28 @@ contract AffiliateManager is Ownable, DelegateRole {
   /**
    *  Remove an Affiliate. Can be done by the Token Issuer at any time
    *  Any funds he received while active still remain assigned to him.
-   *  @param affiliate the address of the affiliate being removed
+   *  @param _affiliate the address of the affiliate being removed
    *
    *  @return true on success
    */
-  function removeAffiliate(address affiliate) external onlyOwner() returns (bool) {
-    require(affiliates[affiliate].percentage != 0, 'Affiliate not exist');
-    affiliateLinks[affiliates[affiliate].affiliateLink] = address(0x0);
-    delete (affiliates[affiliate]);
+  function removeAffiliate(address _affiliate) external onlyOwner() returns (bool) {
+    require(affiliates[_affiliate].percentage != 0, 'Affiliate not exist');
+    affiliateLinks[affiliates[_affiliate].affiliateLink] = address(0x0);
+    delete (affiliates[_affiliate]);
     return true;
   }
 
   /**
    *  Get information about an Affiliate.
-   *  @param affiliateLink the address of the affiliate being removed
+   *  @param _affiliateLink the address of the affiliate being removed
    *
    *  @return true on success
    */
-  function getAffiliate(string calldata affiliateLink) external view returns (address, uint256) {
-    return (affiliateLinks[affiliateLink], affiliates[affiliateLinks[affiliateLink]].percentage);
+  function getAffiliate(string calldata _affiliateLink) external view returns (address, uint256) {
+    return (affiliateLinks[_affiliateLink], affiliates[affiliateLinks[_affiliateLink]].percentage);
   }
 
-  function getAffiliateLink(address affiliate) external view returns (string memory) {
-    return affiliates[affiliate].affiliateLink;
+  function getAffiliateLink(address _affiliate) external view returns (string memory) {
+    return affiliates[_affiliate].affiliateLink;
   }
 }

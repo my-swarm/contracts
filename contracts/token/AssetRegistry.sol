@@ -16,22 +16,22 @@ contract AssetRegistry is IAssetRegistry, Ownable {
     uint256 nav;
   }
 
-  address public _src20Factory;
+  address public src20Factory;
 
   mapping(address => AssetType) public assetList;
 
   modifier onlyFactory() {
-    require(_src20Factory == msg.sender, 'Caller not factory');
+    require(src20Factory == msg.sender, 'Caller not factory');
     _;
   }
 
-  modifier onlyDelegate(address src20) {
-    require(SRC20(src20).roles().isDelegate(msg.sender), 'Caller not delegate');
+  modifier onlyDelegate(address _src20) {
+    require(SRC20(_src20).roles().isDelegate(msg.sender), 'Caller not delegate');
     _;
   }
 
-  constructor(address src20Factory) public {
-    _src20Factory = src20Factory;
+  constructor(address _src20Factory) public {
+    src20Factory = _src20Factory;
   }
 
   /**

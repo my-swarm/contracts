@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;discount=10
+pragma solidity ^0.5.0;
 
 //import '@nomiclabs/buidler/console.sol';
 
@@ -59,7 +59,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
   }
 
   function whitelistAccount(address _account) external onlyAuthorised {
-    _whitelisted[_account] = true;
+    whitelisted[_account] = true;
     require(
       Fundraiser(fundraiser).acceptContributor(_account),
       'Whitelisting failed on processing contributions!'
@@ -68,7 +68,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
   }
 
   function unWhitelistAccount(address _account) external onlyAuthorised {
-    delete _whitelisted[_account];
+    delete whitelisted[_account];
     require(
       Fundraiser(fundraiser).removeContributor(_account),
       'UnWhitelisting failed on processing contributions!'
@@ -80,7 +80,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
   function bulkWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
-      _whitelisted[_accounts[i]] = true;
+      whitelisted[_accounts[i]] = true;
       require(
         Fundraiser(fundraiser).acceptContributor(_accounts[i]),
         'Whitelisting failed on processing contributions!'
@@ -93,7 +93,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     require(false, 'Bulk unwhitelist not imlemented');
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
-      delete _whitelisted[_accounts[i]];
+      delete whitelisted[_accounts[i]];
       emit AccountUnWhitelisted(_accounts[i], msg.sender);
     }
   }

@@ -5,7 +5,7 @@ pragma solidity ^0.5.0;
  * response to SWM token staking changes.
  */
 contract Managed {
-  address internal _manager;
+  address public manager;
 
   event ManagementTransferred(address indexed previousManager, address indexed newManager);
 
@@ -13,9 +13,9 @@ contract Managed {
    * @dev The Managed constructor sets the original `manager` of the contract to the sender
    * account.
    */
-  constructor(address manager) internal {
-    _manager = manager;
-    emit ManagementTransferred(address(0), _manager);
+  constructor(address _manager) internal {
+    manager = _manager;
+    emit ManagementTransferred(address(0), manager);
   }
 
   /**
@@ -29,8 +29,8 @@ contract Managed {
   /**
    * @return true if `msg.sender` is the owner of the contract.
    */
-  function _isManager(address account) internal view returns (bool) {
-    return account == _manager;
+  function _isManager(address _account) internal view returns (bool) {
+    return _account == manager;
   }
 
   /**
@@ -41,21 +41,21 @@ contract Managed {
    * thereby removing any functionality that is only available to the manager.
    */
   function _renounceManagement() internal returns (bool) {
-    emit ManagementTransferred(_manager, address(0));
-    _manager = address(0);
+    emit ManagementTransferred(manager, address(0));
+    manager = address(0);
 
     return true;
   }
 
   /**
    * @dev Allows the current manager to transfer control of the contract to a newManager.
-   * @param newManager The address to transfer management to.
+   * @param _newManager The address to transfer management to.
    */
-  function _transferManagement(address newManager) internal returns (bool) {
-    require(newManager != address(0));
+  function _transferManagement(address _newManager) internal returns (bool) {
+    require(_newManager != address(0));
 
-    emit ManagementTransferred(_manager, newManager);
-    _manager = newManager;
+    emit ManagementTransferred(manager, _newManager);
+    manager = _newManager;
 
     return true;
   }

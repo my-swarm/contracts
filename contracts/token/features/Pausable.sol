@@ -8,13 +8,13 @@ import '../../interfaces/IPausable.sol';
  * checking if token is paused.
  */
 contract Pausable is IPausable {
-  bool private _paused;
+  bool public paused;
 
   /**
    * @dev Modifier to make a function callable only when the contract is not paused.
    */
   modifier whenNotPaused() {
-    require(!_paused, 'Pausable: paused');
+    require(!paused, 'Pausable: paused');
     _;
   }
 
@@ -22,7 +22,7 @@ contract Pausable is IPausable {
    * @dev Modifier to make a function callable only when the contract is paused.
    */
   modifier whenPaused() {
-    require(_paused, 'Pausable: not paused');
+    require(paused, 'Pausable: not paused');
     _;
   }
 
@@ -30,21 +30,14 @@ contract Pausable is IPausable {
    * @dev Initializes the contract in unpaused state.
    */
   constructor() internal {
-    _paused = false;
-  }
-
-  /**
-   * @dev Returns true if the contract is paused, and false otherwise.
-   */
-  function paused() public view returns (bool) {
-    return _paused;
+    paused = false;
   }
 
   /**
    * @dev Sets stopped state.
    */
   function _pause() internal whenNotPaused {
-    _paused = true;
+    paused = true;
     emit Paused(msg.sender);
   }
 
@@ -52,7 +45,7 @@ contract Pausable is IPausable {
    * @dev Returns to normal state.
    */
   function _unpause() internal whenPaused {
-    _paused = false;
+    paused = false;
     emit Unpaused(msg.sender);
   }
 }

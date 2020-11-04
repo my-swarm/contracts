@@ -13,19 +13,19 @@ contract DelegateRole {
   event DelegateAdded(address indexed account);
   event DelegateRemoved(address indexed account);
 
-  Roles.Role private _delegates;
+  Roles.Role private delegates;
 
-  function _addDelegate(address account) internal {
-    _delegates.add(account);
-    emit DelegateAdded(account);
+  function _addDelegate(address _account) internal {
+    delegates.add(_account);
+    emit DelegateAdded(_account);
   }
 
-  function _removeDelegate(address account) internal {
-    _delegates.remove(account);
-    emit DelegateRemoved(account);
+  function _removeDelegate(address _account) internal {
+    delegates.remove(_account);
+    emit DelegateRemoved(_account);
   }
 
-  function _hasDelegate(address account) internal view returns (bool) {
-    return _delegates.has(account);
+  function _hasDelegate(address _account) internal view returns (bool) {
+    return delegates.has(_account);
   }
 }

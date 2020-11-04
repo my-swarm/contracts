@@ -14,19 +14,19 @@ contract AuthorityRole {
   event AuthorityAdded(address indexed account);
   event AuthorityRemoved(address indexed account);
 
-  Roles.Role private _authorities;
+  Roles.Role private authorities;
 
-  function _addAuthority(address account) internal {
-    _authorities.add(account);
-    emit AuthorityAdded(account);
+  function _addAuthority(address _account) internal {
+    authorities.add(_account);
+    emit AuthorityAdded(_account);
   }
 
-  function _removeAuthority(address account) internal {
-    _authorities.remove(account);
-    emit AuthorityRemoved(account);
+  function _removeAuthority(address _account) internal {
+    authorities.remove(_account);
+    emit AuthorityRemoved(_account);
   }
 
-  function _hasAuthority(address account) internal view returns (bool) {
-    return _authorities.has(account);
+  function _hasAuthority(address _account) internal view returns (bool) {
+    return authorities.has(_account);
   }
 }

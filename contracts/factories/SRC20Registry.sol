@@ -13,8 +13,8 @@ import '../interfaces/ISRC20Registry.sol';
 contract SRC20Registry is ISRC20Registry, Manager {
   using Roles for Roles.Role;
 
-  Roles.Role private _factories;
-  mapping(address => bool) _authorizedMinters;
+  Roles.Role private factories;
+  mapping(address => bool) authorizedMinters;
 
   /**
    * @dev constructor requiring SWM ERC20 contract address.
@@ -25,15 +25,15 @@ contract SRC20Registry is ISRC20Registry, Manager {
    * @dev Adds new factory that can register token.
    * Emits FactoryAdded event.
    *
-   * @param account The factory contract address.
+   * @param _account The factory contract address.
    * @return True on success.
    */
-  function addFactory(address account) external onlyOwner returns (bool) {
-    require(account != address(0), 'account is zero address');
+  function addFactory(address _account) external onlyOwner returns (bool) {
+    require(_account != address(0), 'account is zero address');
 
-    _factories.add(account);
+    factories.add(_account);
 
-    emit FactoryAdded(account);
+    emit FactoryAdded(_account);
 
     return true;
   }
@@ -42,15 +42,15 @@ contract SRC20Registry is ISRC20Registry, Manager {
    * @dev Removes factory that can register token.
    * Emits FactoryRemoved event.
    *
-   * @param account The factory contract address.
+   * @param _account The factory contract address.
    * @return True on success.
    */
-  function removeFactory(address account) external onlyOwner returns (bool) {
-    require(account != address(0), 'account is zero address');
+  function removeFactory(address _account) external onlyOwner returns (bool) {
+    require(_account != address(0), 'account is zero address');
 
-    _factories.remove(account);
+    factories.remove(_account);
 
-    emit FactoryRemoved(account);
+    emit FactoryRemoved(_account);
 
     return true;
   }
@@ -59,28 +59,28 @@ contract SRC20Registry is ISRC20Registry, Manager {
    * @dev Adds token to registry. Only factories can add.
    * Emits SRC20Registered event.
    *
-   * @param token The token address.
-   * @param roles roles SRC20Roles contract address.
-   * @param tokenOwner Owner of the token.
-   * @return True on success.
+   * @param _token The token address.
+   * @param _roles roles SRC20Roles contract address.
+   * @param _tokenOwner Owner of the token.
+   * @return true on success.
    */
   function put(
-    address token,
-    address roles,
-    address tokenOwner,
-    address minter
+    address _token,
+    address _roles,
+    address _tokenOwner,
+    address _minter
   ) external returns (bool) {
-    require(token != address(0), 'token is zero address');
-    require(roles != address(0), 'roles is zero address');
-    require(tokenOwner != address(0), 'tokenOwner is zero address');
-    require(_factories.has(msg.sender), 'factory not registered');
-    require(_authorizedMinters[minter] == true, 'minter not authorized');
+    require(_token != address(0), 'token is zero address');
+    require(_roles != address(0), 'roles is zero address');
+    require(_tokenOwner != address(0), 'tokenOwner is zero address');
+    require(factories.has(msg.sender), 'factory not registered');
+    require(authorizedMinters[_minter] == true, 'minter not authorized');
 
-    registry[token].owner = tokenOwner;
-    registry[token].roles = roles;
-    registry[token].minter = minter;
+    registry[_token].owner = _tokenOwner;
+    registry[_token].roles = _roles;
+    registry[_token].minter = _minter;
 
-    emit SRC20Registered(token, tokenOwner);
+    emit SRC20Registered(_token, _tokenOwner);
 
     return true;
   }
@@ -89,16 +89,16 @@ contract SRC20Registry is ISRC20Registry, Manager {
    * @dev Removes token from registry.
    * Emits SRC20Removed event.
    *
-   * @param token The token address.
+   * @param _token The token address.
    * @return True on success.
    */
-  function remove(address token) external onlyOwner returns (bool) {
-    require(token != address(0), 'token is zero address');
-    require(registry[token].owner != address(0), 'token not registered');
+  function remove(address _token) external onlyOwner returns (bool) {
+    require(_token != address(0), 'token is zero address');
+    require(registry[_token].owner != address(0), 'token not registered');
 
-    delete registry[token];
+    delete registry[_token];
 
-    emit SRC20Removed(token);
+    emit SRC20Removed(_token);
 
     return true;
   }
@@ -106,25 +106,25 @@ contract SRC20Registry is ISRC20Registry, Manager {
   /**
    * @dev Checks if registry contains token.
    *
-   * @param token The token address.
+   * @param _token The token address.
    * @return True if registry contains token.
    */
-  function contains(address token) external view returns (bool) {
-    return registry[token].owner != address(0);
+  function contains(address _token) external view returns (bool) {
+    return registry[_token].owner != address(0);
   }
 
   /**
    *  This proxy function adds a contract to the list of authorized minters
    *
-   *  @param minter The address of the minter contract to add to the list of authorized minters
+   *  @param _minter The address of the minter contract to add to the list of authorized minters
    *  @return true on success
    */
-  function addMinter(address minter) external onlyOwner returns (bool) {
-    require(minter != address(0), 'minter is zero address');
+  function addMinter(address _minter) external onlyOwner returns (bool) {
+    require(_minter != address(0), 'minter is zero address');
 
-    _authorizedMinters[minter] = true;
+    authorizedMinters[_minter] = true;
 
-    emit MinterAdded(minter);
+    emit MinterAdded(_minter);
 
     return true;
   }
@@ -132,25 +132,25 @@ contract SRC20Registry is ISRC20Registry, Manager {
   /**
    *  With this function you can fetch address of authorized minter for SRC20.
    *
-   *  @param src20 Address of SRC20 token we want to check minters for.
+   *  @param _src20 Address of SRC20 token we want to check minters for.
    *  @return address of authorized minter.
    */
-  function getMinter(address src20) external view returns (address) {
-    return registry[src20].minter;
+  function getMinter(address _src20) external view returns (address) {
+    return registry[_src20].minter;
   }
 
   /**
    *  This proxy function removes a contract from the list of authorized minters
    *
-   *  @param minter The address of the minter contract to remove from the list of authorized minters
+   *  @param _minter The address of the minter contract to remove from the list of authorized minters
    *  @return true on success
    */
-  function removeMinter(address minter) external onlyOwner returns (bool) {
-    require(minter != address(0), 'minter is zero address');
+  function removeMinter(address _minter) external onlyOwner returns (bool) {
+    require(_minter != address(0), 'minter is zero address');
 
-    _authorizedMinters[minter] = false;
+    authorizedMinters[_minter] = false;
 
-    emit MinterRemoved(minter);
+    emit MinterRemoved(_minter);
 
     return true;
   }

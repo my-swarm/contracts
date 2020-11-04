@@ -217,7 +217,7 @@ async function deployContract(contractName, constructorParams = [], signer = nul
 
 function dumpContractAddresses(contracts) {
   for (const [key, contract] of Object.entries(contracts)) {
-    console.log(`${key}: ${contract.address}`);
+    console.log(`${key}: ${contract ? contract.address : 'undefined'}`);
   }
 }
 

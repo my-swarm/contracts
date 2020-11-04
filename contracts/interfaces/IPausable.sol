@@ -13,8 +13,6 @@ contract IPausable {
   event Paused(address account);
   event Unpaused(address account);
 
-  function paused() public view returns (bool);
-
   function _pause() internal;
 
   function _unpause() internal;

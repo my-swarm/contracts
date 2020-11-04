@@ -12,55 +12,46 @@ import '../interfaces/ISRC20Roles.sol';
  */
 contract SRC20Roles is ISRC20Roles, DelegateRole, AuthorityRole, Managed, Ownable {
   constructor(
-    address owner,
-    address manager,
-    address rules
-  ) public Managed(manager) {
-    _transferOwnership(owner);
-    _addDelegate(owner);
-    if (rules != address(0)) {
-      _addAuthority(rules);
-    }
+    address _owner,
+    address _manager,
+    address _rules
+  ) public Managed(_manager) {
+    _transferOwnership(_owner);
+    _addDelegate(_owner);
+    if (_rules != address(0)) _addAuthority(_rules);
   }
 
-  function addAuthority(address account) external onlyOwner returns (bool) {
-    _addAuthority(account);
+  function addAuthority(address _account) external onlyOwner returns (bool) {
+    _addAuthority(_account);
     return true;
   }
 
-  function removeAuthority(address account) external onlyOwner returns (bool) {
-    _removeAuthority(account);
+  function removeAuthority(address _account) external onlyOwner returns (bool) {
+    _removeAuthority(_account);
     return true;
   }
 
-  function isAuthority(address account) external view returns (bool) {
-    return _hasAuthority(account);
+  function isAuthority(address _account) external view returns (bool) {
+    return _hasAuthority(_account);
   }
 
-  function addDelegate(address account) external onlyOwner returns (bool) {
-    _addDelegate(account);
+  function addDelegate(address _account) external onlyOwner returns (bool) {
+    _addDelegate(_account);
     return true;
   }
 
-  function removeDelegate(address account) external onlyOwner returns (bool) {
-    _removeDelegate(account);
+  function removeDelegate(address _account) external onlyOwner returns (bool) {
+    _removeDelegate(_account);
     return true;
   }
 
-  function isDelegate(address account) external view returns (bool) {
+  function isDelegate(address _account) external view returns (bool) {
     // todo: owner automatically a delegate? makes sense to me...
-    return isOwner() || _hasDelegate(account);
+    return isOwner() || _hasDelegate(_account);
   }
 
-  /**
-   * @return the address of the manager.
-   */
-  function manager() external view returns (address) {
-    return _manager;
-  }
-
-  function isManager(address account) external view returns (bool) {
-    return _isManager(account);
+  function isManager(address _account) external view returns (bool) {
+    return _isManager(_account);
   }
 
   function renounceManagement() external onlyManager returns (bool) {
@@ -68,8 +59,8 @@ contract SRC20Roles is ISRC20Roles, DelegateRole, AuthorityRole, Managed, Ownabl
     return true;
   }
 
-  function transferManagement(address newManager) external onlyManager returns (bool) {
-    _transferManagement(newManager);
+  function transferManagement(address _newManager) external onlyManager returns (bool) {
+    _transferManagement(_newManager);
     return true;
   }
 }
