@@ -17,7 +17,9 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
 
   before(async () => {
     [baseContracts] = await deployBaseContracts();
-    [tokenContracts, tokenOptions] = await deployTokenContracts(baseContracts);
+    [tokenContracts, tokenOptions] = await deployTokenContracts(baseContracts, {
+      transferRules: true,
+    });
     const addresses = await getAddresses();
     swarmAddress = addresses[0];
     issuerAddress = addresses[1];

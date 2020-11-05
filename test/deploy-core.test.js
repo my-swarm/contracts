@@ -32,8 +32,8 @@ describe('Properly deploys base contracts', async () => {
     expect(await swmPriceOracle.address).to.match(REGEX_ADDR);
     expect(await swmPriceOracle.owner()).to.equal(swarmAddress);
     const price = await swmPriceOracle.getPrice();
-    expect(price.priceNumerator.toNumber()).to.equal(options.swmPrice[0]);
-    expect(price.priceDenominator.toNumber()).to.equal(options.swmPrice[1]);
+    expect(price.numerator.toNumber()).to.equal(options.swmPrice[0]);
+    expect(price.denominator.toNumber()).to.equal(options.swmPrice[1]);
   });
 
   it('Has SRC20Registry contract properly setup', async () => {

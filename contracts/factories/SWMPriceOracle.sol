@@ -38,10 +38,10 @@ contract SWMPriceOracle is IPriceUSD, Ownable {
    *  This function gets the price of SWM in USD
    *
    *  0.0736 is returned as (736, 10000)
-   *  @return _priceNumerator, The numerator of the currently valid price of SWM in USD
-   *  @return _priceDenominator, The denominator of the currently valid price of SWM in USD
+   *  @return numerator, The numerator of the currently valid price of SWM in USD
+   *  @return denominator, The denominator of the currently valid price of SWM in USD
    */
-  function getPrice() external view returns (uint256 _priceNumerator, uint256 _priceDenominator) {
+  function getPrice() external view returns (uint256 numerator, uint256 denominator) {
     return (priceNumerator, priceDenominator);
   }
 
