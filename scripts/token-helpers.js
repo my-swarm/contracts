@@ -1,7 +1,7 @@
 const _ = require('lodash');
-const {ethers} = require('@nomiclabs/buidler');
-const {BigNumber} = ethers;
-const {parseUnits} = ethers.utils;
+const { ethers } = require('@nomiclabs/buidler');
+const { BigNumber } = ethers;
+const { parseUnits } = ethers.utils;
 
 async function getContributors(num) {
   const skipFirst = 2; // fist two accounts have other significance
@@ -13,7 +13,7 @@ async function getIssuer() {
   return issuer;
 }
 
-async function stakeAndMint({src20, src20Registry, getRateMinter, swm}, nav, supply) {
+async function stakeAndMint({ src20, src20Registry, getRateMinter, swm }, nav, supply) {
   const issuer = await getIssuer();
   const stakeAmount = await getRateMinter.calcStake(nav);
   await swm.connect(issuer).approve(src20Registry.address, stakeAmount);
@@ -30,7 +30,7 @@ async function updateAllowance(account, token, spenderAddress, allowance) {
   await token.connect(account).approve(spenderAddress, allowance);
 }
 
-async function increaseSupply({src20, src20Registry}, diff) {
+async function increaseSupply({ src20, src20Registry }, diff) {
   const issuer = await getIssuer();
   const swmAddress = await issuer.getAddress();
   await src20Registry
@@ -38,7 +38,7 @@ async function increaseSupply({src20, src20Registry}, diff) {
     .increaseSupply(src20.address, swmAddress, await sanitizeAmount(diff, src20));
 }
 
-async function decreaseSupply({src20, src20Registry}, diff) {
+async function decreaseSupply({ src20, src20Registry }, diff) {
   const issuer = await getIssuer();
   const swmAddress = await issuer.getAddress();
   await src20Registry
@@ -56,39 +56,39 @@ async function transferToken(token, from, toAddress, amount) {
   token.connect(from).transfer(toAddress, await sanitizeAmount(amount, token));
 }
 
-async function bulkTransfer({src20}, addresses, values) {
+async function bulkTransfer({ src20 }, addresses, values) {
   const issuer = await getIssuer();
   await src20.connect(issuer).bulkTransfer(addresses, await sanitizeAmounts(values, src20));
 }
 
-async function contribute({usdc, fundraiser}, as, amount, referral = '') {
+async function contribute({ usdc, fundraiser }, as, amount, referral = '') {
   await usdc.connect(as).approve(fundraiser.address, await sanitizeAmount(amount, usdc));
   await fundraiser.connect(as).contribute(await sanitizeAmount(amount, usdc), referral);
 }
 
-async function massContribute({usdc, fundraiser}, contributors, amounts) {
+async function massContribute({ usdc, fundraiser }, contributors, amounts) {
   for (const key in contributors) {
     if (amounts[key]) {
-      await contribute({usdc, fundraiser}, contributors[key], amounts[key]);
+      await contribute({ usdc, fundraiser }, contributors[key], amounts[key]);
     }
   }
 }
 
-async function acceptContributors({contributorRestrictions}, contributorAddresses) {
+async function acceptContributors({ contributorRestrictions }, contributorAddresses) {
   const issuer = await getIssuer();
   for (const contributorAddress of contributorAddresses) {
     await contributorRestrictions.connect(issuer).whitelistAccount(contributorAddress);
   }
 }
 
-async function removeContributors({contributorRestrictions}, contributorAddresses) {
+async function removeContributors({ contributorRestrictions }, contributorAddresses) {
   const issuer = await getIssuer();
   for (const contributorAddress of contributorAddresses) {
     await contributorRestrictions.connect(issuer).unWhitelistAccount(contributorAddress);
   }
 }
 
-async function refund({fundraiser}, contributor) {
+async function refund({ fundraiser }, contributor) {
   await fundraiser.connect(contributor).getRefund();
 }
 
@@ -103,28 +103,28 @@ async function ungreywhitelist(transferRules, addresses, add = true, white = tru
   await transferRules.connect(issuer)[method](addresses);
 }
 
-async function whitelist({transferRules}, addresses) {
+async function whitelist({ transferRules }, addresses) {
   await ungreywhitelist(transferRules, addresses, true, true);
 }
 
-async function greylist({transferRules}, addresses) {
+async function greylist({ transferRules }, addresses) {
   await ungreywhitelist(transferRules, addresses, true, false);
 }
 
-async function unwhitelist({transferRules}, addresses) {
+async function unwhitelist({ transferRules }, addresses) {
   await ungreywhitelist(transferRules, addresses, false, true);
 }
 
-async function ungreylist({transferRules}, addresses) {
+async function ungreylist({ transferRules }, addresses) {
   await ungreywhitelist(transferRules, addresses, false, false);
 }
 
-async function approveTransfer({transferRules}, transferId) {
+async function approveTransfer({ transferRules }, transferId) {
   const issuer = await getIssuer();
   await transferRules.connect(issuer).approveTransfer(transferId);
 }
 
-async function denyTransfer({transferRules}, transferId) {
+async function denyTransfer({ transferRules }, transferId) {
   const issuer = await getIssuer();
   await transferRules.connect(issuer).denyTransfer(transferId);
 }

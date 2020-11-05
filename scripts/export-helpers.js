@@ -1,5 +1,5 @@
 const path = require('path');
-const {readFileSync, writeFileSync} = require('fs');
+const { readFileSync, writeFileSync } = require('fs');
 const jsonFormat = require('json-format');
 
 const jsonConfig = {

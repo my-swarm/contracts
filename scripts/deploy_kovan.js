@@ -1,4 +1,4 @@
-require('dotenv').config({path: '.env'});
+require('dotenv').config({ path: '.env' });
 const fs = require('fs');
 const moment = require('moment');
 const provider = ethers.getDefaultProvider('kovan');

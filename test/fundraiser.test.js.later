@@ -1,4 +1,4 @@
-const {expect} = require('chai');
+const { expect } = require('chai');
 const {
   deployBaseContracts,
   deployTokenContracts,
@@ -10,7 +10,7 @@ const {
   getAddresses,
   ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
-const {getContributors, distributeToken, contribute} = require('../scripts/token-helpers');
+const { getContributors, distributeToken, contribute } = require('../scripts/token-helpers');
 
 describe('Fundraiser tests', async () => {
   let contracts;
@@ -71,8 +71,8 @@ describe('Fundraiser tests', async () => {
   });
 */
   it('Does process contributions', async () => {
-    const {usdc} = contracts;
-    const [{fundraiser}] = await deployFundraiserContracts(contracts);
+    const { usdc } = contracts;
+    const [{ fundraiser }] = await deployFundraiserContracts(contracts);
     const [c1, c2, affil] = await getContributors(3);
     await distributeToken(usdc, [c1, c2], 1000);
     const a1 = await c1.getAddress();

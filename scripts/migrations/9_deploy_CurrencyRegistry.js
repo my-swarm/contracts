@@ -1,7 +1,7 @@
 const currencyRegistry = artifacts.require('CurrencyRegistry');
 const uniswapProxy = artifacts.require('UniswapProxy');
 
-const {ZERO_ADDRESS, DAI_ERC20, USDC_ERC20, WBTC_ERC20} = process.env;
+const { ZERO_ADDRESS, DAI_ERC20, USDC_ERC20, WBTC_ERC20 } = process.env;
 
 module.exports = function (deployer) {
   return deployer.deploy(currencyRegistry).then(async (currencyRegistry) => {

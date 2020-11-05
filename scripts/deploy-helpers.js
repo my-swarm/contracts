@@ -1,6 +1,6 @@
 const moment = require('moment');
 const bre = require('@nomiclabs/buidler');
-const {ethers} = require('@nomiclabs/buidler');
+const { ethers } = require('@nomiclabs/buidler');
 const _ = require('lodash');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -8,7 +8,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 async function getSigners() {
   const signers = await ethers.getSigners();
 
-  return {accounts: signers, addresses};
+  return { accounts: signers, addresses };
 }
 
 async function getAddresses() {
@@ -109,9 +109,9 @@ async function deployBaseContracts(customOptions = {}) {
 
 async function deployTokenContracts(baseContracts, customOptions = {}) {
   const options = _.merge(await getTokenContractsOptions(), customOptions);
-  const {issuer} = options;
+  const { issuer } = options;
   const issuerAddress = await issuer.getAddress();
-  const {src20Registry, src20Factory, assetRegistry, getRateMinter} = baseContracts;
+  const { src20Registry, src20Factory, assetRegistry, getRateMinter } = baseContracts;
   const transferRules = options.transferRules
     ? await deployContract('TransferRules', [issuerAddress], issuer)
     : undefined;
@@ -145,7 +145,7 @@ async function deployTokenContracts(baseContracts, customOptions = {}) {
   const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
   const src20 = await ethers.getContractAt('SRC20', src20Address);
 
-  return [{...baseContracts, transferRules, features, roles, src20}, options];
+  return [{ ...baseContracts, transferRules, features, roles, src20 }, options];
 }
 
 async function deployFundraiser(contracts, options) {
@@ -198,7 +198,7 @@ async function deployFundraiserContracts(contracts, customOptions = {}) {
   const contributorRestrictions = await deployContributorRestrictions(fundraiser, options);
   await setupFundraiser(fundraiser, contributorRestrictions, contracts, options);
 
-  return [{fundraiser, contributorRestrictions}, options];
+  return [{ fundraiser, contributorRestrictions }, options];
 }
 
 async function getEvent(transaction, eventName) {
@@ -224,7 +224,7 @@ function dumpContractAddresses(contracts) {
 async function advanceTimeAndBlock(time) {
   const provider = bre.ethers.provider;
   let block = await provider.getBlock('latest');
-  console.log('BLOOOK', {block});
+  console.log('BLOOOK', { block });
   return provider.send('evm_mine', [block['timestamp'] + time]);
 }
 

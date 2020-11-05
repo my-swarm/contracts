@@ -1,6 +1,13 @@
 const uniswapProxy = artifacts.require('UniswapProxy');
 
-const {DAI_ERC20, DAI_EXCHANGE, USDC_ERC20, USDC_EXCHANGE, WBTC_ERC20, WBTC_EXCHANGE} = process.env;
+const {
+  DAI_ERC20,
+  DAI_EXCHANGE,
+  USDC_ERC20,
+  USDC_EXCHANGE,
+  WBTC_ERC20,
+  WBTC_EXCHANGE,
+} = process.env;
 
 module.exports = function (deployer) {
   return deployer.deploy(uniswapProxy).then(async (uniswapProxy) => {

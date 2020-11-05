@@ -1,4 +1,4 @@
-const {expect} = require('chai');
+const { expect } = require('chai');
 const {
   deployBaseContracts,
   deployTokenContracts,
@@ -6,7 +6,7 @@ const {
   getAddresses,
   ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
-const {REGEX_ADDR} = require('./test-helpers');
+const { REGEX_ADDR } = require('./test-helpers');
 
 describe('Properly deploys SRC20 token with all sidekick contracts', async () => {
   let baseContracts;
@@ -26,8 +26,8 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
   });
 
   it('Has SRC20 contract properly deployed', async () => {
-    const {assetRegistry} = baseContracts;
-    const {src20} = tokenContracts;
+    const { assetRegistry } = baseContracts;
+    const { src20 } = tokenContracts;
     expect(src20.address).to.match(REGEX_ADDR);
     expect(await src20.owner()).to.equal(issuerAddress);
     expect(await src20.maxTotalSupply()).to.equal(tokenOptions.src20.supply);
@@ -36,7 +36,7 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
   });
 
   it('Has all other contracts inside ', async () => {
-    const {src20, roles, features, transferRules} = tokenContracts;
+    const { src20, roles, features, transferRules } = tokenContracts;
 
     expect(await src20.roles()).to.equal(roles.address);
     expect(await src20.features()).to.equal(features.address);
@@ -44,12 +44,12 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
   });
 
   it('Acknowledges that restrictions contract is not setup (zero address)', async () => {
-    const {src20} = tokenContracts;
+    const { src20 } = tokenContracts;
     expect(await src20.restrictions()).to.equal(ZERO_ADDRESS);
   });
 
   it('Deploys fundraiser contracts', async () => {
-    const [{fundraiser, contributorRestrictions}, options] = await deployFundraiserContracts({
+    const [{ fundraiser, contributorRestrictions }, options] = await deployFundraiserContracts({
       ...baseContracts,
       ...tokenContracts,
     });

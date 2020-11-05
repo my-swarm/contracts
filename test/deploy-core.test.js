@@ -1,7 +1,7 @@
-const {ethers} = require('@nomiclabs/buidler');
-const {expect} = require('chai');
-const {deployBaseContracts, getAddresses} = require('../scripts/deploy-helpers');
-const {REGEX_ADDR} = require('./test-helpers');
+const { ethers } = require('@nomiclabs/buidler');
+const { expect } = require('chai');
+const { deployBaseContracts, getAddresses } = require('../scripts/deploy-helpers');
+const { REGEX_ADDR } = require('./test-helpers');
 
 describe('Properly deploys base contracts', async () => {
   let baseContracts;
@@ -17,7 +17,7 @@ describe('Properly deploys base contracts', async () => {
   });
 
   it('Has SWM contract properly setup', async () => {
-    const {swm} = baseContracts;
+    const { swm } = baseContracts;
     expect(await swm.address).to.match(REGEX_ADDR);
     expect(await swm.owner()).to.equal(swarmAddress);
     expect(await swm.totalSupply()).to.equal(options.swmSupply);
@@ -28,7 +28,7 @@ describe('Properly deploys base contracts', async () => {
   });
 
   it('Has SWMPriceOracle contract properly setup', async () => {
-    const {swmPriceOracle} = baseContracts;
+    const { swmPriceOracle } = baseContracts;
     expect(await swmPriceOracle.address).to.match(REGEX_ADDR);
     expect(await swmPriceOracle.owner()).to.equal(swarmAddress);
     const price = await swmPriceOracle.getPrice();
@@ -37,43 +37,43 @@ describe('Properly deploys base contracts', async () => {
   });
 
   it('Has SRC20Registry contract properly setup', async () => {
-    const {src20Registry} = baseContracts;
+    const { src20Registry } = baseContracts;
     expect(await src20Registry.address).to.match(REGEX_ADDR);
     expect(await src20Registry.owner()).to.equal(swarmAddress);
   });
 
   it('Has SRC20Factory contract properly setup', async () => {
-    const {src20Factory} = baseContracts;
+    const { src20Factory } = baseContracts;
     expect(await src20Factory.address).to.match(REGEX_ADDR);
     // doesn't store owner
   });
 
   it('Has AssetRegistry contract properly setup', async () => {
-    const {assetRegistry} = baseContracts;
+    const { assetRegistry } = baseContracts;
     expect(await assetRegistry.address).to.match(REGEX_ADDR);
     // doesn't store owner
   });
 
   it('Has GetRateMinter contract properly setup', async () => {
-    const {getRateMinter} = baseContracts;
+    const { getRateMinter } = baseContracts;
     expect(await getRateMinter.address).to.match(REGEX_ADDR);
     // doesn't store owner
   });
 
   it('Has SetRateMinter contract properly setup', async () => {
-    const {setRateMinter} = baseContracts;
+    const { setRateMinter } = baseContracts;
     expect(await setRateMinter.address).to.match(REGEX_ADDR);
     expect(await setRateMinter.owner()).to.equal(swarmAddress);
   });
 
   it('Has AffiliateManager contract properly setup', async () => {
-    const {affiliateManager} = baseContracts;
+    const { affiliateManager } = baseContracts;
     expect(await affiliateManager.address).to.match(REGEX_ADDR);
     expect(await affiliateManager.owner()).to.equal(swarmAddress);
   });
 
   it('Has USDC contract properly setup', async () => {
-    const {usdc} = baseContracts;
+    const { usdc } = baseContracts;
     expect(await usdc.address).to.match(REGEX_ADDR);
     expect(await usdc.name()).to.equal(options.stablecoinParams[0]);
     expect(await usdc.symbol()).to.equal(options.stablecoinParams[1]);

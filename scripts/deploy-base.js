@@ -1,5 +1,5 @@
-require('dotenv').config({path: '.env'});
-const {deployBaseContracts, getAddresses, dumpContractAddresses} = require('./deploy-helpers');
+require('dotenv').config({ path: '.env' });
+const { deployBaseContracts, getAddresses, dumpContractAddresses } = require('./deploy-helpers');
 
 async function main() {
   const [swarmAccount, issuerAccount] = await getAddresses();

@@ -1,4 +1,4 @@
-require('dotenv').config({path: '.env'});
+require('dotenv').config({ path: '.env' });
 const {
   deployContract,
   deployBaseContracts,
@@ -29,16 +29,16 @@ const {
   refund,
 } = require('./token-helpers');
 
-const {exportBaseContractAddresses, exportTokenContractAddresses} = require('./export-helpers');
+const { exportBaseContractAddresses, exportTokenContractAddresses } = require('./export-helpers');
 
-const {parseUnits} = ethers.utils;
+const { parseUnits } = ethers.utils;
 
 const fundraiserOptions = {};
 
 async function main() {
   const [swarm, issuer, ...contributors] = await ethers.getSigners();
   const [baseContracts, baseContractsOptions] = await deployBaseContracts();
-  const {usdc} = baseContracts;
+  const { usdc } = baseContracts;
   const [swarmAddress, issuerAddress, ...ca] = await getAddresses();
 
   async function deployToken(customSrc20Options = {}, customOptions = {}) {
@@ -47,7 +47,7 @@ async function main() {
       ...customOptions,
     };
     const [tokenContracts, outputOptions] = await deployTokenContracts(baseContracts, options);
-    return [{...baseContracts, ...tokenContracts}, outputOptions];
+    return [{ ...baseContracts, ...tokenContracts }, outputOptions];
   }
 
   // 1. unminted token
@@ -62,7 +62,7 @@ async function main() {
       name: 'Testing Token: Minted with Whitelist',
       symbol: 'TT2',
     },
-    {transferRules: true}
+    { transferRules: true }
   );
   await stakeAndMint(token2, token2Options.src20.nav, token2Options.src20.supply.div(2));
   await updateAllowance(issuer, token2.swm, token2.src20Registry.address, -1); // unlimited allowance to simplify
@@ -84,7 +84,7 @@ async function main() {
       name: 'Testing Token: Minted with Greylist',
       symbol: 'TT3',
     },
-    {transferRules: true, features: 5}
+    { transferRules: true, features: 5 }
   );
   await stakeAndMint(token3, token3Options.src20.nav, token3Options.src20.supply.div(2));
   await updateAllowance(issuer, token3.swm, token3.src20Registry.address, -1); // unlimited allowance to simplify
@@ -114,7 +114,7 @@ async function main() {
     ...baseContracts,
     ...token4,
   });
-  token4 = {...token4, ...fundraiserContracts4};
+  token4 = { ...token4, ...fundraiserContracts4 };
   // day 1
   await contribute(token4, contributors[0], 200);
   await contribute(token4, contributors[1], 100);
@@ -187,7 +187,7 @@ async function main() {
     ...baseContracts,
     ...token5,
   });
-  token5 = {...token5, ...fundraiserContracts5};
+  token5 = { ...token5, ...fundraiserContracts5 };
   await massContribute(
     token5,
     contributors,

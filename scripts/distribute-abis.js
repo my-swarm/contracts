@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const {exec} = require('child_process');
+const { exec } = require('child_process');
 const jsonFormat = require('json-format');
 
 const jsonConfig = {
@@ -46,7 +46,7 @@ console.log('Distributing abis...');
 
 for (const contractName of CONTRACTS) {
   const artifacts = readArtifacts(contractName);
-  const {abi, bytecode} = artifacts;
+  const { abi, bytecode } = artifacts;
   sendToSubgraph(contractName, abi);
   sendToIssuance(contractName, abi, bytecode);
   console.log(contractName);
