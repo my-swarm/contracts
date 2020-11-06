@@ -11,6 +11,11 @@ async function getSigners() {
   return { accounts: signers, addresses };
 }
 
+async function getIssuer() {
+  const [, issuer] = await ethers.getSigners();
+  return issuer;
+}
+
 async function getAddresses() {
   const signers = await ethers.getSigners();
   return await Promise.all(signers.map(async (x) => await x.getAddress()));
@@ -38,15 +43,20 @@ async function getTokenContractsOptions() {
     issuer,
     features: 15, // token features bitmap: all anabled (1 + 2 + 4 + 8)
     transferRules: false,
-    src20: {
-      name: 'Testing Security Token',
-      symbol: 'TST',
-      decimals: 18,
-      supply: ethers.utils.parseUnits('1000000'), // million baby
-      kyaHash: '0xedd7337baaf5035c0c572ef6ad7fc00b3f83dc789325ba7c4cfe2cd281637533', // sha256 hash of kya doc
-      kyaUrl: 'ipfs://QmNcxu72jVNXgXqtyFGfCWJddM78Mzxmh22T3yMe6VHCV6',
-      nav: 1000, // thousand baby!!!
-    },
+    src20: getSrc20Options(),
+  };
+}
+
+function getSrc20Options(customOptions = {}) {
+  return {
+    name: 'Testing Security Token',
+    symbol: 'TST',
+    decimals: 18,
+    supply: ethers.utils.parseUnits('1000000'), // million baby
+    kyaHash: '0xedd7337baaf5035c0c572ef6ad7fc00b3f83dc789325ba7c4cfe2cd281637533', // sha256 hash of kya doc
+    kyaUrl: 'ipfs://QmNcxu72jVNXgXqtyFGfCWJddM78Mzxmh22T3yMe6VHCV6',
+    nav: 1000, // thousand baby!!!
+    ...customOptions,
   };
 }
 
@@ -111,7 +121,7 @@ async function deployTokenContracts(baseContracts, customOptions = {}) {
   const options = _.merge(await getTokenContractsOptions(), customOptions);
   const { issuer } = options;
   const issuerAddress = await issuer.getAddress();
-  const { src20Registry, src20Factory, assetRegistry, getRateMinter } = baseContracts;
+  const { src20Registry, assetRegistry, getRateMinter } = baseContracts;
   const transferRules = options.transferRules
     ? await deployContract('TransferRules', [issuerAddress], issuer)
     : undefined;
@@ -122,30 +132,36 @@ async function deployTokenContracts(baseContracts, customOptions = {}) {
     issuer
   );
 
-  const transaction = await src20Factory
-    .connect(issuer)
-    .create(
-      options.src20.name,
-      options.src20.symbol,
-      options.src20.decimals,
-      options.src20.supply,
-      options.src20.kyaHash,
-      options.src20.kyaUrl,
-      options.src20.nav,
-      [
-        issuerAddress,
-        ZERO_ADDRESS, // restrictions - not implemented
-        transferRules ? transferRules.address : ZERO_ADDRESS,
-        roles.address,
-        features.address,
-        assetRegistry.address,
-        getRateMinter.address,
-      ]
-    );
+  const addresses = [
+    issuerAddress,
+    ZERO_ADDRESS, // restrictions - not implemented
+    transferRules ? transferRules.address : ZERO_ADDRESS,
+    roles.address,
+    features.address,
+    assetRegistry.address,
+    getRateMinter.address,
+  ];
+
+  const transaction = await createSrc20(options.src20, addresses);
   const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
   const src20 = await ethers.getContractAt('SRC20', src20Address);
 
   return [{ ...baseContracts, transferRules, features, roles, src20 }, options];
+}
+async function createSrc20(src20Factory, options, addresses) {
+  const issuer = await getIssuer();
+  return src20Factory
+    .connect(issuer)
+    .create(
+      options.name,
+      options.symbol,
+      options.decimals,
+      options.supply,
+      options.kyaHash,
+      options.kyaUrl,
+      options.nav,
+      addresses
+    );
 }
 
 async function deployFundraiser(contracts, options) {
@@ -231,8 +247,10 @@ async function advanceTimeAndBlock(time) {
 module.exports = {
   ZERO_ADDRESS,
   getSigners,
+  getIssuer,
   getAddresses,
   getBaseContractsOptions,
+  getSrc20Options,
   getTokenContractsOptions,
   getFundraiserOptions,
   deployBaseContracts,
@@ -244,4 +262,5 @@ module.exports = {
   deployFundraiserContracts,
   dumpContractAddresses,
   advanceTimeAndBlock,
+  createSrc20,
 };

@@ -1,0 +1,245 @@
+{
+  "contractName": "IAssetRegistry",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "kyaHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "kyaUrl",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "nav",
+          "type": "uint256"
+        }
+      ],
+      "name": "AssetAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "kyaHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "kyaUrl",
+          "type": "string"
+        }
+      ],
+      "name": "KyaUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "nav",
+          "type": "uint256"
+        }
+      ],
+      "name": "NavUpdated",
+      "type": "event"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "kyaHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "kyaUrl",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nav",
+          "type": "uint256"
+        }
+      ],
+      "name": "addAsset",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        }
+      ],
+      "name": "getKya",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "kyaHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "kyaUrl",
+          "type": "string"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        }
+      ],
+      "name": "getKyaHash",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        }
+      ],
+      "name": "getNav",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "kyaHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "kyaUrl",
+          "type": "string"
+        }
+      ],
+      "name": "updateKya",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nav",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateNav",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

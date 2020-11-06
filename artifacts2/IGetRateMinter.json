@@ -1,0 +1,56 @@
+{
+  "contractName": "IGetRateMinter",
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "netAssetValueUSD",
+          "type": "uint256"
+        }
+      ],
+      "name": "calcStake",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "src20",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "numSRC20Tokens",
+          "type": "uint256"
+        }
+      ],
+      "name": "stakeAndMint",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

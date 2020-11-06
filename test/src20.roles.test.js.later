@@ -1,0 +1,50 @@
+describe('Handling SRC20 roles', function () {
+  it('should allow owner to transfer ownership', async function () {
+    ({ logs: this.logs } = await this.token.transferOwnership(account0, { from: owner }));
+    expectEvent.inLogs(this.logs, 'OwnershipTransferred', {
+      previousOwner: owner,
+      newOwner: account0,
+    });
+
+    assert.equal((await this.token.owner()) === account0, true);
+  });
+
+  it('should allow owner to add/remove and query delegates', async function () {
+    ({ logs: this.logs } = await this.roles.addDelegate(delegate0, { from: owner }));
+    expectEvent.inLogs(this.logs, 'DelegateAdded', {
+      account: delegate0,
+    });
+
+    assert.equal(await this.roles.isDelegate(delegate0), true);
+
+    ({ logs: this.logs } = await this.roles.removeDelegate(delegate0, { from: owner }));
+    expectEvent.inLogs(this.logs, 'DelegateRemoved', {
+      account: delegate0,
+    });
+
+    assert.equal(await this.roles.isDelegate(delegate0), false);
+  });
+
+  it('should allow authorities to be added and queried', async function () {
+    await this.roles.addAuthority(authority0, { from: owner });
+    assert.equal(await this.roles.isAuthority(authority0), true);
+    assert.equal(await this.roles.isAuthority(authority1), false);
+  });
+
+  it('should allow only owner to handle authorities', async function () {
+    await this.roles.addAuthority(authority0, { from: owner });
+    await shouldFail.reverting(this.roles.addAuthority(authority1, { from: authority0 }));
+
+    await this.roles.addAuthority(authority1, { from: owner });
+    await this.roles.removeAuthority(authority1, { from: owner });
+    await shouldFail.reverting(this.roles.removeAuthority(authority0, { from: authority1 }));
+  });
+
+  it('should fire events on adding and removing authority', async function () {
+    ({ logs: this.logs } = await this.roles.addAuthority(authority0, { from: owner }));
+    expectEvent.inLogs(this.logs, 'AuthorityAdded', { account: authority0 });
+
+    ({ logs: this.logs } = await this.roles.removeAuthority(authority0, { from: owner }));
+    expectEvent.inLogs(this.logs, 'AuthorityRemoved', { account: authority0 });
+  });
+});

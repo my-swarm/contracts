@@ -1,0 +1,35 @@
+{
+  "contractName": "Freezable",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "AccountFrozen",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "AccountUnfrozen",
+      "type": "event"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a7231582041063d5b952eda21054ab71691b447c81a8d740c9e697e291577c868c4fc661064736f6c63430005110032",
+  "deployedBytecode": "0x6080604052600080fdfea265627a7a7231582041063d5b952eda21054ab71691b447c81a8d740c9e697e291577c868c4fc661064736f6c63430005110032",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
