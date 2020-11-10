@@ -2,11 +2,15 @@ pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+
 import '../interfaces/IGetRateMinter.sol';
 import '../interfaces/IAffiliateManager.sol';
 import '../interfaces/IContributorRestrictions.sol';
 import '../interfaces/ISRC20.sol';
+import './FundraiserManager.sol';
+
 import '@nomiclabs/buidler/console.sol';
+
 
 /**
  * @title The Fundraise Contract
@@ -51,6 +55,7 @@ contract Fundraiser {
   event TokensClaimed(address indexed account, uint256 amount);
   event Withdrawn(address indexed account, uint256 amount);
   event ReferralCollected(address indexed account, uint256 amount);
+  event FeePaid(address indexed account, uint256 amount);
 
   address private owner;
 
@@ -69,17 +74,16 @@ contract Fundraiser {
   address public affiliateManager;
   address public contributorRestrictions;
   address public minter;
+  address public fundraiserManager;
   bool public contributionsLocked = true;
-
-  // weird constants - should go to constructor :)
-  uint256 public expirationTime = 2592000; // default: 60 * 60 * 24 * 30 = ~1month
-  uint256 public fee = 2000e6; // USDC has 6 decimal places
 
   // state
   uint256 public numContributors = 0;
   uint256 public amountQualified = 0;
   uint256 public amountPending = 0;
   uint256 public amountWithdrawn = 0;
+  uint256 public totalFeePaid = 0;
+
   bool public isFinished = false;
   bool public isCanceled = false;
   bool public isSetup = false;
@@ -172,7 +176,8 @@ contract Fundraiser {
     address _affiliateManager,
     address _contributorRestrictions,
     address _minter,
-    bool _contributionsLocked
+    bool _contributionsLocked,
+    address _fundraiserManager
   ) external onlyOwner() {
     require(_tokenPrice > 0 || supply > 0, 'Either price or amount to mint is needed');
     require(!isSetup, 'Contract is already set up');
@@ -189,6 +194,7 @@ contract Fundraiser {
     affiliateManager = _affiliateManager;
     contributorRestrictions = _contributorRestrictions;
     contributionsLocked = _contributionsLocked;
+    fundraiserManager = _fundraiserManager;
     minter = _minter;
     isSetup = true;
 
@@ -295,7 +301,7 @@ contract Fundraiser {
    *  @return true on success
    */
   function getRefund() external returns (bool) {
-    bool isExpired = block.timestamp > endDate.add(expirationTime);
+    bool isExpired = block.timestamp > endDate.add(FundraiserManager(fundraiserManager).expirationTime());
     require(
       isCanceled || isExpired || !contributionsLocked,
       'Condition for refund not met (event canceled, expired or contributions not locked)!'
@@ -355,6 +361,23 @@ contract Fundraiser {
 
     emit ReferralCollected(msg.sender, amount);
     return true;
+  }
+
+  function payFee(uint256 _amount) external {
+    require(_amount != 0, "Fundraiser: Must be greater than 0.");
+
+    uint fee = FundraiserManager(fundraiserManager).fee();
+    uint256 feeSum = totalFeePaid.add(_amount);
+    uint256 required = _amount;
+
+    if(feeSum > fee) {
+        required = feeSum.sub(fee);
+    }
+
+    IERC20(baseCurrency).transferFrom(msg.sender, address(this), required);
+    totalFeePaid = totalFeePaid.add(required);
+
+    emit FeePaid(msg.sender, required);
   }
 
   /**
@@ -492,8 +515,9 @@ contract Fundraiser {
    */
   function _finish() internal returns (uint256) {
     require(!isFinished, 'Already finished');
-    require(block.timestamp < endDate.add(expirationTime), 'Expiration time passed');
     require(amountQualified >= softCap, 'SoftCap not reached');
+    require(totalFeePaid >= FundraiserManager(fundraiserManager).fee(), 'Fundraiser: Fee must be fully paid.');
+    require(block.timestamp < endDate.add(FundraiserManager(fundraiserManager).expirationTime()), 'Expiration time passed');
 
     if (amountQualified < hardCap && block.timestamp < endDate) {
       revert('Softcap is only valid after end date');
