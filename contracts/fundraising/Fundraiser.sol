@@ -11,7 +11,6 @@ import './FundraiserManager.sol';
 
 import '@nomiclabs/buidler/console.sol';
 
-
 /**
  * @title The Fundraise Contract
  * This contract allows the deployer to perform a Swarm-Powered Fundraise.
@@ -175,9 +174,9 @@ contract Fundraiser {
     uint256 _tokenPrice,
     address _affiliateManager,
     address _contributorRestrictions,
+    address _fundraiserManager,
     address _minter,
-    bool _contributionsLocked,
-    address _fundraiserManager
+    bool _contributionsLocked
   ) external onlyOwner() {
     require(_tokenPrice > 0 || supply > 0, 'Either price or amount to mint is needed');
     require(!isSetup, 'Contract is already set up');
@@ -193,8 +192,8 @@ contract Fundraiser {
     tokenPrice = _tokenPrice;
     affiliateManager = _affiliateManager;
     contributorRestrictions = _contributorRestrictions;
-    contributionsLocked = _contributionsLocked;
     fundraiserManager = _fundraiserManager;
+    contributionsLocked = _contributionsLocked;
     minter = _minter;
     isSetup = true;
 
@@ -301,7 +300,8 @@ contract Fundraiser {
    *  @return true on success
    */
   function getRefund() external returns (bool) {
-    bool isExpired = block.timestamp > endDate.add(FundraiserManager(fundraiserManager).expirationTime());
+    bool isExpired = block.timestamp >
+      endDate.add(FundraiserManager(fundraiserManager).expirationTime());
     require(
       isCanceled || isExpired || !contributionsLocked,
       'Condition for refund not met (event canceled, expired or contributions not locked)!'
@@ -364,14 +364,14 @@ contract Fundraiser {
   }
 
   function payFee(uint256 _amount) external {
-    require(_amount != 0, "Fundraiser: Must be greater than 0.");
+    require(_amount != 0, 'Fundraiser: Must be greater than 0.');
 
-    uint fee = FundraiserManager(fundraiserManager).fee();
+    uint256 fee = FundraiserManager(fundraiserManager).fee();
     uint256 feeSum = totalFeePaid.add(_amount);
     uint256 required = _amount;
 
-    if(feeSum > fee) {
-        required = feeSum.sub(fee);
+    if (feeSum > fee) {
+      required = feeSum.sub(fee);
     }
 
     IERC20(baseCurrency).transferFrom(msg.sender, address(this), required);
@@ -516,8 +516,14 @@ contract Fundraiser {
   function _finish() internal returns (uint256) {
     require(!isFinished, 'Already finished');
     require(amountQualified >= softCap, 'SoftCap not reached');
-    require(totalFeePaid >= FundraiserManager(fundraiserManager).fee(), 'Fundraiser: Fee must be fully paid.');
-    require(block.timestamp < endDate.add(FundraiserManager(fundraiserManager).expirationTime()), 'Expiration time passed');
+    require(
+      totalFeePaid >= FundraiserManager(fundraiserManager).fee(),
+      'Fundraiser: Fee must be fully paid.'
+    );
+    require(
+      block.timestamp < endDate.add(FundraiserManager(fundraiserManager).expirationTime()),
+      'Expiration time passed'
+    );
 
     if (amountQualified < hardCap && block.timestamp < endDate) {
       revert('Softcap is only valid after end date');

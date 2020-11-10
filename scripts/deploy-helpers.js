@@ -48,7 +48,7 @@ async function getBaseContractsOptions() {
 }
 
 async function getTokenContractsOptions() {
-  const [, issuer] = await ethers.getSigners();
+  const issuer = await getIssuer();
   return {
     issuer,
     features: 15, // token features bitmap: all anabled (1 + 2 + 4 + 8)
@@ -85,6 +85,8 @@ function getFundraiserOptions() {
       minAmount: 0,
       maxAmount: 0,
     },
+    fee: ethers.utils.parseUnits('2000', 6), // 2k baby
+    expirationTime: 7 * 24 * 3600, // a week
   };
 }
 
@@ -178,7 +180,7 @@ async function createSrc20(src20Factory, options, addresses) {
 }
 
 async function deployFundraiser(contracts, options) {
-  const [, issuer] = await ethers.getSigners();
+  const issuer = await getIssuer();
   return await deployContract(
     'Fundraiser',
     [
@@ -195,7 +197,7 @@ async function deployFundraiser(contracts, options) {
 }
 
 async function deployContributorRestrictions(fundraiser, options) {
-  const [, issuer] = await ethers.getSigners();
+  const issuer = await getIssuer();
   const result = await deployContract(
     'ContributorRestrictions',
     [
@@ -209,13 +211,25 @@ async function deployContributorRestrictions(fundraiser, options) {
   return result;
 }
 
-async function setupFundraiser(fundraiser, contributorRestrictions, contracts, options) {
-  const [, issuer] = await ethers.getSigners();
+async function deployFundraiserManager(options) {
+  const issuer = await getIssuer();
+  return await deployContract('FundraiserManager', [options.expirationTime, options.fee], issuer);
+}
+
+async function setupFundraiser(
+  fundraiser,
+  contributorRestrictions,
+  fundraiserManager,
+  contracts,
+  options
+) {
+  const issuer = await getIssuer();
   await fundraiser.connect(issuer).setup(
     contracts.usdc.address, // baseCurrency
     options.tokenPrice,
     contracts.affiliateManager.address,
     contributorRestrictions.address,
+    fundraiserManager.address,
     contracts.getRateMinter.address,
     options.contributionsLocked
   );
@@ -225,9 +239,10 @@ async function deployFundraiserContracts(contracts, customOptions = {}) {
   const options = _.merge(getFundraiserOptions(), customOptions);
   const fundraiser = await deployFundraiser(contracts, options);
   const contributorRestrictions = await deployContributorRestrictions(fundraiser, options);
-  await setupFundraiser(fundraiser, contributorRestrictions, contracts, options);
+  const fundraiserManager = await deployFundraiserManager(options);
+  await setupFundraiser(fundraiser, contributorRestrictions, fundraiserManager, contracts, options);
 
-  return [{ fundraiser, contributorRestrictions }, options];
+  return [{ fundraiser, contributorRestrictions, fundraiserManager }, options];
 }
 
 async function getEvent(transaction, eventName) {

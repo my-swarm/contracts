@@ -49,7 +49,10 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
   });
 
   it('Deploys fundraiser contracts', async () => {
-    const [{ fundraiser, contributorRestrictions }, options] = await deployFundraiserContracts({
+    const [
+      { fundraiser, contributorRestrictions, fundraiserManager },
+      options,
+    ] = await deployFundraiserContracts({
       ...baseContracts,
       ...tokenContracts,
     });
@@ -67,6 +70,7 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
     expect(await fundraiser.tokenPrice()).to.equal(options.tokenPrice);
     expect(await fundraiser.affiliateManager()).to.equal(baseContracts.affiliateManager.address);
     expect(await fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
+    expect(await fundraiser.fundraiserManager()).to.equal(fundraiserManager.address);
     expect(await fundraiser.minter()).to.equal(baseContracts.getRateMinter.address);
     expect(await fundraiser.contributionsLocked()).to.equal(options.contributionsLocked);
 
