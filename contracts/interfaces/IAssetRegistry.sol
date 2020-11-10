@@ -20,7 +20,7 @@ interface IAssetRegistry {
 
   function updateNav(address src20, uint256 nav) external returns (bool);
 
-  function getKya(address src20) external view returns (bytes32 kyaHash, string memory kyaUrl);
+  function getKyaUrl(address src20) external view returns (string memory kyaUrl);
 
   function getKyaHash(address src20) external view returns (bytes32);
 

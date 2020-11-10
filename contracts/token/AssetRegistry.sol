@@ -83,17 +83,23 @@ contract AssetRegistry is IAssetRegistry, Ownable {
   }
 
   /**
-   * Retrieve token's KYA document's hash and url.
+   * Retrieve token's KYA document's url.
+   *
+   * @param _src20 the token this applies to
+   *
+   * @return URL of KYA document.
+   */
+  function getKyaUrl(address _src20) public view returns (string memory) {
+    return assetList[_src20].kyaUrl;
+  }
+
+  /**
+   * Retrieve token's KYA document's hash.
    *
    * @param _src20 the token this applies to
    *
    * @return Hash of KYA document.
-   * @return URL of KYA document.
    */
-  function getKya(address _src20) public view returns (bytes32, string memory) {
-    return (assetList[_src20].kyaHash, assetList[_src20].kyaUrl);
-  }
-
   function getKyaHash(address _src20) public view returns (bytes32) {
     return assetList[_src20].kyaHash;
   }

@@ -16,6 +16,16 @@ async function getIssuer() {
   return issuer;
 }
 
+async function getSwarm() {
+  const [swarm] = await ethers.getSigners();
+  return swarm;
+}
+
+async function getAccount(number = 0) {
+  const signer = (await ethers.getSigners())[number];
+  return [signer, await signer.getAddress()];
+}
+
 async function getAddresses() {
   const signers = await ethers.getSigners();
   return await Promise.all(signers.map(async (x) => await x.getAddress()));
@@ -117,11 +127,11 @@ async function deployBaseContracts(customOptions = {}) {
   return [addresses, options];
 }
 
-async function deployTokenContracts(baseContracts, customOptions = {}) {
+async function deployTokenContracts(baseContracts, customOptions = {}, skipSrc20 = false) {
   const options = _.merge(await getTokenContractsOptions(), customOptions);
   const { issuer } = options;
   const issuerAddress = await issuer.getAddress();
-  const { src20Registry, assetRegistry, getRateMinter } = baseContracts;
+  const { src20Factory, src20Registry, assetRegistry, getRateMinter } = baseContracts;
   const transferRules = options.transferRules
     ? await deployContract('TransferRules', [issuerAddress], issuer)
     : undefined;
@@ -142,9 +152,12 @@ async function deployTokenContracts(baseContracts, customOptions = {}) {
     getRateMinter.address,
   ];
 
-  const transaction = await createSrc20(options.src20, addresses);
-  const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
-  const src20 = await ethers.getContractAt('SRC20', src20Address);
+  let src20;
+  if (!skipSrc20) {
+    const transaction = await createSrc20(src20Factory, options.src20, addresses);
+    const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
+    src20 = await ethers.getContractAt('SRC20', src20Address);
+  }
 
   return [{ ...baseContracts, transferRules, features, roles, src20 }, options];
 }
@@ -247,7 +260,9 @@ async function advanceTimeAndBlock(time) {
 module.exports = {
   ZERO_ADDRESS,
   getSigners,
+  getAccount,
   getIssuer,
+  getSwarm,
   getAddresses,
   getBaseContractsOptions,
   getSrc20Options,
@@ -263,4 +278,5 @@ module.exports = {
   dumpContractAddresses,
   advanceTimeAndBlock,
   createSrc20,
+  getEvent,
 };

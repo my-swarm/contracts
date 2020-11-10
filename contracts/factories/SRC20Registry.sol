@@ -56,6 +56,14 @@ contract SRC20Registry is ISRC20Registry, Manager {
   }
 
   /**
+   * @dev Checks if registry has a factory registered
+   * @param _account The factory contract address.
+   */
+  function hasFactory(address _account) external view returns (bool) {
+    return factories.has(_account);
+  }
+
+  /**
    * @dev Adds token to registry. Only factories can add.
    * Emits SRC20Registered event.
    *
@@ -127,6 +135,14 @@ contract SRC20Registry is ISRC20Registry, Manager {
     emit MinterAdded(_minter);
 
     return true;
+  }
+
+  /**
+   * @dev Checks if registry has a minter registered
+   * @param _minter The minter contract address.
+   */
+  function hasMinter(address _minter) external view returns (bool) {
+    return authorizedMinters[_minter] == true;
   }
 
   /**

@@ -1,46 +1,69 @@
+const { expect } = require('chai');
 const {
   getIssuer,
   deployBaseContracts,
+  deployTokenContracts,
   getSrc20Options,
   createSrc20,
+  getEvent,
+  ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
 
-function getRandomAddress() {
-  const chars = '012345679abcdef';
-  let result = '0x';
-  for (let i = 0; i < 40; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
-}
-
-function getRandomAddresses(count) {
-  let result = [];
-  for (let i = 0; i < count; i++) result.push(getRandomAddress());
-  return result;
-}
+const { REGEX_ADDR } = require('./test-helpers');
 
 describe('SRC20Factory creates tokens', async () => {
   let baseContracts;
+  let tokenContracts; // except for src20
+  let baseContractOptions;
+  let tokenContractOptions;
   let issuerAddress;
 
+  function getSrc20Addresses() {
+    const { assetRegistry, getRateMinter } = baseContracts;
+    const { transferRules, roles, features } = tokenContracts;
+    return [
+      issuerAddress,
+      ZERO_ADDRESS,
+      transferRules.address,
+      roles.address,
+      features.address,
+      assetRegistry.address,
+      getRateMinter.address,
+    ];
+  }
+
   before(async () => {
-    baseContracts = (await deployBaseContracts())[0];
-    console.log(Object.keys(baseContracts));
-    issuerAddress = (await getIssuer()).getAddress();
+    let result;
+    result = await deployBaseContracts();
+    baseContracts = result[0];
+    baseContractOptions = result[1];
+    issuerAddress = await (await getIssuer()).getAddress();
+    result = await deployTokenContracts(baseContracts, { transferRules: true }, true);
+    tokenContracts = result[0];
+    tokenContractOptions = result[1];
   });
 
-  it('tests shit', async () => {
-    const { src20Factory } = baseContracts;
+  it('Token is created with records in src registry and asset registry', async () => {
+    const { src20Factory, src20Registry, assetRegistry } = baseContracts;
+    const { transferRules, roles, features } = tokenContracts;
     const options = getSrc20Options();
-    const addresses = [issuerAddress, ...getRandomAddresses(5)];
-    const src20 = await createSrc20(src20Factory, options, addresses);
-    console.log(src20);
+    const addresses = getSrc20Addresses();
+    const transaction = await createSrc20(src20Factory, options, addresses);
+    const event = await getEvent(transaction, 'SRC20Created');
+    const src20Options = tokenContractOptions.src20;
+    // console.log({ issuerAddress, tokenContractOptions, src20Options });
+    expect(event.owner).to.equal(issuerAddress);
+    expect(event.token).to.match(REGEX_ADDR);
+    expect(event.transferRules).to.equal(transferRules.address);
+    expect(event.roles).to.equal(roles.address);
+    expect(event.features).to.equal(features.address);
+    expect(event.name).to.equal(src20Options.name);
+    expect(event.symbol).to.equal(src20Options.symbol);
+    expect(event.decimals).to.equal(src20Options.decimals);
+    expect(event.maxTotalSupply.toString()).to.equal(src20Options.supply.toString());
+    expect(await src20Registry.contains(event.token)).to.equal(true);
+    expect(await assetRegistry.getNav(event.token)).to.equal(src20Options.nav);
+    expect(await assetRegistry.getKyaHash(event.token)).to.equal(src20Options.kyaHash);
+    expect(await assetRegistry.getKyaUrl(event.token)).to.equal(src20Options.kyaUrl);
   });
-
-  // before: deploy registry, asset registry, factory
-
-  // call factory.create
-  // check that it emmited SRC20Created
-  // check that it emmited
 });
