@@ -85,17 +85,15 @@ contract Features is IFeatures, Pausable, Freezable, Ownable {
 
   /**
    * @dev Pauses token.
-   * Emits TokenPaused event.
    */
-  function freezeToken() external enabled(Pausable) onlyOwner {
+  function pauseToken() external enabled(Pausable) onlyOwner {
     _pause();
   }
 
   /**
    * @dev Unpause token.
-   * Emits TokenUnPaused event.
    */
-  function unfreezeToken() external enabled(Pausable) onlyOwner {
+  function unpauseToken() external enabled(Pausable) onlyOwner {
     _unpause();
   }
 }
