@@ -233,11 +233,10 @@ contract SRC20Registry is ISRC20Registry, Ownable {
   }
 
   /**
-   * @dev Mint additional supply of SRC20 tokens based on SWN token stake.
-   * Can be used for initial supply and subsequent minting of new SRC20 tokens.
-   * When used, Manager will update SWM/SRC20 values in this call and use it
-   * for token owner's incStake/decStake calls, minting/burning SRC20 based on
-   * current SWM/SRC20 ratio.
+   * @dev Mint SRC20 tokens and increase stake. To be called by a minter only, not token owner (see increseSupply for that)
+   *
+   * Used primarily for initial stake&mint or additional mint by a minter.
+   * The registry maintains SWM/SRC20 amounts for subsequent increaseSupply/decreaseSupply calls.
    * Only owner of this contract can invoke this method. Owner is SWARM controlled
    * address.
    * Emits SRC20SupplyMinted event.
@@ -248,8 +247,6 @@ contract SRC20Registry is ISRC20Registry, Ownable {
    * @param _swmAmount SWM stake value.
    * @param _src20Amount SRC20 tokens to mint
    * @return true on success.
-   * todo: do we even need this method? the increaseSupply one does the same and computes stake too
-   * todo: the difference is that this one is called by TokenMinter
    */
   function mintSupply(
     address _src20,
@@ -262,24 +259,17 @@ contract SRC20Registry is ISRC20Registry, Ownable {
     require(_src20Amount != 0, 'SRC20 amount is zero');
     require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
-    require(swmERC20.transferFrom(_swmAccount, address(this), _swmAmount));
-    require(ISRC20Managed(_src20).mint(registry[_src20].owner, _src20Amount));
-    registry[_src20].stake = registry[_src20].stake.add(_swmAmount);
-
-    emit SRC20SupplyIncreased(_src20, _swmAccount, _swmAmount, _src20Amount);
-
-    return true;
+    return _increaseSupply(_src20, _swmAccount, _swmAmount, _src20Amount);
   }
 
   /**
    * @dev This is function token issuer can call in order to increase his SRC20 supply this
-   * and stake his tokens.
+   * and stake his tokens. The src20/swm ratio is kept the same as in the initial stake&mint.
    *
    * @param _src20 Address of src20 token contract
    * @param _swmAccount Account from which stake tokens are going to be deducted
    * @param _src20Amount Value of desired SRC20 token value
    * @return true if success
-   * todo: isn't swmAccount always the sender? why whould I increase from someone elses wallet?
    */
   function increaseSupply(
     address _src20,
@@ -287,19 +277,11 @@ contract SRC20Registry is ISRC20Registry, Ownable {
     uint256 _src20Amount
   ) external onlyTokenOwner(_src20) returns (bool) {
     require(_swmAccount != address(0), 'SWM account is zero');
-    require(_src20Amount != 0, 'SWM value is zero');
+    require(_src20Amount != 0, 'SWM amount is zero');
     require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
-    // computed with the same ratio as in original mint
     uint256 swmAmount = _computeStake(_src20, _src20Amount);
-
-    require(swmERC20.transferFrom(_swmAccount, address(this), swmAmount));
-    require(ISRC20Managed(_src20).mint(registry[_src20].owner, _src20Amount));
-    registry[_src20].stake = registry[_src20].stake.add(swmAmount);
-
-    emit SRC20SupplyIncreased(_src20, _swmAccount, swmAmount, _src20Amount);
-
-    return true;
+    return _increaseSupply(_src20, _swmAccount, swmAmount, _src20Amount);
   }
 
   /**
@@ -317,18 +299,11 @@ contract SRC20Registry is ISRC20Registry, Ownable {
     uint256 _src20Amount
   ) external onlyTokenOwner(_src20) returns (bool) {
     require(_swmAccount != address(0), 'SWM account is zero');
-    require(_src20Amount != 0, 'SWM value is zero');
+    require(_src20Amount != 0, 'SWM amount is zero');
     require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
     uint256 swmAmount = _computeStake(_src20, _src20Amount);
-
-    require(swmERC20.transfer(_swmAccount, swmAmount));
-    require(ISRC20Managed(_src20).burn(registry[_src20].owner, _src20Amount));
-    registry[_src20].stake = registry[_src20].stake.sub(swmAmount);
-
-    emit SRC20SupplyDecreased(_src20, _swmAccount, swmAmount, _src20Amount);
-
-    return true;
+    return _decreaseSupply(_src20, _swmAccount, swmAmount, _src20Amount);
   }
 
   /**
@@ -371,6 +346,36 @@ contract SRC20Registry is ISRC20Registry, Ownable {
    */
   function computeStake(address _src20, uint256 _src20Amount) external view returns (uint256) {
     return _computeStake(_src20, _src20Amount);
+  }
+
+  function _increaseSupply(
+    address _src20,
+    address _swmAccount,
+    uint256 _swmAmount,
+    uint256 _src20Amount
+  ) internal returns (bool) {
+    require(swmERC20.transferFrom(_swmAccount, address(this), _swmAmount));
+    require(ISRC20Managed(_src20).mint(registry[_src20].owner, _src20Amount));
+    registry[_src20].stake = registry[_src20].stake.add(_swmAmount);
+
+    emit SRC20SupplyIncreased(_src20, _swmAccount, _swmAmount, _src20Amount);
+
+    return true;
+  }
+
+  function _decreaseSupply(
+    address _src20,
+    address _swmAccount,
+    uint256 _swmAmount,
+    uint256 _src20Amount
+  ) internal returns (bool) {
+    require(swmERC20.transfer(_swmAccount, _swmAmount));
+    require(ISRC20Managed(_src20).burn(registry[_src20].owner, _src20Amount));
+    registry[_src20].stake = registry[_src20].stake.sub(_swmAmount);
+
+    emit SRC20SupplyDecreased(_src20, _swmAccount, _swmAmount, _src20Amount);
+
+    return true;
   }
 
   function _computeStake(address _src20, uint256 _src20Amount) internal view returns (uint256) {
