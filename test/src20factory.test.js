@@ -60,7 +60,7 @@ describe('SRC20Factory creates tokens', async () => {
     expect(event.name).to.equal(src20Options.name);
     expect(event.symbol).to.equal(src20Options.symbol);
     expect(event.decimals).to.equal(src20Options.decimals);
-    expect(event.maxTotalSupply.toString()).to.equal(src20Options.supply.toString());
+    expect(event.maxTotalSupply.toString()).to.equal(src20Options.maxSupply.toString());
     expect(await src20Registry.contains(event.token)).to.equal(true);
     expect(await assetRegistry.getNav(event.token)).to.equal(src20Options.nav);
     expect(await assetRegistry.getKyaHash(event.token)).to.equal(src20Options.kyaHash);

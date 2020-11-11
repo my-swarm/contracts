@@ -278,6 +278,7 @@ contract SRC20Registry is ISRC20Registry, Ownable {
   ) external onlyTokenOwner(_src20) returns (bool) {
     require(_swmAccount != address(0), 'SWM account is zero');
     require(_src20Amount != 0, 'SWM amount is zero');
+    require(registry[_src20].stake != 0, 'Cannot increase supply before initial stake&mint');
     require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
     uint256 swmAmount = _computeStake(_src20, _src20Amount);
@@ -300,6 +301,7 @@ contract SRC20Registry is ISRC20Registry, Ownable {
   ) external onlyTokenOwner(_src20) returns (bool) {
     require(_swmAccount != address(0), 'SWM account is zero');
     require(_src20Amount != 0, 'SWM amount is zero');
+    require(registry[_src20].stake != 0, 'Cannot increase supply before initial stake&mint');
     require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
     uint256 swmAmount = _computeStake(_src20, _src20Amount);

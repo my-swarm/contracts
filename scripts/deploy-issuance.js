@@ -64,7 +64,7 @@ async function main() {
     },
     { transferRules: true }
   );
-  await stakeAndMint(token2, token2Options.src20.nav, token2Options.src20.supply.div(2));
+  await stakeAndMint(token2, token2Options.src20.nav, token2Options.src20.maxSupply.div(2));
   await updateAllowance(issuer, token2.swm, token2.src20Registry.address, -1); // unlimited allowance to simplify
   // max supply is 1 million, 500k minted so far. After we should have 500 + 200 - 100 = 600
   await increaseSupply(token2, 200000);
@@ -86,7 +86,7 @@ async function main() {
     },
     { transferRules: true, features: 5 }
   );
-  await stakeAndMint(token3, token3Options.src20.nav, token3Options.src20.supply.div(2));
+  await stakeAndMint(token3, token3Options.src20.nav, token3Options.src20.maxSupply.div(2));
   await updateAllowance(issuer, token3.swm, token3.src20Registry.address, -1); // unlimited allowance to simplify
 
   await updateAllowance(issuer, token3.src20, issuerAddress, -1); // also allow myself to spend src for bulk

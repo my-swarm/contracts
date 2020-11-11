@@ -62,7 +62,7 @@ function getSrc20Options(customOptions = {}) {
     name: 'Testing Security Token',
     symbol: 'TST',
     decimals: 18,
-    supply: ethers.utils.parseUnits('1000000'), // million baby
+    maxSupply: ethers.utils.parseUnits('1000000'), // million baby
     kyaHash: '0xedd7337baaf5035c0c572ef6ad7fc00b3f83dc789325ba7c4cfe2cd281637533', // sha256 hash of kya doc
     kyaUrl: 'ipfs://QmNcxu72jVNXgXqtyFGfCWJddM78Mzxmh22T3yMe6VHCV6',
     nav: 1000, // thousand baby!!!
@@ -172,7 +172,7 @@ async function createSrc20(src20Factory, options, addresses) {
       options.name,
       options.symbol,
       options.decimals,
-      options.supply,
+      options.maxSupply,
       options.kyaHash,
       options.kyaUrl,
       options.nav,

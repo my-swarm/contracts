@@ -95,21 +95,21 @@ contract('TokenMinter', function ([_, owner, account0, account1, account2, accou
 
   describe('Calculating the SWM stake amount', function () {
     it('should return correct stake for various inputs', async function () {
-      const SWMPRICENUMERATOR = new BN(SWM_PRICE_USD_NUMERATOR);
-      const SWMPRICEDENOMINATOR = new BN(SWM_PRICE_USD_DENOMINATOR);
+const SWMPRICENUMERATOR = new BN(SWM_PRICE_USD_NUMERATOR);
+const SWMPRICEDENOMINATOR = new BN(SWM_PRICE_USD_DENOMINATOR);
 
-      let NAV = new BN(250000);
-      let expected = new BN((2500 * 100) / 5).mul(new BN(10).pow(new BN(18)));
-      let result = await this.TokenMinter.calcStake(NAV, { from: account1 });
-      console.log(
-        '      For NAV: ' +
-          NAV.toLocaleString() +
-          ', Result: ' +
-          result.toLocaleString() +
-          ', Expected: ' +
-          expected.toLocaleString()
-      );
-      await assert.equal(result.eq(expected), true);
+let NAV = new BN(250000);
+let expected = new BN((2500 * 100) / 5).mul(new BN(10).pow(new BN(18)));
+let result = await this.TokenMinter.calcStake(NAV, { from: account1 });
+console.log(
+  '      For NAV: ' +
+    NAV.toLocaleString() +
+    ', Result: ' +
+    result.toLocaleString() +
+    ', Expected: ' +
+    expected.toLocaleString()
+);
+await assert.equal(result.eq(expected), true);
 
       NAV = new BN(750000);
       let fnum = new BN(5);

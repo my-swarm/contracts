@@ -102,20 +102,15 @@ contract TokenMinter {
     returns (bool)
   {
     uint256 swmAmount = calcStake(asset.getNav(_src20));
+    // where to transfer SWM tokens from
+    address swmAccount = msg.sender == ISRC20(_src20).fundraiser()
+      ? Ownable(_src20).owner()
+      : msg.sender;
 
-    if (msg.sender == ISRC20(_src20).fundraiser()) {
-      console.log('StakeAndMint fundraiser');
-      require(
-        registry.mintSupply(_src20, Ownable(_src20).owner(), swmAmount, _src20Amount),
-        'supply minting failed'
-      );
-    } else {
-      console.log('StakeAndMint NOT fundraiser');
-      require(
-        registry.mintSupply(_src20, msg.sender, swmAmount, _src20Amount),
-        'supply minting failed'
-      );
-    }
+    require(
+      registry.mintSupply(_src20, swmAccount, swmAmount, _src20Amount),
+      'supply minting failed'
+    );
 
     return true;
   }
