@@ -101,13 +101,13 @@ async function deployBaseContracts(customOptions = {}) {
   const src20Factory = await deployContract('SRC20Factory', [src20Registry.address]);
   await src20Registry.addFactory(src20Factory.address);
   const assetRegistry = await deployContract('AssetRegistry', [src20Factory.address]);
-  const getRateMinter = await deployContract('GetRateMinter', [
+  const tokenMinter = await deployContract('TokenMinter', [
     src20Registry.address,
     assetRegistry.address,
     swmPriceOracle.address,
   ]);
-  await src20Registry.addMinter(getRateMinter.address);
-  const setRateMinter = await deployContract('SetRateMinter', [src20Registry.address]);
+  await src20Registry.addMinter(tokenMinter.address);
+  const masterMinter = await deployContract('MasterMinter', [src20Registry.address]);
   const affiliateManager = await deployContract('AffiliateManager');
   const usdc = await deployContract('ERC20Mock', options.stablecoinParams);
   await swm.transfer(issuerAddress, options.issuerSwmBalance);
@@ -120,8 +120,8 @@ async function deployBaseContracts(customOptions = {}) {
     src20Registry,
     src20Factory,
     assetRegistry,
-    getRateMinter,
-    setRateMinter,
+    tokenMinter,
+    masterMinter,
     affiliateManager,
     usdc,
     disperse,
@@ -133,7 +133,7 @@ async function deployTokenContracts(baseContracts, customOptions = {}, skipSrc20
   const options = _.merge(await getTokenContractsOptions(), customOptions);
   const { issuer } = options;
   const issuerAddress = await issuer.getAddress();
-  const { src20Factory, src20Registry, assetRegistry, getRateMinter } = baseContracts;
+  const { src20Factory, src20Registry, assetRegistry, tokenMinter } = baseContracts;
   const transferRules = options.transferRules
     ? await deployContract('TransferRules', [issuerAddress], issuer)
     : undefined;
@@ -151,7 +151,7 @@ async function deployTokenContracts(baseContracts, customOptions = {}, skipSrc20
     roles.address,
     features.address,
     assetRegistry.address,
-    getRateMinter.address,
+    tokenMinter.address,
   ];
 
   let src20;
@@ -231,7 +231,7 @@ async function setupFundraiser(
     contracts.affiliateManager.address,
     contributorRestrictions.address,
     fundraiserManager.address,
-    contracts.getRateMinter.address,
+    contracts.tokenMinter.address,
     options.contributionsLocked
   );
 }

@@ -1,8 +1,8 @@
-const {ethers, config} = require('@nomiclabs/buidler');
-const {readArtifact} = require('@nomiclabs/buidler/plugins');
-require('dotenv').config({path: '.env'});
+const { ethers, config } = require('@nomiclabs/buidler');
+const { readArtifact } = require('@nomiclabs/buidler/plugins');
+require('dotenv').config({ path: '.env' });
 const moment = require('moment');
-const {linkBytecode} = require('./utils');
+const { linkBytecode } = require('./utils');
 
 const {
   SWM_PRICE_USD_NUMERATOR,
@@ -67,17 +67,17 @@ async function deployContracts(root) {
   );
 
   await root.swmPriceOracle.deployed();
-  const GetRateMinter = await ethers.getContractFactory('GetRateMinter');
-  root.getRateMinter = await GetRateMinter.deploy(
+  const TokenMinter = await ethers.getContractFactory('TokenMinter');
+  root.TokenMinter = await TokenMinter.deploy(
     root.src20Registry.address,
     root.assetRegistry.address,
     root.swmPriceOracle.address
   );
-  await root.src20Registry.addMinter(root.getRateMinter.address);
+  await root.src20Registry.addMinter(root.TokenMinter.address);
 
-  const SetRateMinter = await ethers.getContractFactory('SetRateMinter');
-  root.setRateMinter = await SetRateMinter.deploy(root.src20Registry.address);
-  await root.src20Registry.addMinter(root.setRateMinter.address);
+  const MasterMinter = await ethers.getContractFactory('MasterMinter');
+  root.MasterMinter = await MasterMinter.deploy(root.src20Registry.address);
+  await root.src20Registry.addMinter(root.MasterMinter.address);
 
   const TransferRules = await ethers.getContractFactory('TransferRules');
   root.transferRules = await TransferRules.deploy(deployerAddress);
@@ -110,7 +110,7 @@ async function deployContracts(root) {
       root.src20Roles.address,
       root.featured.address,
       root.assetRegistry.address,
-      root.getRateMinter.address,
+      root.TokenMinter.address,
     ]
   );
 

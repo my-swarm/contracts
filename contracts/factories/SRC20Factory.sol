@@ -46,7 +46,7 @@ contract SRC20Factory {
    * addressList[3]: roles,
    * addressList[4]: features,
    * addressList[5]: assetRegistry,
-   * addressList[6]: minter
+   * addressList[6]: minters
    */
   function create(
     string memory _name,
@@ -64,7 +64,7 @@ contract SRC20Factory {
       token,
       _addressList[3], // roles
       _addressList[0], // tokenOwner
-      _addressList[6] // minter
+      _addressList[6] // minters
     );
 
     emit SRC20Created(

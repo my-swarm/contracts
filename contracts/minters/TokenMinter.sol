@@ -9,10 +9,12 @@ import '../interfaces/ISRC20.sol';
 import '@nomiclabs/buidler/console.sol';
 
 /**
- * @title GetRateMinter
+ * @title TokenMinter
  * @dev Serves as proxy (manager) for SRC20 minting/burning.
+ * @dev To be called by the token issuer.
+ * The swm/src ratio comes from an oracle and the stake amount from the staking table.
  */
-contract GetRateMinter {
+contract TokenMinter {
   ISRC20Registry public registry;
   INetAssetValueUSD public asset;
   IPriceUSD public SWMPriceOracle;
@@ -39,7 +41,7 @@ contract GetRateMinter {
 
   /**
    *  Calculate how many SWM tokens need to be staked to tokenize an asset
-   *  This function is custom for each GetRateMinter contract
+   *  This function is custom for each TokenMinter contract
    *  Specification: https://docs.google.com/document/d/1Z-XuTxGf5LQudO5QLmnSnD-k3nTb0tlu3QViHbOSQXo/
    *
    *  Note: The stake requirement depends only on the asset USD value and USD/SWM exchange rate (SWM price).

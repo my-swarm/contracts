@@ -19,7 +19,7 @@ describe('SRC20Factory creates tokens', async () => {
   let issuerAddress;
 
   function getSrc20Addresses() {
-    const { assetRegistry, getRateMinter } = baseContracts;
+    const { assetRegistry, tokenMinter } = baseContracts;
     const { transferRules, roles, features } = tokenContracts;
     return [
       issuerAddress,
@@ -28,7 +28,7 @@ describe('SRC20Factory creates tokens', async () => {
       roles.address,
       features.address,
       assetRegistry.address,
-      getRateMinter.address,
+      tokenMinter.address,
     ];
   }
 

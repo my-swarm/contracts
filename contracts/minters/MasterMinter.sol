@@ -5,10 +5,12 @@ import '../interfaces/ISRC20Registry.sol';
 import '../interfaces/INetAssetValueUSD.sol';
 
 /**
- * @title SetRateMinter
+ * @title MasterMinter
  * @dev Serves as proxy (manager) for SRC20 minting/burning.
+ * @dev To be called by owner (whoever owns the contract), as opposed to token owner which is the case of TokenMinter
+ * @dev Note that this minter can have arbitrary swm/src amount (implies arbitrary swm price)
  */
-contract SetRateMinter is Ownable {
+contract MasterMinter is Ownable {
   ISRC20Registry public registry;
 
   constructor(address _registry) public {

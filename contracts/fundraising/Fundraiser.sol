@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
-import '../interfaces/IGetRateMinter.sol';
+import '../interfaces/ITokenMinter.sol';
 import '../interfaces/IAffiliateManager.sol';
 import '../interfaces/IContributorRestrictions.sol';
 import '../interfaces/ISRC20.sol';
@@ -323,7 +323,7 @@ contract Fundraiser {
     // This has all the conditions and will revert if they are not met
     uint256 amountToMint = _finish();
 
-    IGetRateMinter(minter).stakeAndMint(token, amountToMint);
+    ITokenMinter(minter).stakeAndMint(token, amountToMint);
 
     // send funds to the issuer
     _withdraw(msg.sender);

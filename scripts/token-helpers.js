@@ -13,11 +13,11 @@ async function getIssuer() {
   return issuer;
 }
 
-async function stakeAndMint({ src20, src20Registry, getRateMinter, swm }, nav, supply) {
+async function stakeAndMint({ src20, src20Registry, tokenMinter, swm }, nav, supply) {
   const issuer = await getIssuer();
-  const stakeAmount = await getRateMinter.calcStake(nav);
+  const stakeAmount = await tokenMinter.calcStake(nav);
   await swm.connect(issuer).approve(src20Registry.address, stakeAmount);
-  await getRateMinter.connect(issuer).stakeAndMint(src20.address, supply);
+  await tokenMinter.connect(issuer).stakeAndMint(src20.address, supply);
 }
 
 async function updateAllowance(account, token, spenderAddress, allowance) {

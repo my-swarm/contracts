@@ -1,5 +1,5 @@
 {
-  "contractName": "SetRateMinter",
+  "contractName": "MasterMinter",
   "abi": [
     {
       "inputs": [

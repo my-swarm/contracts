@@ -11,7 +11,7 @@ const jsonConfig = {
 const CONTRACTS = [
   'AssetRegistry',
   'Features',
-  'GetRateMinter',
+  'TokenMinter',
   'SRC20Roles',
   'SRC20Factory',
   'SRC20Registry',

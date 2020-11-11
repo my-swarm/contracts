@@ -25,8 +25,8 @@ let overrides = {
 // const src20RegistryAddress = '0xA547C89E4f5597b5bFeB396CF9601faE5B50a7CB';
 // const src20FactoryAddress = '0x546E9Fc6582b249d609Ad7Aec100EBb195714AB3';
 // const assetRegistryAddress = '0x163f819fd94f61907fca84854F7E1e4030890889';
-// const getRateMinterAddress = '0x63c4693A1C574ea3A40EdC60f0BAe3E18A7F3044';
-// const setRateMinterAddress = '0x4cf64CA4279fa65F96411dabB5a9B73d3133F31D';
+// const TokenMinterAddress = '0x63c4693A1C574ea3A40EdC60f0BAe3E18A7F3044';
+// const MasterMinterAddress = '0x4cf64CA4279fa65F96411dabB5a9B73d3133F31D';
 //
 // const featuredAddress = '0x4D631Cf62AAEC62f28498729DEF41F8aaA697D13';
 // const src20RolesAddress = '0x33E5e1D9A2EAEfa6aa787719b04F8B737c4538c2';
@@ -75,19 +75,19 @@ async function setup() {
   await this.assetRegistry.deployed();
   console.log('assetRegistry address is ', this.assetRegistry.address);
 
-  const GetRateMinter = await ethers.getContractFactory('GetRateMinter');
-  this.getRateMinter = await GetRateMinter.deploy(
+  const TokenMinter = await ethers.getContractFactory('TokenMinter');
+  this.TokenMinter = await TokenMinter.deploy(
     this.src20Registry.address,
     this.assetRegistry.address,
     this.swmPriceOracle.address
   );
-  await this.getRateMinter.deployed();
-  console.log('getRateMinter address is ', this.getRateMinter.address);
+  await this.TokenMinter.deployed();
+  console.log('TokenMinter address is ', this.TokenMinter.address);
 
-  const SetRateMinter = await ethers.getContractFactory('SetRateMinter');
-  this.setRateMinter = await SetRateMinter.deploy(this.src20Registry.address);
-  await this.setRateMinter.deployed();
-  console.log('setRateMinter address is ', this.setRateMinter.address);
+  const MasterMinter = await ethers.getContractFactory('MasterMinter');
+  this.MasterMinter = await MasterMinter.deploy(this.src20Registry.address);
+  await this.MasterMinter.deployed();
+  console.log('MasterMinter address is ', this.MasterMinter.address);
 
   const Featured = await ethers.getContractFactory('Featured');
   this.featured = await Featured.deploy(wallet, '0x0000000000000000000000000000000000000000');
@@ -125,7 +125,7 @@ async function setup() {
       this.src20Roles.address,
       this.featured.address,
       this.assetRegistry.address,
-      this.getRateMinter.address,
+      this.TokenMinter.address,
     ],
     overrides
   );
@@ -182,7 +182,7 @@ async function setup() {
     ethers.utils.parseUnits('1'),
     this.affiliateManager.address,
     this.contributorRestrictions.address,
-    this.getRateMinter.address,
+    this.TokenMinter.address,
     true,
     overrides
   );

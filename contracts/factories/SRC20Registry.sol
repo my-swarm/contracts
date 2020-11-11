@@ -155,7 +155,7 @@ contract SRC20Registry is ISRC20Registry, Ownable {
   /**
    *  This proxy function adds a contract to the list of authorized minters
    *
-   *  @param _minter The address of the minter contract to add to the list of authorized minters
+   *  @param _minter The address of the minters contract to add to the list of authorized minters
    *  @return true on success
    */
   function addMinter(address _minter) external onlyOwner returns (bool) {
@@ -169,18 +169,18 @@ contract SRC20Registry is ISRC20Registry, Ownable {
   }
 
   /**
-   * @dev Checks if registry has a minter registered
-   * @param _minter The minter contract address.
+   * @dev Checks if registry has a minters registered
+   * @param _minter The minters contract address.
    */
   function hasMinter(address _minter) external view returns (bool) {
     return authorizedMinters[_minter] == true;
   }
 
   /**
-   *  With this function you can fetch address of authorized minter for SRC20.
+   *  With this function you can fetch address of authorized minters for SRC20.
    *
    *  @param _src20 Address of SRC20 token we want to check minters for.
-   *  @return address of authorized minter.
+   *  @return address of authorized minters.
    */
   function getMinter(address _src20) external view returns (address) {
     return registry[_src20].minter;
@@ -189,7 +189,7 @@ contract SRC20Registry is ISRC20Registry, Ownable {
   /**
    *  This proxy function removes a contract from the list of authorized minters
    *
-   *  @param _minter The address of the minter contract to remove from the list of authorized minters
+   *  @param _minter The address of the minters contract to remove from the list of authorized minters
    *  @return true on success
    */
   function removeMinter(address _minter) external onlyOwner returns (bool) {
@@ -249,7 +249,7 @@ contract SRC20Registry is ISRC20Registry, Ownable {
    * @param _src20Amount SRC20 tokens to mint
    * @return true on success.
    * todo: do we even need this method? the increaseSupply one does the same and computes stake too
-   * todo: the difference is that this one is called by getRateMinter
+   * todo: the difference is that this one is called by TokenMinter
    */
   function mintSupply(
     address _src20,

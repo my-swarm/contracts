@@ -1,10 +1,10 @@
-const {expect} = require('chai');
+const { expect } = require('chai');
 const timeMachine = require('ganache-time-traveler');
 const fs = require('fs');
 const moment = require('moment');
 const provider = ethers.getDefaultProvider('kovan');
 const mnemonic = fs.readFileSync('.private').toString().trim();
-const {deployContracts} = require('../helpers/deployer');
+const { deployContracts } = require('../helpers/deployer');
 
 let Owner;
 let Issuer;
@@ -33,7 +33,7 @@ describe('SwarmPoweredFundraise', async () => {
       tokenPrice,
       this.affiliateManager.address,
       this.contributorRestrictions.address,
-      this.getRateMinter.address,
+      this.TokenMinter.address,
       contributionsLocked
     );
 

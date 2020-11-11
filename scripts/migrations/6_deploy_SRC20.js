@@ -4,7 +4,7 @@ const SRC20Roles = artifacts.require('SRC20Roles');
 const TransferRules = artifacts.require('TransferRules');
 const SRC20Factory = artifacts.require('SRC20Factory');
 const AssetRegistry = artifacts.require('AssetRegistry');
-const GetRateMinter = artifacts.require('GetRateMinter');
+const TokenMinter = artifacts.require('TokenMinter');
 
 const {
   SRC20_FEATURES,
@@ -27,7 +27,7 @@ module.exports = async function (deployer, network) {
       return deployer.deploy(Featured, TOKEN_OWNER, SRC20_FEATURES).then(async function (featured) {
         return deployer.deploy(TransferRules, TOKEN_OWNER).then(async function (rules) {
           return AssetRegistry.deployed().then(async (assetRegistry) => {
-            return GetRateMinter.deployed().then(async (getRateMinter) => {
+            return TokenMinter.deployed().then(async (TokenMinter) => {
               return SRC20Factory.deployed().then(async (SRC20Factory) => {
                 const tx = await SRC20Factory.create(
                   NAME,
@@ -44,7 +44,7 @@ module.exports = async function (deployer, network) {
                     roles.address,
                     featured.address,
                     assetRegistry.address,
-                    getRateMinter.address,
+                    TokenMinter.address,
                   ]
                 );
 
@@ -67,7 +67,7 @@ module.exports = async function (deployer, network) {
             .deploy(SRC20Roles, DEVELOPMENT_SWM_TOKEN_OWNER, registry.address, rules.address)
             .then(async function (roles) {
               return AssetRegistry.deployed().then(async (assetRegistry) => {
-                return GetRateMinter.deployed().then(async (getRateMinter) => {
+                return TokenMinter.deployed().then(async (TokenMinter) => {
                   return SRC20Factory.deployed().then(async (SRC20Factory) => {
                     const tx = await SRC20Factory.create(
                       NAME,
@@ -84,7 +84,7 @@ module.exports = async function (deployer, network) {
                         roles.address,
                         featured.address,
                         assetRegistry.address,
-                        getRateMinter.address,
+                        TokenMinter.address,
                       ]
                     );
 

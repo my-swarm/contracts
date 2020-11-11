@@ -33,7 +33,7 @@ describe('Fundraiser tests', async () => {
   });
 
   it('Reverts if trying to setup twice', async () => {
-    const {usdc, affiliateManager, getRateMinter} = contracts;
+    const {usdc, affiliateManager, tokenMinter} = contracts;
     const [{fundraiser, contributorRestrictions}, options] = await deployFundraiserContracts(
       contracts
     );
@@ -43,7 +43,7 @@ describe('Fundraiser tests', async () => {
         options.tokenPrice,
         affiliateManager.address,
         contributorRestrictions.address,
-        getRateMinter.address,
+        tokenMinter.address,
         options.contributionsLocked
       )
     ).to.be.revertedWith('Contract is already set up');

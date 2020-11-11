@@ -71,7 +71,7 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
     expect(await fundraiser.affiliateManager()).to.equal(baseContracts.affiliateManager.address);
     expect(await fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
     expect(await fundraiser.fundraiserManager()).to.equal(fundraiserManager.address);
-    expect(await fundraiser.minter()).to.equal(baseContracts.getRateMinter.address);
+    expect(await fundraiser.minter()).to.equal(baseContracts.tokenMinter.address);
     expect(await fundraiser.contributionsLocked()).to.equal(options.contributionsLocked);
 
     expect(await fundraiser.numContributors()).to.equal(0);

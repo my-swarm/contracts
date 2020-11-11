@@ -69,7 +69,7 @@ describe('SRC20Registry does the registering', async () => {
     ).to.be.revertedWith(MSG_ONLY_OWNER);
   });
 
-  it('Can add and remove minter', async () => {
+  it('Can add and remove minters', async () => {
     const address = getRandomAddress();
     await expect(src20Registry.addMinter(address))
       .to.emit(src20Registry, 'MinterAdded')
@@ -83,14 +83,14 @@ describe('SRC20Registry does the registering', async () => {
     expect(await src20Registry.hasMinter(address)).to.equal(false);
   });
 
-  it('Only allows owner to add a minter', async () => {
+  it('Only allows owner to add a minters', async () => {
     const [sender] = await getAccount(10);
     await expect(src20Registry.connect(sender).addMinter(getRandomAddress())).to.be.revertedWith(
       MSG_ONLY_OWNER
     );
   });
 
-  it('Only allows owner to remove a minter', async () => {
+  it('Only allows owner to remove a minters', async () => {
     const [sender] = await getAccount(10);
     await expect(src20Registry.connect(sender).removeMinter(getRandomAddress())).to.be.revertedWith(
       MSG_ONLY_OWNER
@@ -119,7 +119,7 @@ describe('SRC20Registry does the registering', async () => {
     await expect(src20Registry.put(...params)).to.be.revertedWith('factory not registered');
   });
 
-  it('Cannot add a token without authorized minter', async () => {
+  it('Cannot add a token without authorized minters', async () => {
     // sender pretends he's the factory
     const [sender, senderAddress] = await getAccount();
     const params = getRandomAddresses(4);

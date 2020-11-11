@@ -1,4 +1,4 @@
-const {BN, constants, expectEvent, shouldFail, inLogs} = require('openzeppelin-test-helpers');
+const { BN, constants, expectEvent, shouldFail, inLogs } = require('openzeppelin-test-helpers');
 const crypto = require('crypto');
 const helpers = require('./helpers');
 
@@ -9,10 +9,10 @@ const SwarmTokenMock = artifacts.require('SwarmTokenMock');
 const SRC20Roles = artifacts.require('SRC20Roles');
 const Featured = artifacts.require('FeaturedMock');
 const AssetRegistry = artifacts.require('AssetRegistry');
-const GetRateMinter = artifacts.require('GetRateMinter');
+const TokenMinter = artifacts.require('TokenMinter');
 const SWMPriceOracle = artifacts.require('SWMPriceOracle');
 
-contract('GetRateMinter', function ([_, owner, account0, account1, account2, account3]) {
+contract('TokenMinter', function ([_, owner, account0, account1, account2, account3]) {
   const kyaHash = crypto.createHash('sha256').update(constants.ZERO_ADDRESS).digest();
   const kyaUrl = 'https://www.mvpworkshop.co';
   const swmTotalSupply = new BN(1000000).mul(new BN(10).pow(new BN(36)));
@@ -26,28 +26,28 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
   const NAV = 1000;
 
   beforeEach(async function () {
-    this.swarmTokenMock = await SwarmTokenMock.new(account0, swmTotalSupply, {from: owner});
-    this.registry = await SRC20Registry.new(this.swarmTokenMock.address, {from: owner});
-    this.factory = await SRC20Factory.new(this.registry.address, {from: owner});
-    await this.registry.addFactory(this.factory.address, {from: owner});
+    this.swarmTokenMock = await SwarmTokenMock.new(account0, swmTotalSupply, { from: owner });
+    this.registry = await SRC20Registry.new(this.swarmTokenMock.address, { from: owner });
+    this.factory = await SRC20Factory.new(this.registry.address, { from: owner });
+    await this.registry.addFactory(this.factory.address, { from: owner });
 
     this.sWMPriceOracle = await SWMPriceOracle.new(
       SWM_PRICE_USD_NUMERATOR,
       SWM_PRICE_USD_DENOMINATOR,
-      {from: owner}
+      { from: owner }
     );
-    this.assetRegistry = await AssetRegistry.new(this.factory.address, {from: owner});
+    this.assetRegistry = await AssetRegistry.new(this.factory.address, { from: owner });
 
-    this.GetRateMinter = await GetRateMinter.new(
+    this.TokenMinter = await TokenMinter.new(
       this.registry.address,
       this.assetRegistry.address,
       this.sWMPriceOracle.address,
-      {from: owner}
+      { from: owner }
     );
-    this.registry.addMinter(this.GetRateMinter.address, {from: owner});
+    this.registry.addMinter(this.TokenMinter.address, { from: owner });
 
-    this.roles = await SRC20Roles.new(owner, this.registry.address, account0, {from: owner});
-    this.feature = await Featured.new(owner, features, {from: owner});
+    this.roles = await SRC20Roles.new(owner, this.registry.address, account0, { from: owner });
+    this.feature = await Featured.new(owner, features, { from: owner });
 
     const tx = await this.factory.create(
       'SRC20 token',
@@ -64,9 +64,9 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         this.roles.address,
         this.feature.address,
         this.assetRegistry.address,
-        this.GetRateMinter.address,
+        this.TokenMinter.address,
       ],
-      {from: owner}
+      { from: owner }
     );
 
     this.unregisteredToken = await SRC20.new(
@@ -83,7 +83,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         this.assetRegistry.address,
       ],
       srcTotalSupply,
-      {from: owner}
+      { from: owner }
     );
 
     this.tokenAddress = tx.receipt.logs.find((log) => {
@@ -100,7 +100,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
 
       let NAV = new BN(250000);
       let expected = new BN((2500 * 100) / 5).mul(new BN(10).pow(new BN(18)));
-      let result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      let result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -119,7 +119,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         .mul(SWMPRICEDENOMINATOR)
         .div(SWMPRICENUMERATOR)
         .mul(new BN(10).pow(new BN(18)));
-      result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -138,7 +138,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         .mul(SWMPRICEDENOMINATOR)
         .div(SWMPRICENUMERATOR)
         .mul(new BN(10).pow(new BN(18)));
-      result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -157,7 +157,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         .mul(SWMPRICEDENOMINATOR)
         .div(SWMPRICENUMERATOR)
         .mul(new BN(10).pow(new BN(18)));
-      result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -176,7 +176,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         .mul(SWMPRICEDENOMINATOR)
         .div(SWMPRICENUMERATOR)
         .mul(new BN(10).pow(new BN(18)));
-      result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -195,7 +195,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         .mul(SWMPRICEDENOMINATOR)
         .div(SWMPRICENUMERATOR)
         .mul(new BN(10).pow(new BN(18)));
-      result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -214,7 +214,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         .mul(SWMPRICEDENOMINATOR)
         .div(SWMPRICENUMERATOR)
         .mul(new BN(10).pow(new BN(18)));
-      result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -233,7 +233,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         .mul(SWMPRICEDENOMINATOR)
         .div(SWMPRICENUMERATOR)
         .mul(new BN(10).pow(new BN(18)));
-      result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -252,7 +252,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
         .mul(SWMPRICEDENOMINATOR)
         .div(SWMPRICENUMERATOR)
         .mul(new BN(10).pow(new BN(18)));
-      result = await this.GetRateMinter.calcStake(NAV, {from: account1});
+      result = await this.TokenMinter.calcStake(NAV, { from: account1 });
       console.log(
         '      For NAV: ' +
           NAV.toLocaleString() +
@@ -270,7 +270,7 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
       const value = new BN(100);
 
       await shouldFail.reverting.withMessage(
-        this.GetRateMinter.stakeAndMint(this.token.address, value, {from: account1}),
+        this.TokenMinter.stakeAndMint(this.token.address, value, { from: account1 }),
         'caller not token owner.'
       );
     });
@@ -287,9 +287,9 @@ contract('GetRateMinter', function ([_, owner, account0, account1, account2, acc
       const startingSrc20balance = await this.token.balanceOf(account0);
       const startingStake = await this.registry.getStake(this.token.address);
 
-      const calcResult = await this.GetRateMinter.calcStake(NAV, {from: account1});
-      await this.swarmTokenMock.approve(this.registry.address, calcResult, {from: account0});
-      await this.GetRateMinter.stakeAndMint(this.token.address, weiSRC20Value, {from: account0});
+      const calcResult = await this.TokenMinter.calcStake(NAV, { from: account1 });
+      await this.swarmTokenMock.approve(this.registry.address, calcResult, { from: account0 });
+      await this.TokenMinter.stakeAndMint(this.token.address, weiSRC20Value, { from: account0 });
 
       // That the SWM tokens have been sutracted from the staking account
       const erc20balance = await this.swarmTokenMock.balanceOf(account0);

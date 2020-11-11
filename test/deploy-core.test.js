@@ -54,16 +54,16 @@ describe('Properly deploys base contracts', async () => {
     // doesn't store owner
   });
 
-  it('Has GetRateMinter contract properly setup', async () => {
-    const { getRateMinter } = baseContracts;
-    expect(await getRateMinter.address).to.match(REGEX_ADDR);
+  it('Has TokenMinter contract properly setup', async () => {
+    const { tokenMinter } = baseContracts;
+    expect(await tokenMinter.address).to.match(REGEX_ADDR);
     // doesn't store owner
   });
 
-  it('Has SetRateMinter contract properly setup', async () => {
-    const { setRateMinter } = baseContracts;
-    expect(await setRateMinter.address).to.match(REGEX_ADDR);
-    expect(await setRateMinter.owner()).to.equal(swarmAddress);
+  it('Has MasterMinter contract properly setup', async () => {
+    const { masterMinter } = baseContracts;
+    expect(await masterMinter.address).to.match(REGEX_ADDR);
+    expect(await masterMinter.owner()).to.equal(swarmAddress);
   });
 
   it('Has AffiliateManager contract properly setup', async () => {
