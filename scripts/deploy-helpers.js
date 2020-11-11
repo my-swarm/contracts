@@ -163,6 +163,7 @@ async function deployTokenContracts(baseContracts, customOptions = {}, skipSrc20
 
   return [{ ...baseContracts, transferRules, features, roles, src20 }, options];
 }
+
 async function createSrc20(src20Factory, options, addresses) {
   const issuer = await getIssuer();
   return src20Factory

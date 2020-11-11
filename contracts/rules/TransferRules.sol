@@ -3,6 +3,7 @@ pragma solidity ^0.5.0;
 import '@openzeppelin/contracts/ownership/Ownable.sol';
 import './ManualApproval.sol';
 import './Whitelisted.sol';
+import '../interfaces/ISRC20.sol';
 import '../interfaces/ITransferRules.sol';
 import '../interfaces/ITransferRestrictions.sol';
 
