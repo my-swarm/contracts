@@ -129,9 +129,8 @@ describe('SRC20Registry does the registering', async () => {
 
   async function addTokenToRegistry() {
     const [sender, senderAddress] = await getAccount();
-    const minterAddress = getRandomAddress();
-    const params = [...getRandomAddresses(3), minterAddress];
-    const [tokenAddress] = params;
+    const params = getRandomAddresses(4);
+    const [tokenAddress, rolesAddress, ownerAddress, minterAddress] = params;
     await src20Registry.addFactory(senderAddress);
     await src20Registry.addMinter(minterAddress);
 
@@ -139,13 +138,16 @@ describe('SRC20Registry does the registering', async () => {
       .to.emit(src20Registry, 'SRC20Registered')
       .withArgs(tokenAddress, params[2]);
 
-    return { tokenAddress, minterAddress };
+    return { tokenAddress, rolesAddress, ownerAddress, minterAddress };
   }
 
   it('Can put and remove a token', async () => {
-    const { tokenAddress, minterAddress } = await addTokenToRegistry();
+    const { tokenAddress, ownerAddress, rolesAddress, minterAddress } = await addTokenToRegistry();
     expect(await src20Registry.contains(tokenAddress)).to.equal(true);
     expect(await src20Registry.getMinter(tokenAddress)).to.equal(minterAddress);
+    expect(await src20Registry.getRoles(tokenAddress)).to.equal(rolesAddress);
+    expect(await src20Registry.getTokenOwner(tokenAddress)).to.equal(ownerAddress);
+    expect(await src20Registry.getStake(tokenAddress)).to.equal(0);
     await expect(src20Registry.remove(tokenAddress))
       .to.emit(src20Registry, 'SRC20Removed')
       .withArgs(tokenAddress);
@@ -160,6 +162,4 @@ describe('SRC20Registry does the registering', async () => {
       MSG_ONLY_OWNER
     );
   });
-
-  // manager stuff
 });
