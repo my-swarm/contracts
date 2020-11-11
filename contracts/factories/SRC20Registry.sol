@@ -203,18 +203,6 @@ contract SRC20Registry is ISRC20Registry, Ownable {
   }
 
   /**
-   * @dev External function for calculating how much SWM tokens are needed to be staked
-   * in order to get 1 SRC20 token
-   *
-   * @param _token Address of src20 token contract
-   * @return Amount of SWM tokens
-   */
-  function getSrc20toSwmRatio(address _token) external returns (uint256) {
-    uint256 totalSupply = ISRC20(_token).totalSupply();
-    return totalSupply.mul(10**18).div(registry[_token].stake);
-  }
-
-  /**
    * @dev External view function to get current SWM stake
    *
    * @param _token Address of SRC20 token contract
@@ -232,6 +220,16 @@ contract SRC20Registry is ISRC20Registry, Ownable {
    */
   function getTokenOwner(address _token) external view returns (address) {
     return registry[_token].owner;
+  }
+
+  /**
+   * @dev Get address of roles contract
+   *
+   * @param _token Address of SRC20 token contract
+   * @return Address of roles contract
+   */
+  function getRoles(address _token) external view returns (address) {
+    return registry[_token].roles;
   }
 
   /**
@@ -293,7 +291,7 @@ contract SRC20Registry is ISRC20Registry, Ownable {
     require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
     // computed with the same ratio as in original mint
-    uint256 swmAmount = _swmNeeded(_src20, _src20Amount);
+    uint256 swmAmount = _computeStake(_src20, _src20Amount);
 
     require(swmERC20.transferFrom(_swmAccount, address(this), swmAmount));
     require(ISRC20Managed(_src20).mint(registry[_src20].owner, _src20Amount));
@@ -322,7 +320,7 @@ contract SRC20Registry is ISRC20Registry, Ownable {
     require(_src20Amount != 0, 'SWM value is zero');
     require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
 
-    uint256 swmAmount = _swmNeeded(_src20, _src20Amount);
+    uint256 swmAmount = _computeStake(_src20, _src20Amount);
 
     require(swmERC20.transfer(_swmAccount, swmAmount));
     require(ISRC20Managed(_src20).burn(registry[_src20].owner, _src20Amount));
@@ -364,18 +362,6 @@ contract SRC20Registry is ISRC20Registry, Ownable {
   }
 
   /**
-   * @dev External function allowing consumers to check corresponding SRC20 amount
-   * to supplied SWM amount.
-   *
-   * @param _src20 SRC20 token to check for.this
-   * @param _swmAmount SWM value.
-   * @return Amount of SRC20 tokens.
-   */
-  function calcTokens(address _src20, uint256 _swmAmount) external view returns (uint256) {
-    return _calcTokens(_src20, _swmAmount);
-  }
-
-  /**
    * @dev External view function for calculating SWM tokens needed for increasing/decreasing
    * src20 token supply.
    *
@@ -383,29 +369,11 @@ contract SRC20Registry is ISRC20Registry, Ownable {
    * @param _src20Amount Amount of src20 tokens.this
    * @return Amount of SWM tokens
    */
-  function swmNeeded(address _src20, uint256 _src20Amount) external view returns (uint256) {
-    return _swmNeeded(_src20, _src20Amount);
+  function computeStake(address _src20, uint256 _src20Amount) external view returns (uint256) {
+    return _computeStake(_src20, _src20Amount);
   }
 
-  /**
-   * @dev Internal function calculating new SRC20 values based on minted ones. On every
-   * new minting of supply new SWM and SRC20 values are saved for further calculations.
-   *
-   * @param _src20 SRC20 token address.
-   * @param _swmAmount SWM stake value.
-   * @return Amount of SRC20 tokens.
-   */
-  function _calcTokens(address _src20, uint256 _swmAmount) internal view returns (uint256) {
-    require(_src20 != address(0), 'Token address is zero');
-    require(_swmAmount != 0, 'SWM value is zero');
-    require(registry[_src20].owner != address(0), 'SRC20 token contract not registered');
-
-    uint256 totalSupply = ISRC20(_src20).totalSupply();
-
-    return _swmAmount.mul(totalSupply).div(registry[_src20].stake);
-  }
-
-  function _swmNeeded(address _src20, uint256 _src20Amount) internal view returns (uint256) {
+  function _computeStake(address _src20, uint256 _src20Amount) internal view returns (uint256) {
     uint256 totalSupply = ISRC20(_src20).totalSupply();
     return _src20Amount.mul(registry[_src20].stake).div(totalSupply);
   }

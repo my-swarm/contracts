@@ -68,13 +68,9 @@ contract ISRC20Registry {
 
   function transferManagement(address src20, address newManager) external returns (bool);
 
-  function calcTokens(address src20, uint256 swmAmount) external view returns (uint256);
-
   function getStake(address src20) external view returns (uint256);
 
-  function swmNeeded(address src20, uint256 src20Amount) external view returns (uint256);
-
-  function getSrc20toSwmRatio(address src20) external returns (uint256);
+  function computeStake(address src20, uint256 src20Amount) external view returns (uint256);
 
   function getTokenOwner(address src20) external view returns (address);
 }
