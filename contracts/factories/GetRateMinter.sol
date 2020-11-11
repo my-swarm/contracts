@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/ownership/Ownable.sol';
-import '../interfaces/IManager.sol';
+import '../interfaces/ISRC20Registry.sol';
 import '../interfaces/INetAssetValueUSD.sol';
 import '../interfaces/IPriceUSD.sol';
 import '../interfaces/ISRC20.sol';
@@ -13,7 +13,7 @@ import '@nomiclabs/buidler/console.sol';
  * @dev Serves as proxy (manager) for SRC20 minting/burning.
  */
 contract GetRateMinter {
-  IManager public registry;
+  ISRC20Registry public registry;
   INetAssetValueUSD public asset;
   IPriceUSD public SWMPriceOracle;
 
@@ -24,7 +24,7 @@ contract GetRateMinter {
     address _asset,
     address _swmRate
   ) public {
-    registry = IManager(_registry);
+    registry = ISRC20Registry(_registry);
     asset = INetAssetValueUSD(_asset);
     SWMPriceOracle = IPriceUSD(_swmRate);
   }

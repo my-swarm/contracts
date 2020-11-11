@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/ownership/Ownable.sol';
-import '../interfaces/IManager.sol';
+import '../interfaces/ISRC20Registry.sol';
 import '../interfaces/INetAssetValueUSD.sol';
 
 /**
@@ -9,10 +9,10 @@ import '../interfaces/INetAssetValueUSD.sol';
  * @dev Serves as proxy (manager) for SRC20 minting/burning.
  */
 contract SetRateMinter is Ownable {
-  IManager public registry;
+  ISRC20Registry public registry;
 
   constructor(address _registry) public {
-    registry = IManager(_registry);
+    registry = ISRC20Registry(_registry);
   }
 
   /**
