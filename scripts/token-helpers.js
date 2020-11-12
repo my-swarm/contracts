@@ -26,7 +26,6 @@ async function updateAllowance(account, token, spenderAddress, allowance) {
   } else {
     allowance = await sanitizeAmount(allowance, token);
   }
-  console.log('approve', token.address, spenderAddress, allowance.toString());
   await token.connect(account).approve(spenderAddress, allowance);
 }
 

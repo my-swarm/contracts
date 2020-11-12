@@ -94,7 +94,7 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
   }
 
   function transfer(address _to, uint256 _value) external returns (bool) {
-    require(features.checkTransfer(msg.sender, _to), 'Feature transfer check');
+    require(features.checkTransfer(msg.sender, _to), 'Cannot transfer due to disabled feature');
 
     if (transferRules != ITransferRules(0)) {
       require(transferRules.doTransfer(msg.sender, _to, _value), 'Transfer failed');
@@ -134,7 +134,7 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
    * @param _value The amount of tokens to send.
    * @return true on success.
    */
-  function transferTokenForced(
+  function transferForced(
     address _from,
     address _to,
     uint256 _value
@@ -181,9 +181,6 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
     for (uint256 i = 0; i < count; i++) {
       address to = _addresses[i];
       uint256 value = _amounts[i];
-      // todo: if owner===sender, do we care about allowance?
-      // todo: or more generally. If this can only be done by delegates, why allowance?
-      // todo: owner wants to limit how much the delegate can bulk transfer? I guess
       if (owner() != msg.sender) {
         _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
       }

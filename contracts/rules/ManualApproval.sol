@@ -40,8 +40,6 @@ contract ManualApproval is Ownable {
     uint256 value
   );
 
-  constructor() public {}
-
   /**
    * @dev Owner of this contract have authority to approve tx which are valid.
    *
@@ -67,7 +65,7 @@ contract ManualApproval is Ownable {
     // todo: it didn't have the isOwner() part.
     //    imo issuer should be the one to deny/cancel the request primaryly no?
     //    fair enough, the 'from' guy can cancel too
-    require(isOwner() || req.from == msg.sender, 'Not owner of the transfer request');
+    require(isOwner() || req.from == msg.sender, 'Not owner or sender of the transfer request');
 
     require(
       src20.executeTransfer(address(this), req.from, req.value),
