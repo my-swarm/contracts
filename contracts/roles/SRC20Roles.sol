@@ -14,11 +14,12 @@ contract SRC20Roles is ISRC20Roles, DelegateRole, AuthorityRole, Managed, Ownabl
   constructor(
     address _owner,
     address _manager,
-    address _rules
+    address _transferRules
   ) public Managed(_manager) {
+    // todo: why not just get owner from msg.sender
     _transferOwnership(_owner);
     _addDelegate(_owner);
-    if (_rules != address(0)) _addAuthority(_rules);
+    if (_transferRules != address(0)) _addAuthority(_transferRules);
   }
 
   function addAuthority(address _account) external onlyOwner returns (bool) {

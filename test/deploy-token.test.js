@@ -40,7 +40,7 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
 
     expect(await src20.roles()).to.equal(roles.address);
     expect(await src20.features()).to.equal(features.address);
-    expect(await src20.rules()).to.equal(transferRules.address);
+    expect(await src20.transferRules()).to.equal(transferRules.address);
   });
 
   it('Acknowledges that restrictions contract is not setup (zero address)', async () => {

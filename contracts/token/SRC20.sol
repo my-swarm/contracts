@@ -3,13 +3,11 @@ pragma solidity ^0.5.0;
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/ownership/Ownable.sol';
 import '@openzeppelin/contracts/cryptography/ECDSA.sol';
-import './SRC20Detailed.sol';
 import '../interfaces/ISRC20.sol';
 import '../interfaces/ISRC20Managed.sol';
 import '../interfaces/ITransferRules.sol';
 import '../interfaces/IFeatures.sol';
 import '../interfaces/ISRC20Roles.sol';
-import '../interfaces/ISRC20.sol';
 import '../interfaces/ITransferRestrictions.sol';
 import '../interfaces/IAssetRegistry.sol';
 import '../fundraising/Fundraiser.sol';
@@ -18,9 +16,13 @@ import '../fundraising/Fundraiser.sol';
  * @title SRC20 contract
  * @dev Base SRC20 contract.
  */
-contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
+contract SRC20 is ISRC20, ISRC20Managed, Ownable {
   using SafeMath for uint256;
   using ECDSA for bytes32;
+
+  string public name;
+  string public symbol;
+  uint8 public decimals;
 
   mapping(address => uint256) public balances;
   mapping(address => mapping(address => uint256)) public allowances;
@@ -41,13 +43,10 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
   ITransferRestrictions public restrictions;
 
   /**
-   * @description Configured contract implementing token rule(s).
-   * If set, transfer will consult this contract should transfer
-   * be allowed after successful authorization signature check.
-   * And call doTransfer() in order for rules to decide where fund
-   * should end up.
+   * @description Configured contract implementing token transfer rules.
+   * If set, authorizes every transfer. Calls doTransfer() when checks are passed.
    */
-  ITransferRules public rules;
+  ITransferRules public transferRules;
 
   address public fundraiser;
   event FundraiserAdded(address fundraiser);
@@ -73,19 +72,17 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
   }
 
   // Constructors
-  //  addressList[0] tokenOwner,
-  //  addressList[1] restrictions,
-  //  addressList[2] rules,
-  //  addressList[3] roles,
-  //  addressList[4] features,
-  //  addressList[5] assetRegistry
+  // addressList: 0:tokenOwner, 1:restrictions, 2:rules, 3:roles, 4:features, 5:assetRegistry
   constructor(
     string memory _name,
     string memory _symbol,
     uint8 _decimals,
     uint256 _maxTotalSupply,
     address[] memory _addressList
-  ) public SRC20Detailed(_name, _symbol, _decimals) {
+  ) public {
+    name = _name;
+    symbol = _symbol;
+    decimals = _decimals;
     maxTotalSupply = _maxTotalSupply;
     _transferOwnership(_addressList[0]);
     _updateRestrictionsAndRules(_addressList[1], _addressList[2]);
@@ -95,60 +92,48 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
   }
 
   /**
-   * @dev This method is intended to be executed by TransferRules contract when doTransfer is called in transfer
-   * and transferFrom methods to check where funds should go.
-   *
-   * @param _from The address to transfer from.
-   * @param _to The address to send tokens to.
-   * @param _value The amount of tokens to send.
-   */
-  function executeTransfer(
-    address _from,
-    address _to,
-    uint256 _value
-  ) external onlyAuthority returns (bool) {
-    _transfer(_from, _to, _value);
-    return true;
-  }
-
-  /**
    * Update the rules and restrictions settings for transfers.
    * Only a Delegate can call this role
    *
    * @param _restrictions address implementing on-chain restriction checks
    * or address(0) if no rules should be checked on chain.
-   * @param _rules address implementing on-chain restriction checks
+   * @param _transferRules address implementing on-chain restriction checks
    * @return true on success.
    */
-  function updateRestrictionsAndRules(address _restrictions, address _rules)
+  function updateRestrictionsAndRules(address _restrictions, address _transferRules)
     external
     onlyDelegate
     returns (bool)
   {
-    return _updateRestrictionsAndRules(_restrictions, _rules);
+    return _updateRestrictionsAndRules(_restrictions, _transferRules);
   }
 
-  /**
-   * @dev Internal function to update the restrictions and rules contracts.
-   * Emits RestrictionsAndRulesUpdated event.
-   *
-   * @param _restrictions address implementing on-chain restriction checks
-   *                     or address(0) if no rules should be checked on chain.
-   * @param _rules address implementing on-chain restriction checks
-   * @return true on success.
-   */
-  function _updateRestrictionsAndRules(address _restrictions, address _rules)
-    internal
-    returns (bool)
-  {
-    restrictions = ITransferRestrictions(_restrictions);
-    rules = ITransferRules(_rules);
+  function transfer(address _to, uint256 _value) external returns (bool) {
+    require(features.checkTransfer(msg.sender, _to), 'Feature transfer check');
 
-    if (_rules != address(0)) {
-      require(rules.setSRC(address(this)), 'SRC20 contract already set in transfer rules');
+    if (transferRules != ITransferRules(0)) {
+      require(transferRules.doTransfer(msg.sender, _to, _value), 'Transfer failed');
+    } else {
+      _transfer(msg.sender, _to, _value);
     }
 
-    emit RestrictionsAndRulesUpdated(_restrictions, _rules);
+    return true;
+  }
+
+  function transferFrom(
+    address _from,
+    address _to,
+    uint256 _value
+  ) public returns (bool) {
+    require(features.checkTransfer(_from, _to), 'Feature transfer check');
+
+    _approve(_from, msg.sender, allowances[_from][msg.sender].sub(_value));
+    if (transferRules != ITransferRules(0)) {
+      require(transferRules.doTransfer(_from, _to, _value), 'Transfer failed');
+    } else {
+      _transfer(_from, _to, _value);
+    }
+
     return true;
   }
 
@@ -226,6 +211,85 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     uint256 _value
   ) external enabled(features.ForceTransfer()) onlyOwner returns (bool) {
     _transfer(_from, _to, _value);
+    return true;
+  }
+
+  /**
+   * @dev This method is intended to be executed by TransferRules contract when doTransfer is called in transfer
+   * and transferFrom methods to check where funds should go.
+   *
+   * @param _from The address to transfer from.
+   * @param _to The address to send tokens to.
+   * @param _value The amount of tokens to send.
+   */
+  function executeTransfer(
+    address _from,
+    address _to,
+    uint256 _value
+  ) external onlyAuthority returns (bool) {
+    _transfer(_from, _to, _value);
+    return true;
+  }
+
+  /**
+   * Perform multiple token transfers from the token owner's address.
+   * The tokens should already be minted. If this function is to be called by
+   * an actor other than the owner (a delegate), the owner has to call approve()
+   * first to set up the delegate's allowance.
+   *
+   * @param _addresses an array of addresses to transfer to
+   * @param _amounts an array of amounts
+   * @return true on success
+   */
+  function bulkTransfer(address[] calldata _addresses, uint256[] calldata _amounts)
+    external
+    onlyDelegate
+    returns (bool)
+  {
+    require(_addresses.length == _amounts.length, 'Input dataset length mismatch');
+
+    uint256 count = _addresses.length;
+    for (uint256 i = 0; i < count; i++) {
+      address to = _addresses[i];
+      uint256 value = _amounts[i];
+      // todo: if owner===sender, do we care about allowance?
+      // todo: or more generally. If this can only be done by delegates, why allowance?
+      // todo: owner wants to limit how much the delegate can bulk transfer? I guess
+      if (owner() != msg.sender) {
+        _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
+      }
+      _transfer(owner(), to, value);
+    }
+
+    return true;
+  }
+
+  /**
+   * Perform multiple token transfers from the token owner's address.
+   * The tokens should already be minted. If this function is to be called by
+   * an actor other than the owner (a delegate), the owner has to call approve()
+   * first to set up the delegate's allowance.
+   *
+   * Data needs to be packed correctly before calling this function.
+   *
+   * @param _lotSize number of tokens in the lot
+   * @param _transfers an array or encoded transfers to perform
+   * @return true on success
+   */
+  function encodedBulkTransfer(uint160 _lotSize, uint256[] calldata _transfers)
+    external
+    onlyDelegate
+    returns (bool)
+  {
+    uint256 count = _transfers.length;
+    for (uint256 i = 0; i < count; i++) {
+      uint256 tr = _transfers[i];
+      uint256 value = (tr >> 160) * _lotSize;
+      address to = address(tr & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+      _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
+      _transfer(owner(), to, value);
+    }
+
     return true;
   }
 
@@ -331,36 +395,6 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
     return true;
   }
 
-  function transfer(address _to, uint256 _value) external returns (bool) {
-    require(features.checkTransfer(msg.sender, _to), 'Feature transfer check');
-
-    if (rules != ITransferRules(0)) {
-      require(rules.doTransfer(msg.sender, _to, _value), 'Transfer failed');
-    } else {
-      _transfer(msg.sender, _to, _value);
-    }
-
-    return true;
-  }
-
-  function transferFrom(
-    address _from,
-    address _to,
-    uint256 _value
-  ) public returns (bool) {
-    require(features.checkTransfer(_from, _to), 'Feature transfer check');
-
-    if (rules != ITransferRules(0)) {
-      _approve(_from, msg.sender, allowances[_from][msg.sender].sub(_value));
-      require(rules.doTransfer(_from, _to, _value), 'Transfer failed');
-    } else {
-      _approve(_from, msg.sender, allowances[_from][msg.sender].sub(_value));
-      _transfer(_from, _to, _value);
-    }
-
-    return true;
-  }
-
   /**
    * @dev Atomically increase approved tokens to the spender on behalf of msg.sender.
    *
@@ -380,6 +414,13 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
    */
   function decreaseAllowance(address _spender, uint256 _value) external returns (bool) {
     _approve(msg.sender, _spender, allowances[msg.sender][_spender].sub(_value));
+    return true;
+  }
+
+  function setFundraiser() external returns (bool) {
+    require(Fundraiser(msg.sender).token() == address(this), 'Can only call for own token');
+    fundraiser = msg.sender;
+    emit FundraiserAdded(msg.sender);
     return true;
   }
 
@@ -517,71 +558,26 @@ contract SRC20 is ISRC20, ISRC20Managed, SRC20Detailed, Ownable {
   }
 
   /**
-   * Perform multiple token transfers from the token owner's address.
-   * The tokens should already be minted. If this function is to be called by
-   * an actor other than the owner (a delegate), the owner has to call approve()
-   * first to set up the delegate's allowance.
+   * @dev Internal function to update the restrictions and rules contracts.
+   * Emits RestrictionsAndRulesUpdated event.
    *
-   * @param _addresses an array of addresses to transfer to
-   * @param _amounts an array of amounts
-   * @return true on success
+   * @param _restrictions address implementing on-chain restriction checks
+   *                     or address(0) if no rules should be checked on chain.
+   * @param _transferRules address implementing on-chain restriction checks
+   * @return true on success.
    */
-  function bulkTransfer(address[] calldata _addresses, uint256[] calldata _amounts)
-    external
-    onlyDelegate
+  function _updateRestrictionsAndRules(address _restrictions, address _transferRules)
+    internal
     returns (bool)
   {
-    require(_addresses.length == _amounts.length, 'Input dataset length mismatch');
+    restrictions = ITransferRestrictions(_restrictions);
+    transferRules = ITransferRules(_transferRules);
 
-    uint256 count = _addresses.length;
-    for (uint256 i = 0; i < count; i++) {
-      address to = _addresses[i];
-      uint256 value = _amounts[i];
-      // todo: if owner===sender, do we care about allowance?
-      // todo: or more generally. If this can only be done by delegates, why allowance?
-      // todo: owner wants to limit how much the delegate can bulk transfer? I guess
-      if (owner() != msg.sender) {
-        _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
-      }
-      _transfer(owner(), to, value);
+    if (_transferRules != address(0)) {
+      require(transferRules.setSRC(address(this)), 'SRC20 contract already set in transfer rules');
     }
 
-    return true;
-  }
-
-  /**
-   * Perform multiple token transfers from the token owner's address.
-   * The tokens should already be minted. If this function is to be called by
-   * an actor other than the owner (a delegate), the owner has to call approve()
-   * first to set up the delegate's allowance.
-   *
-   * Data needs to be packed correctly before calling this function.
-   *
-   * @param _lotSize number of tokens in the lot
-   * @param _transfers an array or encoded transfers to perform
-   * @return true on success
-   */
-  function encodedBulkTransfer(uint160 _lotSize, uint256[] calldata _transfers)
-    external
-    onlyDelegate
-    returns (bool)
-  {
-    uint256 count = _transfers.length;
-    for (uint256 i = 0; i < count; i++) {
-      uint256 tr = _transfers[i];
-      uint256 value = (tr >> 160) * _lotSize;
-      address to = address(tr & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-      _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
-      _transfer(owner(), to, value);
-    }
-
-    return true;
-  }
-
-  function setFundraiser() external returns (bool) {
-    require(Fundraiser(msg.sender).token() == address(this), 'Can only call for own token');
-    fundraiser = msg.sender;
-    emit FundraiserAdded(msg.sender);
+    emit RestrictionsAndRulesUpdated(_restrictions, _transferRules);
     return true;
   }
 }
