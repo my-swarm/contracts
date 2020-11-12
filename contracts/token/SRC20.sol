@@ -8,7 +8,6 @@ import '../interfaces/ISRC20Managed.sol';
 import '../interfaces/ITransferRules.sol';
 import '../interfaces/IFeatures.sol';
 import '../interfaces/ISRC20Roles.sol';
-import '../interfaces/ITransferRestrictions.sol';
 import '../interfaces/IAssetRegistry.sol';
 import '../fundraising/Fundraiser.sol';
 
@@ -29,18 +28,9 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
   uint256 public totalSupply;
   uint256 public maxTotalSupply;
 
-  mapping(address => uint256) private nonce;
-
   ISRC20Roles public roles;
   IFeatures public features;
   IAssetRegistry public assetRegistry;
-
-  /**
-   * @description Configured contract implementing token restriction(s).
-   * If set, transferToken will consult this contract should transfer
-   * be allowed after successful authorization signature check.
-   */
-  ITransferRestrictions public restrictions;
 
   /**
    * @description Configured contract implementing token transfer rules.
@@ -72,7 +62,7 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
   }
 
   // Constructors
-  // addressList: 0:tokenOwner, 1:restrictions, 2:rules, 3:roles, 4:features, 5:assetRegistry
+  // addressList: 0:tokenOwner, 1:rules, 2:roles, 3:features, 4:assetRegistry, 5: minter
   constructor(
     string memory _name,
     string memory _symbol,
@@ -85,27 +75,20 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
     decimals = _decimals;
     maxTotalSupply = _maxTotalSupply;
     _transferOwnership(_addressList[0]);
-    _updateRestrictionsAndRules(_addressList[1], _addressList[2]);
-    roles = ISRC20Roles(_addressList[3]);
-    features = IFeatures(_addressList[4]);
-    assetRegistry = IAssetRegistry(_addressList[5]);
+    _updateTransferRules(_addressList[1]);
+    roles = ISRC20Roles(_addressList[2]);
+    features = IFeatures(_addressList[3]);
+    assetRegistry = IAssetRegistry(_addressList[4]);
   }
 
   /**
-   * Update the rules and restrictions settings for transfers.
-   * Only a Delegate can call this role
+   * Change the transfer rules contract. Only a Delegate can call this role
    *
-   * @param _restrictions address implementing on-chain restriction checks
-   * or address(0) if no rules should be checked on chain.
    * @param _transferRules address implementing on-chain restriction checks
    * @return true on success.
    */
-  function updateRestrictionsAndRules(address _restrictions, address _transferRules)
-    external
-    onlyDelegate
-    returns (bool)
-  {
-    return _updateRestrictionsAndRules(_restrictions, _transferRules);
+  function updateTransferRules(address _transferRules) external onlyDelegate returns (bool) {
+    return _updateTransferRules(_transferRules);
   }
 
   function transfer(address _to, uint256 _value) external returns (bool) {
@@ -134,62 +117,6 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
       _transfer(_from, _to, _value);
     }
 
-    return true;
-  }
-
-  /**
-   * @dev Transfer token to specified address. Caller needs to provide authorization
-   * signature obtained from MAP API, signed by authority accepted by token issuer.
-   * Emits Transfer event.
-   *
-   * @param _to The address to send tokens to.
-   * @param _value The amount of tokens to send.
-   * @param _nonce Token transfer nonce, can not repeat nonce for subsequent
-   * token transfers.
-   * @param _expirationTime Timestamp until transfer request is valid.
-   * @param _hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
-   * @param _signature Ethereum ECDSA signature of msgHash signed by one of authorities.
-   * @return true on success.
-   */
-  function transferToken(
-    address _to,
-    uint256 _value,
-    uint256 _nonce,
-    uint256 _expirationTime,
-    bytes32 _hash,
-    bytes calldata _signature
-  ) external returns (bool) {
-    return _transferToken(msg.sender, _to, _value, _nonce, _expirationTime, _hash, _signature);
-  }
-
-  /**
-   * @dev Transfer token to specified address. Caller needs to provide authorization
-   * signature obtained from MAP API, signed by authority accepted by token issuer.
-   * Whole allowance needs to be transferred.
-   * Emits Transfer event.
-   * Emits Approval event.
-   *
-   * @param _from The address to transfer from.
-   * @param _to The address to send tokens to.
-   * @param _value The amount of tokens to send.
-   * @param _nonce Token transfer nonce, can not repeat nance for subsequent
-   * token transfers.
-   * @param _expirationTime Timestamp until transfer request is valid.
-   * @param _hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
-   * @param _signature Ethereum ECDSA signature of msgHash signed by one of authorities.
-   * @return true on success.
-   */
-  function transferTokenFrom(
-    address _from,
-    address _to,
-    uint256 _value,
-    uint256 _nonce,
-    uint256 _expirationTime,
-    bytes32 _hash,
-    bytes calldata _signature
-  ) external returns (bool) {
-    _transferToken(_from, _to, _value, _nonce, _expirationTime, _hash, _signature);
-    _approve(_from, msg.sender, allowances[_from][msg.sender].sub(_value));
     return true;
   }
 
@@ -262,26 +189,6 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
     }
 
     return true;
-  }
-
-  // Nonce management
-  /**
-   * @dev Returns next nonce expected by transfer functions that require it.
-   * After any successful transfer, nonce will be incremented.
-   *
-   * @return Nonce for next transfer function.
-   */
-  function getTransferNonce() external view returns (uint256) {
-    return nonce[msg.sender];
-  }
-
-  /**
-   * @dev Returns nonce for account.
-   *
-   * @return Nonce for next transfer function.
-   */
-  function getTransferNonce(address _account) external view returns (uint256) {
-    return nonce[_account];
   }
 
   // Account token burning management
@@ -396,53 +303,6 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
   }
 
   // Privates
-  /**
-   * @dev Internal transfer token to specified address. Caller needs to provide authorization
-   * signature obtained from MAP API, signed by authority accepted by token issuer.
-   * Emits Transfer event.
-   *
-   * @param _from The address to transfer from.
-   * @param _to The address to send tokens to.
-   * @param _value The amount of tokens to send.
-   * @param _nonce Token transfer nonce, can not repeat nance for subsequent
-   * token transfers.
-   * @param _expirationTime Timestamp until transfer request is valid.
-   * @param _hash Hash of transfer params (kyaHash, from, to, value, nonce, expirationTime).
-   * @param _signature Ethereum ECDSA signature of msgHash signed by one of authorities.
-   * @return true on success.
-   */
-  function _transferToken(
-    address _from,
-    address _to,
-    uint256 _value,
-    uint256 _nonce,
-    uint256 _expirationTime,
-    bytes32 _hash,
-    bytes memory _signature
-  ) internal returns (bool) {
-    if (address(restrictions) != address(0)) {
-      require(restrictions.authorize(_from, _to, _value), 'transferToken restrictions failed');
-    }
-
-    require(now <= _expirationTime, 'transferToken params expired');
-    require(_nonce == nonce[_from], 'transferToken params wrong nonce');
-
-    bytes32 kyaHash = assetRegistry.getKyaHash(address(this));
-
-    require(
-      keccak256(abi.encodePacked(kyaHash, _from, _to, _value, _nonce, _expirationTime)) == _hash,
-      'transferToken params bad hash'
-    );
-    require(
-      roles.isAuthority(_hash.toEthSignedMessageHash().recover(_signature)),
-      'transferToken params not authority'
-    );
-
-    require(features.checkTransfer(_from, _to), 'Feature transfer check');
-    _transfer(_from, _to, _value);
-
-    return true;
-  }
 
   /**
    * @dev Transfer token for a specified addresses.
@@ -459,8 +319,6 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
 
     balances[_from] = balances[_from].sub(_value);
     balances[_to] = balances[_to].add(_value);
-
-    nonce[_from]++;
 
     emit Transfer(_from, _to, _value);
   }
@@ -532,23 +390,16 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
    * @dev Internal function to update the restrictions and rules contracts.
    * Emits RestrictionsAndRulesUpdated event.
    *
-   * @param _restrictions address implementing on-chain restriction checks
-   *                     or address(0) if no rules should be checked on chain.
    * @param _transferRules address implementing on-chain restriction checks
    * @return true on success.
    */
-  function _updateRestrictionsAndRules(address _restrictions, address _transferRules)
-    internal
-    returns (bool)
-  {
-    restrictions = ITransferRestrictions(_restrictions);
+  function _updateTransferRules(address _transferRules) internal returns (bool) {
     transferRules = ITransferRules(_transferRules);
-
     if (_transferRules != address(0)) {
       require(transferRules.setSRC(address(this)), 'SRC20 contract already set in transfer rules');
     }
 
-    emit RestrictionsAndRulesUpdated(_restrictions, _transferRules);
+    emit TransferRulesUpdated(_transferRules);
     return true;
   }
 }

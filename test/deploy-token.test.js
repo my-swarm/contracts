@@ -43,11 +43,6 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
     expect(await src20.transferRules()).to.equal(transferRules.address);
   });
 
-  it('Acknowledges that restrictions contract is not setup (zero address)', async () => {
-    const { src20 } = tokenContracts;
-    expect(await src20.restrictions()).to.equal(ZERO_ADDRESS);
-  });
-
   it('Deploys fundraiser contracts', async () => {
     const [
       { fundraiser, contributorRestrictions, fundraiserManager },

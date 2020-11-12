@@ -146,7 +146,6 @@ async function deployTokenContracts(baseContracts, customOptions = {}, skipSrc20
 
   const addresses = [
     issuerAddress,
-    ZERO_ADDRESS, // restrictions - not implemented
     transferRules ? transferRules.address : ZERO_ADDRESS,
     roles.address,
     features.address,

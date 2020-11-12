@@ -14,11 +14,10 @@ contract SRC20Mock is SRC20 {
     uint256 _maxTotalSupply,
     address[] memory _addressList,
     //  addressList[0] tokenOwner,
-    //  addressList[1] restrictions,
-    //  addressList[2] rules,
-    //  addressList[3] roles,
-    //  addressList[4] features,
-    //  addressList[5] assetRegistry
+    //  addressList[1] rules,
+    //  addressList[2] roles,
+    //  addressList[3] features,
+    //  addressList[4] assetRegistry
     uint256 _totalSupply
   ) public SRC20(_name, _symbol, _decimals, _maxTotalSupply, _addressList) {
     totalSupply = _totalSupply;

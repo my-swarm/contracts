@@ -5,7 +5,6 @@ import './ManualApproval.sol';
 import './Whitelisted.sol';
 import '../interfaces/ISRC20.sol';
 import '../interfaces/ITransferRules.sol';
-import '../interfaces/ITransferRestrictions.sol';
 
 /*
  * @title TransferRules contract

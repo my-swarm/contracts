@@ -4,30 +4,7 @@ pragma solidity ^0.5.0;
  * @title SRC20 public interface
  */
 interface ISRC20 {
-  event RestrictionsAndRulesUpdated(address restrictions, address rules);
-
-  function transferToken(
-    address to,
-    uint256 value,
-    uint256 nonce,
-    uint256 expirationTime,
-    bytes32 msgHash,
-    bytes calldata signature
-  ) external returns (bool);
-
-  function transferTokenFrom(
-    address from,
-    address to,
-    uint256 value,
-    uint256 nonce,
-    uint256 expirationTime,
-    bytes32 hash,
-    bytes calldata signature
-  ) external returns (bool);
-
-  function getTransferNonce() external view returns (uint256);
-
-  function getTransferNonce(address account) external view returns (uint256);
+  event TransferRulesUpdated(address transferRrules);
 
   function executeTransfer(
     address from,
@@ -35,7 +12,7 @@ interface ISRC20 {
     uint256 value
   ) external returns (bool);
 
-  function updateRestrictionsAndRules(address restrictions, address rules) external returns (bool);
+  function updateTransferRules(address transferRules) external returns (bool);
 
   // ERC20 part-like interface
   event Transfer(address indexed from, address indexed to, uint256 value);
