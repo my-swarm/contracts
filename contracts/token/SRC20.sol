@@ -62,23 +62,25 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
   }
 
   // Constructors
-  // addressList: 0:tokenOwner, 1:rules, 2:roles, 3:features, 4:assetRegistry, 5: minter
+  // addressList: 0:transferRules, 1:roles, 2:features, 3:assetRegistry, 4: minter
+  // note: owner is passed explicitly from the factory, that's why not msg.sender
   constructor(
+    address _owner,
     string memory _name,
     string memory _symbol,
     uint8 _decimals,
     uint256 _maxTotalSupply,
     address[] memory _addressList
   ) public {
+    _transferOwnership(_owner);
     name = _name;
     symbol = _symbol;
     decimals = _decimals;
     maxTotalSupply = _maxTotalSupply;
-    _transferOwnership(_addressList[0]);
-    _updateTransferRules(_addressList[1]);
-    roles = ISRC20Roles(_addressList[2]);
-    features = IFeatures(_addressList[3]);
-    assetRegistry = IAssetRegistry(_addressList[4]);
+    _updateTransferRules(_addressList[0]);
+    roles = ISRC20Roles(_addressList[1]);
+    features = IFeatures(_addressList[2]);
+    assetRegistry = IAssetRegistry(_addressList[3]);
   }
 
   /**

@@ -40,7 +40,7 @@ contract SRC20Factory {
    * definition provided in the comments.
    * @dev Array is used to avoid "stack too deep" error
    *
-   * addressList = 0:tokenOwner, 1:transferRules, 2:roles, 3:features, 4:assetRegistry, 5: minter
+   * addressList = 0:transferRules, 1:roles, 2:features, 3:assetRegistry, 4: minter
    */
   function create(
     string memory _name,
@@ -52,27 +52,29 @@ contract SRC20Factory {
     uint256 _netAssetValueUSD,
     address[] memory _addressList
   ) public returns (bool) {
-    address token = address(new SRC20(_name, _symbol, _decimals, _maxTotalSupply, _addressList));
+    address token = address(
+      new SRC20(msg.sender, _name, _symbol, _decimals, _maxTotalSupply, _addressList)
+    );
 
     registry.put(
       token,
-      _addressList[2], // roles
-      _addressList[0], // tokenOwner
-      _addressList[5] // minter
+      _addressList[1], // roles
+      msg.sender, // tokenOwner
+      _addressList[4] // minter
     );
 
     emit SRC20Created(
-      _addressList[0],
+      msg.sender,
       token,
+      _addressList[0],
       _addressList[1],
       _addressList[2],
-      _addressList[3],
       _name,
       _symbol,
       _decimals,
       _maxTotalSupply
     );
-    IAssetRegistry(_addressList[4]).addAsset(token, _kyaHash, _kyaUrl, _netAssetValueUSD);
+    IAssetRegistry(_addressList[3]).addAsset(token, _kyaHash, _kyaUrl, _netAssetValueUSD);
     return true;
   }
 }

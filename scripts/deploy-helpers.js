@@ -140,12 +140,11 @@ async function deployTokenContracts(baseContracts, customOptions = {}, skipSrc20
   const features = await deployContract('Features', [issuerAddress, options.features || 0], issuer);
   const roles = await deployContract(
     'SRC20Roles',
-    [issuerAddress, src20Registry.address, transferRules ? transferRules.address : ZERO_ADDRESS],
+    [src20Registry.address, transferRules ? transferRules.address : ZERO_ADDRESS],
     issuer
   );
 
   const addresses = [
-    issuerAddress,
     transferRules ? transferRules.address : ZERO_ADDRESS,
     roles.address,
     features.address,

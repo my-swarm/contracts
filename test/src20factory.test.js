@@ -22,7 +22,6 @@ describe('SRC20Factory creates tokens', async () => {
     const { assetRegistry, tokenMinter } = baseContracts;
     const { transferRules, roles, features } = tokenContracts;
     return [
-      issuerAddress,
       transferRules.address,
       roles.address,
       features.address,
