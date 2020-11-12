@@ -264,35 +264,6 @@ contract SRC20 is ISRC20, ISRC20Managed, Ownable {
     return true;
   }
 
-  /**
-   * Perform multiple token transfers from the token owner's address.
-   * The tokens should already be minted. If this function is to be called by
-   * an actor other than the owner (a delegate), the owner has to call approve()
-   * first to set up the delegate's allowance.
-   *
-   * Data needs to be packed correctly before calling this function.
-   *
-   * @param _lotSize number of tokens in the lot
-   * @param _transfers an array or encoded transfers to perform
-   * @return true on success
-   */
-  function encodedBulkTransfer(uint160 _lotSize, uint256[] calldata _transfers)
-    external
-    onlyDelegate
-    returns (bool)
-  {
-    uint256 count = _transfers.length;
-    for (uint256 i = 0; i < count; i++) {
-      uint256 tr = _transfers[i];
-      uint256 value = (tr >> 160) * _lotSize;
-      address to = address(tr & 0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-      _approve(owner(), msg.sender, allowances[owner()][msg.sender].sub(value));
-      _transfer(owner(), to, value);
-    }
-
-    return true;
-  }
-
   // Nonce management
   /**
    * @dev Returns next nonce expected by transfer functions that require it.
