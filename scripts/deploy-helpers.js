@@ -44,6 +44,10 @@ async function getBaseContractsOptions() {
     swmPrice,
     stablecoinParams,
     issuerSwmBalance: ethers.utils.parseUnits('1000000'), // Fmillion baby
+    fundraiserManager: {
+      fee: ethers.utils.parseUnits('2000', 6), // 2k baby
+      expirationTime: 7 * 24 * 3600, // a week
+    },
   };
 }
 
@@ -85,8 +89,6 @@ function getFundraiserOptions() {
       minAmount: 0,
       maxAmount: 0,
     },
-    fee: ethers.utils.parseUnits('2000', 6), // 2k baby
-    expirationTime: 7 * 24 * 3600, // a week
   };
 }
 
@@ -111,6 +113,7 @@ async function deployBaseContracts(customOptions = {}) {
   const affiliateManager = await deployContract('AffiliateManager');
   const usdc = await deployContract('ERC20Mock', options.stablecoinParams);
   await swm.transfer(issuerAddress, options.issuerSwmBalance);
+  const fundraiserManager = await deployFundraiserManager(options.fundraiserManager);
 
   const disperse = bre.network.name === 'local' ? await deployContract('Disperse', []) : null;
 
@@ -125,6 +128,7 @@ async function deployBaseContracts(customOptions = {}) {
     affiliateManager,
     usdc,
     disperse,
+    fundraiserManager,
   };
   return [addresses, options];
 }
@@ -178,13 +182,13 @@ async function createSrc20(src20Factory, options, addresses) {
     );
 }
 
-async function deployFundraiser(contracts, options) {
+async function deployFundraiser(src20Address, options) {
   const issuer = await getIssuer();
   return await deployContract(
     'Fundraiser',
     [
       options.label,
-      contracts.src20.address, // label
+      src20Address, // label
       options.supply, // supply
       options.startDate,
       options.endDate,
@@ -215,20 +219,14 @@ async function deployFundraiserManager(options) {
   return await deployContract('FundraiserManager', [options.expirationTime, options.fee], issuer);
 }
 
-async function setupFundraiser(
-  fundraiser,
-  contributorRestrictions,
-  fundraiserManager,
-  contracts,
-  options
-) {
+async function setupFundraiser(fundraiser, contributorRestrictions, contracts, options) {
   const issuer = await getIssuer();
   await fundraiser.connect(issuer).setup(
     contracts.usdc.address, // baseCurrency
     options.tokenPrice,
     contracts.affiliateManager.address,
     contributorRestrictions.address,
-    fundraiserManager.address,
+    contracts.fundraiserManager.address,
     contracts.tokenMinter.address,
     options.contributionsLocked
   );
@@ -236,12 +234,11 @@ async function setupFundraiser(
 
 async function deployFundraiserContracts(contracts, customOptions = {}) {
   const options = _.merge(getFundraiserOptions(), customOptions);
-  const fundraiser = await deployFundraiser(contracts, options);
+  const fundraiser = await deployFundraiser(contracts.src20.address, options);
   const contributorRestrictions = await deployContributorRestrictions(fundraiser, options);
-  const fundraiserManager = await deployFundraiserManager(options);
-  await setupFundraiser(fundraiser, contributorRestrictions, fundraiserManager, contracts, options);
+  await setupFundraiser(fundraiser, contributorRestrictions, contracts, options);
 
-  return [{ fundraiser, contributorRestrictions, fundraiserManager }, options];
+  return [{ fundraiser, contributorRestrictions }, options];
 }
 
 async function getEvent(transaction, eventName) {

@@ -94,6 +94,10 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
       delete whitelisted[_accounts[i]];
+      require(
+        Fundraiser(fundraiser).removeContributor(_accounts[i]),
+        'UnWhitelisting failed on processing contributions!'
+      );
       emit AccountUnWhitelisted(_accounts[i], msg.sender);
     }
   }

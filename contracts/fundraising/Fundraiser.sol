@@ -9,8 +9,6 @@ import '../interfaces/IContributorRestrictions.sol';
 import '../interfaces/ISRC20.sol';
 import './FundraiserManager.sol';
 
-import '@nomiclabs/buidler/console.sol';
-
 /**
  * @title The Fundraise Contract
  * This contract allows the deployer to perform a Swarm-Powered Fundraise.
@@ -127,16 +125,6 @@ contract Fundraiser {
     _;
   }
 
-  // forced by bytecode limitations, kept just below the modifier for clarity
-  function _ongoing() internal view returns (bool) {
-    require(isSetup, 'Fundraise setup not completed');
-    require(!isFinished, 'Fundraise has finished');
-    require(!isHardcapReached, 'HardCap has been reached');
-    require(block.timestamp >= startDate, 'Fundraise has not started yet');
-    require(block.timestamp <= endDate, 'Fundraise has ended');
-    return true;
-  }
-
   /**
    *  Pass all the most important parameters that define the Fundraise
    *  All variables cannot be in the constructor because we get "stack too deep" error
@@ -233,7 +221,7 @@ contract Fundraiser {
     ongoing
     returns (bool)
   {
-    require(_amount > 0, 'Amount has to be greater than 0');
+    require(_amount != 0, 'Fundraiser: cannot contribute 0');
 
     require(
       IERC20(baseCurrency).transferFrom(msg.sender, address(this), _amount),
@@ -380,6 +368,16 @@ contract Fundraiser {
     emit FeePaid(msg.sender, required);
   }
 
+  // forced by bytecode limitations
+  function _ongoing() internal view returns (bool) {
+    require(isSetup, 'Fundraise setup not completed');
+    require(!isFinished, 'Fundraise has finished');
+    require(!isHardcapReached, 'HardCap has been reached');
+    require(block.timestamp >= startDate, 'Fundraise has not started yet');
+    require(block.timestamp <= endDate, 'Fundraise has ended');
+    return true;
+  }
+
   /**
    *  Worker function for contributions
    *
@@ -409,6 +407,7 @@ contract Fundraiser {
     if (!IContributorRestrictions(contributorRestrictions).checkMaxInvestment(newAmount)) {
       refund = newAmount.sub(maxAmount);
       _amount = _amount.sub(refund);
+      require(_amount != 0, 'Cannot invest more than maxAmount');
     }
 
     if (qualified) {
@@ -420,6 +419,7 @@ contract Fundraiser {
       }
     }
 
+    // todo: this never happens, because every function that calls this has the ongoing modifier which checks for hardcap?
     require(_amount > 0, 'Hardcap already reached');
 
     if (qualified) {
@@ -526,7 +526,7 @@ contract Fundraiser {
     );
 
     if (amountQualified < hardCap && block.timestamp < endDate) {
-      revert('Softcap is only valid after end date');
+      revert('EndDate or hardCap not reached');
     }
     // lock the fundraise amount... it will be somewhere between the soft and hard caps
     contributionsLocked = true;
@@ -535,14 +535,9 @@ contract Fundraiser {
 
     // find out the token price
     if (tokenPrice > 0) {
-      console.log('Token price > 0');
-      console.log('Amount qualified', amountQualified);
       return amountQualified.div(tokenPrice);
     } else {
-      console.log('Token price = 0');
-      console.log('Supply', supply);
       tokenPrice = amountQualified.div(supply);
-      console.log('Token price', tokenPrice);
       return supply;
     }
   }

@@ -1,4 +1,5 @@
 const ethers = require('ethers');
+const { deployContract } = require('../scripts/deploy-helpers');
 const REGEX_ADDR = /0x[a-z0-9]{40}/i;
 
 function getRandomAddress() {
@@ -16,8 +17,19 @@ function getRandomAddresses(count) {
   return result;
 }
 
+async function deploySrc20Mock() {
+  deployContract('SRC20Mock', [
+    'Mock SRC20 COntract',
+    'SRM',
+    18,
+    parseUnits(1000, 18),
+    getRandomAddresses(5),
+  ]);
+}
+
 module.exports = {
   REGEX_ADDR,
   getRandomAddress,
   getRandomAddresses,
+  deploySrc20Mock,
 };

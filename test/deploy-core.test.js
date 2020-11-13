@@ -80,4 +80,9 @@ describe('Properly deploys base contracts', async () => {
     expect(await usdc.decimals()).to.equal(options.stablecoinParams[2]);
     expect(await usdc.totalSupply()).to.equal(options.stablecoinParams[3]);
   });
+
+  it('Has FundraiserManager properly setup', async () => {
+    const { fundraiserManager } = baseContracts;
+    expect(await fundraiserManager.address).to.match(REGEX_ADDR);
+  });
 });

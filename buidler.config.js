@@ -15,7 +15,7 @@ task('accounts', 'Prints the list of accounts', async () => {
   }
 });
 
-const {ETHERSCAN_API_KEY, INFURA_KEY} = process.env;
+const { ETHERSCAN_API_KEY, INFURA_KEY } = process.env;
 
 // You have to export an object to set up your config
 // This object can have the following optional entries:
