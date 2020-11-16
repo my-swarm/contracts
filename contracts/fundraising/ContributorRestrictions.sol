@@ -33,7 +33,10 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     uint256 _minAmount,
     uint256 _maxAmount
   ) public Ownable() {
-    require(_maxAmount >= _minAmount, 'Maximum amount has to be >= minInvestmentAmount');
+    require(
+      _maxAmount == 0 || _maxAmount >= _minAmount,
+      'Maximum amount has to be >= minInvestmentAmount'
+    );
     fundraiser = _fundraiser;
     maxCount = _maxCount;
     minAmount = _minAmount;
@@ -48,14 +51,8 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     return maxAmount == 0 || _amount <= maxAmount;
   }
 
-  function checkMaxContributors() public view returns (bool) {
-    return maxCount == 0 || Fundraiser(fundraiser).numContributors() < maxCount;
-  }
-
-  function checkRestrictions(address _account) external view returns (bool) {
-    require(isWhitelisted(_account));
-    require(checkMaxContributors());
-    return true;
+  function checkMaxContributors(uint256 _num) public view returns (bool) {
+    return maxCount == 0 || _num <= maxCount;
   }
 
   function whitelistAccount(address _account) external onlyAuthorised {

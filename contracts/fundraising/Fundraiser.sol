@@ -9,6 +9,8 @@ import '../interfaces/IContributorRestrictions.sol';
 import '../interfaces/ISRC20.sol';
 import './FundraiserManager.sol';
 
+import '@nomiclabs/buidler/console.sol';
+
 /**
  * @title The Fundraise Contract
  * This contract allows the deployer to perform a Swarm-Powered Fundraise.
@@ -177,7 +179,9 @@ contract Fundraiser {
     ISRC20(token).setFundraiser();
 
     baseCurrency = _baseCurrency;
-    tokenPrice = _tokenPrice;
+    if (supply == 0) {
+      tokenPrice = _tokenPrice;
+    }
     affiliateManager = _affiliateManager;
     contributorRestrictions = _contributorRestrictions;
     fundraiserManager = _fundraiserManager;
@@ -332,11 +336,9 @@ contract Fundraiser {
     qualifiedContributions[msg.sender] = 0;
 
     // @cicnos make sure division won't end in zero for small amounts
-    uint256 tokenShares = contributions.div(tokenPrice);
-
-    require(IERC20(token).transfer(msg.sender, tokenShares), 'Token transfer failed');
-
-    emit TokensClaimed(msg.sender, tokenShares);
+    uint256 tokensShare = contributions.div(tokenPrice);
+    require(IERC20(token).transfer(msg.sender, tokensShare), 'Token transfer failed');
+    emit TokensClaimed(msg.sender, tokensShare);
     return true;
   }
 
@@ -352,9 +354,10 @@ contract Fundraiser {
   }
 
   function payFee(uint256 _amount) external {
-    require(_amount != 0, 'Fundraiser: Must be greater than 0.');
+    require(_amount != 0, 'Fundraiser: Fee must be greater than 0.');
 
     uint256 fee = FundraiserManager(fundraiserManager).fee();
+    require(fee > totalFeePaid, 'Fundraiser: Fee already paid.');
     uint256 feeSum = totalFeePaid.add(_amount);
     uint256 required = _amount;
 
@@ -364,8 +367,11 @@ contract Fundraiser {
 
     IERC20(baseCurrency).transferFrom(msg.sender, address(this), required);
     totalFeePaid = totalFeePaid.add(required);
-
     emit FeePaid(msg.sender, required);
+  }
+
+  function isFeePaid() external view returns (bool) {
+    return totalFeePaid == FundraiserManager(fundraiserManager).fee();
   }
 
   // forced by bytecode limitations
@@ -411,6 +417,11 @@ contract Fundraiser {
     }
 
     if (qualified) {
+      if (
+        !IContributorRestrictions(contributorRestrictions).checkMaxContributors(numContributors + 1)
+      ) {
+        revert('Maximum number of contributors reached');
+      }
       (bool hardcapReached, uint256 overHardcap) = _checkHardCap(amountQualified + _amount);
       if (hardcapReached) {
         isHardcapReached = hardcapReached;
@@ -535,11 +546,11 @@ contract Fundraiser {
 
     // find out the token price
     if (tokenPrice > 0) {
-      return amountQualified.div(tokenPrice);
+      supply = amountQualified.div(tokenPrice);
     } else {
       tokenPrice = amountQualified.div(supply);
-      return supply;
     }
+    return supply;
   }
 
   /**

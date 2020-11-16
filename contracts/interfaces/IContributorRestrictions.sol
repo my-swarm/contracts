@@ -11,9 +11,7 @@ contract IContributorRestrictions {
 
   function checkMaxInvestment(uint256 _amount) external view returns (bool);
 
-  function checkMaxContributors() external view returns (bool);
-
-  function checkRestrictions(address _account) external view returns (bool);
+  function checkMaxContributors(uint256 _num) external view returns (bool);
 
   function isWhitelisted(address _account) external view returns (bool);
 

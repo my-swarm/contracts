@@ -20,7 +20,7 @@ async function stakeAndMint({ src20, src20Registry, tokenMinter, swm }, nav, sup
   await tokenMinter.connect(issuer).stakeAndMint(src20.address, supply);
 }
 
-async function updateAllowance(account, token, spenderAddress, allowance) {
+async function updateAllowance(account, token, spenderAddress, allowance = -1) {
   if (allowance === -1) {
     allowance = BigNumber.from(2).pow(256).sub(1);
   } else {

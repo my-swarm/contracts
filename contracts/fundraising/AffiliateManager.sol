@@ -28,7 +28,7 @@ contract AffiliateManager is Ownable, DelegateRole {
   function setupAffiliate(
     address _affiliate,
     string calldata _affiliateLink,
-    uint256 _percentage // multiply by 100 => 5 = 0.5%
+    uint256 _percentage
   ) external onlyOwner() returns (bool) {
     require(_percentage <= 100, 'Percentage greater than 100 not allowed');
     require(_percentage > 0, 'Percentage has to be greater than 0');

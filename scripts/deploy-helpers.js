@@ -236,7 +236,9 @@ async function deployFundraiserContracts(contracts, customOptions = {}) {
   const options = _.merge(getFundraiserOptions(), customOptions);
   const fundraiser = await deployFundraiser(contracts.src20.address, options);
   const contributorRestrictions = await deployContributorRestrictions(fundraiser, options);
-  await setupFundraiser(fundraiser, contributorRestrictions, contracts, options);
+  if (!options.skipSetup) {
+    await setupFundraiser(fundraiser, contributorRestrictions, contracts, options);
+  }
 
   return [{ fundraiser, contributorRestrictions }, options];
 }
@@ -264,8 +266,44 @@ function dumpContractAddresses(contracts) {
 async function advanceTimeAndBlock(time) {
   const provider = bre.ethers.provider;
   let block = await provider.getBlock('latest');
-  console.log('BLOOOK', { block });
   return provider.send('evm_mine', [block['timestamp'] + time]);
+}
+
+async function takeSnapshot() {
+  const provider = bre.ethers.provider;
+  const snapshotId = await provider.send('evm_snapshot');
+  return snapshotId;
+  /*
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_snapshot',
+      id: new Date().getTime()
+    }, (err, snapshotId) => {
+      if (err) { return reject(err) }
+      return resolve(snapshotId)
+    })
+  })
+ */
+}
+
+async function revertToSnapshot(id) {
+  const provider = bre.ethers.provider;
+  await provider.send('evm_revert', [id]);
+  /*
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_revert',
+      params: [id],
+      id: new Date().getTime()
+    }, (err, result) => {
+      if (err) { return reject(err) }
+      return resolve(result)
+    })
+  })
+
+ */
 }
 
 module.exports = {
@@ -288,6 +326,8 @@ module.exports = {
   deployFundraiserContracts,
   dumpContractAddresses,
   advanceTimeAndBlock,
+  takeSnapshot,
+  revertToSnapshot,
   createSrc20,
   getEvent,
 };
