@@ -84,6 +84,7 @@ function getFundraiserOptions() {
     hardCap: ethers.utils.parseUnits('10000', 6),
     tokenPrice: 0, // ethers.utils.parseUnits('1'), // 1 token = 1 usd
     contributionsLocked: false,
+    affiliateManager: false,
     contributors: {
       maxNum: 0,
       minAmount: 0,
@@ -110,7 +111,6 @@ async function deployBaseContracts(customOptions = {}) {
   ]);
   await src20Registry.addMinter(tokenMinter.address);
   const masterMinter = await deployContract('MasterMinter', [src20Registry.address]);
-  const affiliateManager = await deployContract('AffiliateManager');
   const usdc = await deployContract('ERC20Mock', options.stablecoinParams);
   await swm.transfer(issuerAddress, options.issuerSwmBalance);
   const fundraiserManager = await deployFundraiserManager(options.fundraiserManager);
@@ -125,7 +125,6 @@ async function deployBaseContracts(customOptions = {}) {
     assetRegistry,
     tokenMinter,
     masterMinter,
-    affiliateManager,
     usdc,
     disperse,
     fundraiserManager,
@@ -219,12 +218,18 @@ async function deployFundraiserManager(options) {
   return await deployContract('FundraiserManager', [options.expirationTime, options.fee], issuer);
 }
 
-async function setupFundraiser(fundraiser, contributorRestrictions, contracts, options) {
+async function setupFundraiser(
+  fundraiser,
+  contributorRestrictions,
+  affiliateManager,
+  contracts,
+  options
+) {
   const issuer = await getIssuer();
   await fundraiser.connect(issuer).setup(
     contracts.usdc.address, // baseCurrency
     options.tokenPrice,
-    contracts.affiliateManager.address,
+    affiliateManager ? affiliateManager.address : ZERO_ADDRESS,
     contributorRestrictions.address,
     contracts.fundraiserManager.address,
     contracts.tokenMinter.address,
@@ -236,11 +241,21 @@ async function deployFundraiserContracts(contracts, customOptions = {}) {
   const options = _.merge(getFundraiserOptions(), customOptions);
   const fundraiser = await deployFundraiser(contracts.src20.address, options);
   const contributorRestrictions = await deployContributorRestrictions(fundraiser, options);
+  const affiliateManager = options.affiliateManager
+    ? await deployContract('AffiliateManager', [], await getIssuer())
+    : null;
+
   if (!options.skipSetup) {
-    await setupFundraiser(fundraiser, contributorRestrictions, contracts, options);
+    await setupFundraiser(
+      fundraiser,
+      contributorRestrictions,
+      affiliateManager,
+      contracts,
+      options
+    );
   }
 
-  return [{ fundraiser, contributorRestrictions }, options];
+  return [{ ...contracts, fundraiser, affiliateManager, contributorRestrictions }, options];
 }
 
 async function getEvent(transaction, eventName) {
@@ -273,37 +288,11 @@ async function takeSnapshot() {
   const provider = bre.ethers.provider;
   const snapshotId = await provider.send('evm_snapshot');
   return snapshotId;
-  /*
-  return new Promise((resolve, reject) => {
-    web3.currentProvider.send({
-      jsonrpc: '2.0',
-      method: 'evm_snapshot',
-      id: new Date().getTime()
-    }, (err, snapshotId) => {
-      if (err) { return reject(err) }
-      return resolve(snapshotId)
-    })
-  })
- */
 }
 
 async function revertToSnapshot(id) {
   const provider = bre.ethers.provider;
-  await provider.send('evm_revert', [id]);
-  /*
-  return new Promise((resolve, reject) => {
-    web3.currentProvider.send({
-      jsonrpc: '2.0',
-      method: 'evm_revert',
-      params: [id],
-      id: new Date().getTime()
-    }, (err, result) => {
-      if (err) { return reject(err) }
-      return resolve(result)
-    })
-  })
-
- */
+  const result = await provider.send('evm_revert', [id]);
 }
 
 module.exports = {

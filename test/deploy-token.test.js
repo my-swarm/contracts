@@ -44,12 +44,17 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
   });
 
   it('Deploys fundraiser contracts', async () => {
-    const [{ fundraiser, contributorRestrictions }, options] = await deployFundraiserContracts({
+    const [
+      { fundraiser, affiliateManager, contributorRestrictions },
+      options,
+    ] = await deployFundraiserContracts({
       ...baseContracts,
       ...tokenContracts,
     });
 
     expect(fundraiser.address).to.match(REGEX_ADDR);
+    expect(fundraiser.affiliateManager()).to.equal(affiliateManager.address);
+    expect(fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
     expect(await fundraiser.label()).to.equal(options.label);
     expect(await fundraiser.token()).to.equal(tokenContracts.src20.address);
     expect(await fundraiser.supply()).to.equal(options.supply);
@@ -60,7 +65,6 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
 
     expect(await fundraiser.baseCurrency()).to.equal(baseContracts.usdc.address);
     expect(await fundraiser.tokenPrice()).to.equal(options.tokenPrice);
-    expect(await fundraiser.affiliateManager()).to.equal(baseContracts.affiliateManager.address);
     expect(await fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
     expect(await fundraiser.fundraiserManager()).to.equal(baseContracts.fundraiserManager.address);
     expect(await fundraiser.minter()).to.equal(baseContracts.tokenMinter.address);

@@ -66,12 +66,6 @@ describe('Properly deploys base contracts', async () => {
     expect(await masterMinter.owner()).to.equal(swarmAddress);
   });
 
-  it('Has AffiliateManager contract properly setup', async () => {
-    const { affiliateManager } = baseContracts;
-    expect(await affiliateManager.address).to.match(REGEX_ADDR);
-    expect(await affiliateManager.owner()).to.equal(swarmAddress);
-  });
-
   it('Has USDC contract properly setup', async () => {
     const { usdc } = baseContracts;
     expect(await usdc.address).to.match(REGEX_ADDR);

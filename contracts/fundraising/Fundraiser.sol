@@ -4,10 +4,10 @@ import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 import '../interfaces/ITokenMinter.sol';
-import '../interfaces/IAffiliateManager.sol';
 import '../interfaces/IContributorRestrictions.sol';
 import '../interfaces/ISRC20.sol';
 import './FundraiserManager.sol';
+import './AffiliateManager.sol';
 
 import '@nomiclabs/buidler/console.sol';
 
@@ -53,7 +53,7 @@ contract Fundraiser {
 
   event TokensClaimed(address indexed account, uint256 amount);
   event Withdrawn(address indexed account, uint256 amount);
-  event ReferralCollected(address indexed account, uint256 amount);
+  event ReferralClaimed(address indexed account, uint256 amount);
   event FeePaid(address indexed account, uint256 amount);
 
   address private owner;
@@ -98,14 +98,14 @@ contract Fundraiser {
   // contributors who has been whitelisted and contributed funds
   mapping(address => bool) public contributors;
 
-  // referral link of contributor
-  mapping(address => address) public referrals;
+  // contributor to affiliate address mapping
+  mapping(address => address) public contributorAffiliates;
 
-  // total funds directed to the affiliate from referrals
-  mapping(address => uint256) public totalAffiliateClaim;
+  // affil share per affiliate. how much an affiliate gets
+  mapping(address => uint256) public affiliateShares;
 
-  // funds directed to the affiliate from referrals per contributor
-  mapping(address => uint256) public affiliateClaim;
+  // affil share per contributor. we need this to be able to revert given contributors part of affiliate share
+  mapping(address => uint256) public contributorShares;
 
   modifier onlyOwner() {
     require(msg.sender == owner, 'Caller is not the owner!');
@@ -217,14 +217,10 @@ contract Fundraiser {
    *  contribute funds with an affiliate link
    *
    *  @param _amount the amount of the contribution
-   *  @param _affiliateLink (optional) affiliate link used
+   *  @param _referral (optional) affiliate link used
    *  @return true on success
    */
-  function contribute(uint256 _amount, string calldata _affiliateLink)
-    external
-    ongoing
-    returns (bool)
-  {
+  function contribute(uint256 _amount, string calldata _referral) external ongoing returns (bool) {
     require(_amount != 0, 'Fundraiser: cannot contribute 0');
 
     require(
@@ -232,7 +228,7 @@ contract Fundraiser {
       'ERC20 transfer failed'
     );
 
-    _contribute(msg.sender, _amount, _affiliateLink);
+    _contribute(msg.sender, _amount, _referral);
     return true;
   }
 
@@ -254,10 +250,13 @@ contract Fundraiser {
     if (amount != 0) {
       pendingContributions[_contributor] = 0;
       amountPending = amountPending.sub(amount);
-      string memory link = IAffiliateManager(affiliateManager).getAffiliateLink(
-        referrals[_contributor]
-      );
-      uint256 realAmount = _contribute(_contributor, amount, link);
+      string memory referral = '';
+      if (affiliateManager != address(0)) {
+        referral = AffiliateManager(affiliateManager).getReferral(
+          contributorAffiliates[_contributor]
+        );
+      }
+      uint256 realAmount = _contribute(_contributor, amount, referral);
       emit PendingContributionAccepted(_contributor, amount);
     }
     emit ContributorAccepted(_contributor);
@@ -279,7 +278,9 @@ contract Fundraiser {
     returns (bool)
   {
     _removeContributor(_contributor);
-    _removeAffiliate(_contributor);
+    if (affiliateManager != address(0)) {
+      _removeShare(_contributor);
+    }
     _fullRefund(_contributor);
     emit ContributorRemoved(_contributor, true);
     return true;
@@ -300,7 +301,7 @@ contract Fundraiser {
     );
     require(_fullRefund(msg.sender), 'There are no funds to refund');
     _removeContributor(msg.sender);
-    _removeAffiliate(msg.sender);
+    _removeShare(msg.sender);
     emit ContributorRemoved(msg.sender, false);
     return true;
   }
@@ -344,12 +345,12 @@ contract Fundraiser {
 
   function claimReferrals() external returns (bool) {
     require(isFinished, 'Fundraise is not finished');
-    require(totalAffiliateClaim[msg.sender] > 0, 'There are no referrals to be collected');
-    uint256 amount = totalAffiliateClaim[msg.sender];
-    totalAffiliateClaim[msg.sender] = 0;
-    require(IERC20(token).transfer(msg.sender, amount), 'Token transfer failed');
+    require(affiliateShares[msg.sender] > 0, 'There are no referrals to be collected');
+    uint256 amount = affiliateShares[msg.sender];
+    affiliateShares[msg.sender] = 0;
+    require(IERC20(baseCurrency).transfer(msg.sender, amount), 'Token transfer failed');
 
-    emit ReferralCollected(msg.sender, amount);
+    emit ReferralClaimed(msg.sender, amount);
     return true;
   }
 
@@ -389,13 +390,14 @@ contract Fundraiser {
    *
    *  @param _contributor the address of the contributor
    *  @param _amount the amount of the contribution
+   *  @param _referral referral, aka affiliate link
    *
    *  @return uint256 Actual contributed amount (subtracted when hardcap overflow etc.)
    */
   function _contribute(
     address _contributor,
     uint256 _amount,
-    string memory _affiliateLink
+    string memory _referral
   ) internal returns (uint256) {
     require(
       IContributorRestrictions(contributorRestrictions).checkMinInvestment(_amount),
@@ -437,7 +439,9 @@ contract Fundraiser {
       qualifiedContributions[_contributor] = qualifiedContributions[_contributor].add(_amount);
       amountQualified = amountQualified.add(_amount);
       _addContributor(_contributor);
-      _addAffiliate(_contributor, _affiliateLink, _amount);
+      if (affiliateManager != address(0)) {
+        _addShare(_contributor, _referral, _amount);
+      }
       emit ContributionAdded(_contributor, _amount);
     } else {
       pendingContributions[_contributor] = pendingContributions[_contributor].add(_amount);
@@ -466,34 +470,36 @@ contract Fundraiser {
     }
   }
 
-  function _addAffiliate(
-    address _user,
-    string memory _affiliateLink,
+  function _addShare(
+    address _contributor,
+    string memory _referral,
     uint256 _amount
   ) internal {
-    if (bytes(_affiliateLink).length > 0) {
-      (address affiliate, uint256 percentage) = IAffiliateManager(affiliateManager).getAffiliate(
-        _affiliateLink
+    if (bytes(_referral).length > 0) {
+      (address affiliate, uint256 percentage) = AffiliateManager(affiliateManager).getByReferral(
+        _referral
       );
-
       if (affiliate != address(0)) {
-        if (referrals[_user] == address(0) || referrals[_user] == affiliate) {
-          referrals[_user] = affiliate;
-          uint256 claim = _amount.mul(percentage).div(100);
-          affiliateClaim[_user] = affiliateClaim[_user].add(claim);
-          totalAffiliateClaim[affiliate] = totalAffiliateClaim[affiliate].add(claim);
+        if (
+          contributorAffiliates[_contributor] == address(0) ||
+          contributorAffiliates[_contributor] == affiliate
+        ) {
+          contributorAffiliates[_contributor] = affiliate;
+          // percentage has 4 decimals
+          uint256 share = _amount.mul(percentage).div(10000).div(100);
+          contributorShares[_contributor] = contributorShares[_contributor].add(share);
+          affiliateShares[affiliate] = affiliateShares[affiliate].add(share);
         }
       }
     }
   }
 
-  function _removeAffiliate(address _user) internal {
-    if (referrals[_user] != address(0)) {
-      totalAffiliateClaim[referrals[_user]] = totalAffiliateClaim[referrals[_user]].sub(
-        affiliateClaim[_user]
-      );
-      affiliateClaim[_user] = 0;
-      referrals[_user] = address(0);
+  function _removeShare(address _contributor) internal {
+    if (contributorAffiliates[_contributor] != address(0)) {
+      affiliateShares[contributorAffiliates[_contributor]] = affiliateShares[contributorAffiliates[_contributor]]
+        .sub(contributorShares[_contributor]);
+      contributorShares[_contributor] = 0;
+      contributorAffiliates[_contributor] = address(0);
     }
   }
 
