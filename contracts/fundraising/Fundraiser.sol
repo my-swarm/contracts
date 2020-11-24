@@ -208,7 +208,8 @@ contract Fundraiser {
    *  @return true on success
    */
   function cancel() external onlyOwner() returns (bool) {
-    // todo: allow cancel if finished ??
+    require(!isFinished, 'Fundraiser: Cannot cancel when finished.');
+
     isCanceled = true;
     contributionsLocked = false;
     emit FundraiserCanceled();
@@ -567,9 +568,6 @@ contract Fundraiser {
     // find out the token price
     uint256 baseCurrencyDecimals = uint256(10)**ERC20Detailed(baseCurrency).decimals();
     uint256 tokenDecimals = uint256(10)**SRC20(token).decimals();
-    // todo: optimize overflows?
-    // todo: we could src20 - usdc decimals difference and multiply or divide by that
-    // todo: note that src decimals could be less than usdc decimals
     if (tokenPrice > 0) {
       // decimals: 6 + 18 - 6 = 18
       supply = ((amountQualified.mul(tokenDecimals)).div(tokenPrice));

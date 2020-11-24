@@ -122,7 +122,7 @@ describe('Fundraiser', async function () {
   }
 
   async function setTokenAllowance() {
-    updateAllowance(issuer, contracts.src20, fundraiser.address);
+    await updateAllowance(issuer, contracts.src20, fundraiser.address);
   }
 
   async function stakeAndMint(setAllowance = true) {
@@ -486,6 +486,13 @@ describe('Fundraiser', async function () {
     expect(await fundraiser.contributionsLocked()).to.equal(true);
     expect(await fundraiser.isFinished()).to.equal(true);
     await revertToSnapshot(snapshotId);
+  });
+
+  it('Cannot cancel if finished', async () => {
+    await runAndFinishFundraiser();
+    await expect(fundraiser.connect(issuer).cancel()).to.be.revertedWith(
+      'Fundraiser: Cannot cancel when finished.'
+    );
   });
 
   it('Cannot finish if already finished', async () => {
