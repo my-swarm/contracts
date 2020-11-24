@@ -119,6 +119,10 @@ describe('Fundraiser affiliate/referrer', async function () {
     await fundraiser.connect(issuer).stakeAndMint();
   }
 
+  async function setTokenAllowance() {
+    await updateAllowance(issuer, contracts.src20, fundraiser.address);
+  }
+
   it('Adds affiliate when contributing', async () => {
     await contributeAll();
 
@@ -158,6 +162,7 @@ describe('Fundraiser affiliate/referrer', async function () {
 
   it('Allows to claim referrals if conditions are met', async () => {
     await contributeAll();
+    await setTokenAllowance();
     await finalizeFundraiser();
     const usdBefore = await usdc.balanceOf(affil1.address);
     const expectedShare = amount.mul(affil1.percentage).div(100).div(10000);
@@ -177,6 +182,7 @@ describe('Fundraiser affiliate/referrer', async function () {
 
   it('Does not allow to claim referrals if balance is zero', async () => {
     await contributeAll();
+    await setTokenAllowance();
     await finalizeFundraiser();
     await expect(fundraiser.connect(accounts[4]).claimReferrals()).to.be.revertedWith(
       'There are no referrals to be collected'

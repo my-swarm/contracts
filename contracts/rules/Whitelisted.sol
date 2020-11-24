@@ -9,7 +9,7 @@ import '@openzeppelin/contracts/ownership/Ownable.sol';
  * that from and to address in src20 transfer are whitelisted.
  */
 contract Whitelisted is Ownable {
-  mapping(address => bool) public whitelisted; // todo: why is this public? internal better?
+  mapping(address => bool) internal whitelisted;
 
   event AccountWhitelisted(address account, address sender);
   event AccountUnWhitelisted(address account, address sender);

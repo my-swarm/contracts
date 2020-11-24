@@ -73,7 +73,6 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
     emit AccountUnWhitelisted(_account, msg.sender);
   }
 
-  // todo: this wasn't automatically accepting contributors. Sad!
   function bulkWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
@@ -87,7 +86,6 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
   }
 
   function bulkUnWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
-    require(false, 'Bulk unwhitelist not imlemented');
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
       delete whitelisted[_accounts[i]];

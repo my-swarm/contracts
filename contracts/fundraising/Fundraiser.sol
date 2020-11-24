@@ -2,14 +2,16 @@ pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol';
 
 import '../interfaces/ITokenMinter.sol';
 import '../interfaces/IContributorRestrictions.sol';
 import '../interfaces/ISRC20.sol';
+import '../token/SRC20.sol';
 import './FundraiserManager.sol';
 import './AffiliateManager.sol';
 
-import '@nomiclabs/buidler/console.sol';
+//import '@nomiclabs/buidler/console.sol';
 
 /**
  * @title The Fundraise Contract
@@ -316,6 +318,11 @@ contract Fundraiser {
     // This has all the conditions and will revert if they are not met
     uint256 amountToMint = _finish();
 
+    // src20 allowance pre-mint is required so that this contract can distribute tokens
+    require(
+      SRC20(token).allowance(msg.sender, address(this)) >= amountToMint,
+      'Fundraiser: Not enough token allowance for distribution.'
+    );
     ITokenMinter(minter).stakeAndMint(token, amountToMint);
 
     // send funds to the issuer
@@ -333,13 +340,18 @@ contract Fundraiser {
     require(isFinished, 'Fundraise has not finished');
     require(qualifiedContributions[msg.sender] > 0, 'There are no tokens to claim');
 
-    uint256 contributions = qualifiedContributions[msg.sender];
+    uint256 contributed = qualifiedContributions[msg.sender];
     qualifiedContributions[msg.sender] = 0;
 
-    // @cicnos make sure division won't end in zero for small amounts
-    uint256 tokensShare = contributions.div(tokenPrice);
-    require(IERC20(token).transfer(msg.sender, tokensShare), 'Token transfer failed');
-    emit TokensClaimed(msg.sender, tokensShare);
+    uint256 baseCurrencyDecimals = uint256(10)**ERC20Detailed(baseCurrency).decimals();
+    uint256 tokenDecimals = uint256(10)**SRC20(token).decimals();
+
+    // decimals: 6 + 18 - 18 + 18 - 6
+    uint256 tokenAmount = contributed.mul(tokenDecimals).div(tokenPrice).mul(tokenDecimals).div(
+      baseCurrencyDecimals
+    );
+    require(ISRC20(token).transferFrom(owner, msg.sender, tokenAmount), 'Token transfer failed');
+    emit TokensClaimed(msg.sender, tokenAmount);
     return true;
   }
 
@@ -420,11 +432,13 @@ contract Fundraiser {
 
     if (qualified) {
       if (
-        !IContributorRestrictions(contributorRestrictions).checkMaxContributors(numContributors + 1)
+        !IContributorRestrictions(contributorRestrictions).checkMaxContributors(
+          numContributors.add(1)
+        )
       ) {
         revert('Maximum number of contributors reached');
       }
-      (bool hardcapReached, uint256 overHardcap) = _checkHardCap(amountQualified + _amount);
+      (bool hardcapReached, uint256 overHardcap) = _checkHardCap(amountQualified.add(_amount));
       if (hardcapReached) {
         isHardcapReached = hardcapReached;
         refund = refund.add(overHardcap);
@@ -432,7 +446,7 @@ contract Fundraiser {
       }
     }
 
-    // todo: this never happens, because every function that calls this has the ongoing modifier which checks for hardcap?
+    // note: this never happens in reality, because every function that calls this has the ongoing modifier which checks for hardcap
     require(_amount > 0, 'Hardcap already reached');
 
     if (qualified) {
@@ -485,8 +499,8 @@ contract Fundraiser {
           contributorAffiliates[_contributor] == affiliate
         ) {
           contributorAffiliates[_contributor] = affiliate;
-          // percentage has 4 decimals
-          uint256 share = _amount.mul(percentage).div(10000).div(100);
+          // percentage has 4 decimals, fraction has 6 decimals in total
+          uint256 share = (_amount.mul(percentage)).div(1000000);
           contributorShares[_contributor] = contributorShares[_contributor].add(share);
           affiliateShares[affiliate] = affiliateShares[affiliate].add(share);
         }
@@ -551,11 +565,22 @@ contract Fundraiser {
     emit FundraiserFinished();
 
     // find out the token price
+    uint256 baseCurrencyDecimals = uint256(10)**ERC20Detailed(baseCurrency).decimals();
+    uint256 tokenDecimals = uint256(10)**SRC20(token).decimals();
+    // todo: optimize overflows?
+    // todo: we could src20 - usdc decimals difference and multiply or divide by that
+    // todo: note that src decimals could be less than usdc decimals
     if (tokenPrice > 0) {
-      supply = amountQualified.div(tokenPrice);
+      // decimals: 6 + 18 - 6 = 18
+      supply = ((amountQualified.mul(tokenDecimals)).div(tokenPrice));
     } else {
-      tokenPrice = amountQualified.div(supply);
+      // decimals: 6 + 18 - 18 + 18 - 6
+      // decimals: 6 + 18 - 18 + 18 - 6
+      tokenPrice = amountQualified.mul(tokenDecimals).div(supply).mul(tokenDecimals).div(
+        baseCurrencyDecimals
+      );
     }
+
     return supply;
   }
 

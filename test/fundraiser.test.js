@@ -2,6 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('@nomiclabs/buidler');
 const moment = require('moment');
 const { parseUnits } = ethers.utils;
+const { BigNumber } = ethers;
 const {
   deployBaseContracts,
   deployTokenContracts,
@@ -120,7 +121,14 @@ describe('Fundraiser', async function () {
     await fundraiser.connect(issuer).payFee(fee);
   }
 
-  async function stakeAndMint() {
+  async function setTokenAllowance() {
+    updateAllowance(issuer, contracts.src20, fundraiser.address);
+  }
+
+  async function stakeAndMint(setAllowance = true) {
+    if (setAllowance) {
+      await setTokenAllowance();
+    }
     await fundraiser.connect(issuer).stakeAndMint();
   }
 
@@ -168,9 +176,35 @@ describe('Fundraiser', async function () {
     }
   }
 
-  it('💪 Can whitelist contributors', async function () {
-    await whitelistContributor(addr[0]);
+  it('💪 Can whitelist and unwhitelist contributors', async function () {
+    await expect(cRestrictions.connect(issuer).whitelistAccount(addr[0]))
+      .to.emit(cRestrictions, 'AccountWhitelisted')
+      .withArgs(addr[0], issuerAddress);
     expect(await cRestrictions.isWhitelisted(addr[0])).to.equal(true);
+
+    await expect(cRestrictions.connect(issuer).unWhitelistAccount(addr[0]))
+      .to.emit(cRestrictions, 'AccountUnWhitelisted')
+      .withArgs(addr[0], issuerAddress);
+    expect(await cRestrictions.isWhitelisted(addr[0])).to.equal(false);
+  });
+
+  it('Can bulk whitelist and unwhitelist contributors', async function () {
+    await expect(cRestrictions.connect(issuer).bulkWhitelistAccount([addr[0], addr[1], addr[2]]))
+      .to.emit(cRestrictions, 'AccountWhitelisted')
+      .and.to.emit(cRestrictions, 'AccountWhitelisted')
+      .and.to.emit(cRestrictions, 'AccountWhitelisted');
+    expect(await cRestrictions.isWhitelisted(addr[0])).to.equal(true);
+    expect(await cRestrictions.isWhitelisted(addr[1])).to.equal(true);
+    expect(await cRestrictions.isWhitelisted(addr[2])).to.equal(true);
+
+    await expect(cRestrictions.connect(issuer).bulkUnWhitelistAccount([addr[0], addr[2]]))
+      .to.emit(cRestrictions, 'AccountUnWhitelisted')
+      .and.to.emit(cRestrictions, 'AccountUnWhitelisted')
+      .and.to.emit(cRestrictions, 'AccountUnWhitelisted');
+
+    expect(await cRestrictions.isWhitelisted(addr[0])).to.equal(false);
+    expect(await cRestrictions.isWhitelisted(addr[1])).to.equal(true);
+    expect(await cRestrictions.isWhitelisted(addr[2])).to.equal(false);
   });
 
   it('❤ Automatically accepts contributions from whitelisted contributors', async function () {
@@ -419,9 +453,10 @@ describe('Fundraiser', async function () {
 
   it('Can finish (stake and mint) if hardCap reached', async () => {
     await contributeApproved(0, hardCap);
-    await fundraiser.connect(issuer).payFee(fee);
+    await payFee();
     const amountQualified = await fundraiser.amountQualified();
     const balanceBefore = await contracts.usdc.balanceOf(issuerAddress);
+    await setTokenAllowance();
     await expect(fundraiser.connect(issuer).stakeAndMint()).to.emit(
       fundraiser,
       'FundraiserFinished'
@@ -440,8 +475,9 @@ describe('Fundraiser', async function () {
     });
 
     await contributeApproved(0, softCap);
-    await fundraiser.connect(issuer).payFee(fee);
+    await payFee();
     const snapshotId = await takeSnapshot();
+    await setTokenAllowance();
     await advanceTimeAndBlock(2 * 24 * 3600);
     await expect(fundraiser.connect(issuer).stakeAndMint()).to.emit(
       fundraiser,
@@ -459,7 +495,7 @@ describe('Fundraiser', async function () {
 
   it('Cannot finish if softCap not reached', async () => {
     await contributeApproved(0, softCap.sub(1));
-    await fundraiser.connect(issuer).payFee(fee);
+    await payFee();
     await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(
       'SoftCap not reached'
     );
@@ -473,13 +509,22 @@ describe('Fundraiser', async function () {
     );
   });
 
+  it('Cannot finish when allowance for src20 not set', async () => {
+    await contributeApproved(0, hardCap);
+    await payFee();
+    // NOT approving here
+    await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(
+      'Fundraiser: Not enough token allowance for distribution.'
+    );
+  });
+
   it('Cannot finish after expiration date has passed @nodeploy', async () => {
     await deployFundraiser({
       startDate: moment().subtract(1, 'days').unix(),
       endDate: moment().add(1, 'days').unix(),
     });
 
-    await fundraiser.connect(issuer).payFee(fee);
+    await payFee();
     await contributeApproved(0, softCap);
     const snapshotId = await takeSnapshot();
     await advanceTimeAndBlock(2 * 24 * 3600 + expirationTime);
@@ -491,7 +536,7 @@ describe('Fundraiser', async function () {
 
   it('Cannot finish if neither hardcap nor end date has been reached', async () => {
     await contributeApproved(0, softCap);
-    await fundraiser.connect(issuer).payFee(fee);
+    await payFee();
     await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(
       'EndDate or hardCap not reached'
     );
@@ -501,11 +546,11 @@ describe('Fundraiser', async function () {
     await runAndFinishFundraiser();
     const tokensBefore = await contracts.src20.balanceOf(addr[0]);
     expect(tokensBefore).to.equal(0);
-    await expect(fundraiser.connect(accounts[0]).claimTokens()).to.emit(
-      fundraiser,
-      'TokensClaimed'
-    );
-    await expect(tokens.src20.balanceOf(addr[0])).to.equal(await fundraiser.amountQualified());
+    const expectedAmount = await fundraiser.supply();
+    await expect(fundraiser.connect(accounts[0]).claimTokens())
+      .to.emit(fundraiser, 'TokensClaimed')
+      .withArgs(addr[0], expectedAmount);
+    await expect(await contracts.src20.balanceOf(addr[0])).to.equal(expectedAmount);
   });
 
   it('Does not allow to claim tokens if not finished', async () => {
@@ -528,15 +573,19 @@ describe('Fundraiser', async function () {
     await runAndFinishFundraiser([hardCap]);
 
     expect(await fundraiser.supply()).to.equal(supply);
-    expect(await fundraiser.tokenPrice()).to.equal(hardCap.div(supply));
+    // hardcap === 10k => price = 10 with 18 decimals
+    expect(await fundraiser.tokenPrice()).to.equal(
+      BigNumber.from(10).mul(BigNumber.from(10).pow(18))
+    );
   });
 
   it('Computes supply if token price is specified', async () => {
-    const tokenPrice = parseUsd(2);
+    const tokenPrice = parseUsd(20);
     await deployFundraiser({ supply: 0, tokenPrice });
     await runAndFinishFundraiser([hardCap]);
 
-    expect(await fundraiser.supply()).to.equal(hardCap.div(tokenPrice));
+    // hardcap === 10k => supply = 500 with 18 decimals
+    expect(await fundraiser.supply()).to.equal(BigNumber.from(500).mul(BigNumber.from(10).pow(18)));
     expect(await fundraiser.tokenPrice()).to.equal(tokenPrice);
   });
 });

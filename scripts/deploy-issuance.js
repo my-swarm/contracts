@@ -113,6 +113,7 @@ async function main() {
   const [fundraiserContracts4, fundraiserOptions4] = await deployFundraiserContracts({
     ...baseContracts,
     ...token4,
+    affiliateManager: true,
   });
   token4 = { ...token4, ...fundraiserContracts4 };
   // day 1

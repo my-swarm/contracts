@@ -47,14 +47,17 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
     const [
       { fundraiser, affiliateManager, contributorRestrictions },
       options,
-    ] = await deployFundraiserContracts({
-      ...baseContracts,
-      ...tokenContracts,
-    });
+    ] = await deployFundraiserContracts(
+      {
+        ...baseContracts,
+        ...tokenContracts,
+      },
+      { affiliateManager: true }
+    );
 
     expect(fundraiser.address).to.match(REGEX_ADDR);
-    expect(fundraiser.affiliateManager()).to.equal(affiliateManager.address);
-    expect(fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
+    expect(await fundraiser.affiliateManager()).to.equal(affiliateManager.address);
+    expect(await fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
     expect(await fundraiser.label()).to.equal(options.label);
     expect(await fundraiser.token()).to.equal(tokenContracts.src20.address);
     expect(await fundraiser.supply()).to.equal(options.supply);
