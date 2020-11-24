@@ -26,7 +26,6 @@ let overrides = {
 // const src20FactoryAddress = '0x546E9Fc6582b249d609Ad7Aec100EBb195714AB3';
 // const assetRegistryAddress = '0x163f819fd94f61907fca84854F7E1e4030890889';
 // const TokenMinterAddress = '0x63c4693A1C574ea3A40EdC60f0BAe3E18A7F3044';
-// const MasterMinterAddress = '0x4cf64CA4279fa65F96411dabB5a9B73d3133F31D';
 //
 // const featuredAddress = '0x4D631Cf62AAEC62f28498729DEF41F8aaA697D13';
 // const src20RolesAddress = '0x33E5e1D9A2EAEfa6aa787719b04F8B737c4538c2';
@@ -83,11 +82,6 @@ async function setup() {
   );
   await this.TokenMinter.deployed();
   console.log('TokenMinter address is ', this.TokenMinter.address);
-
-  const MasterMinter = await ethers.getContractFactory('MasterMinter');
-  this.MasterMinter = await MasterMinter.deploy(this.src20Registry.address);
-  await this.MasterMinter.deployed();
-  console.log('MasterMinter address is ', this.MasterMinter.address);
 
   const Featured = await ethers.getContractFactory('Featured');
   this.featured = await Featured.deploy(wallet, '0x0000000000000000000000000000000000000000');

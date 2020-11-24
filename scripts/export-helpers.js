@@ -23,7 +23,6 @@ const BASE_CONTRACTS = {
   src20Factory: 'SRC20Factory',
   assetRegistry: 'AssetRegistry',
   tokenMinter: 'TokenMinter',
-  masterMinter: 'MasterMinter',
   affiliateManager: 'AffiliateManager',
   usdc: 'USDC',
   disperse: 'Disperse',

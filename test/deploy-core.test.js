@@ -60,12 +60,6 @@ describe('Properly deploys base contracts', async () => {
     // doesn't store owner
   });
 
-  it('Has MasterMinter contract properly setup', async () => {
-    const { masterMinter } = baseContracts;
-    expect(await masterMinter.address).to.match(REGEX_ADDR);
-    expect(await masterMinter.owner()).to.equal(swarmAddress);
-  });
-
   it('Has USDC contract properly setup', async () => {
     const { usdc } = baseContracts;
     expect(await usdc.address).to.match(REGEX_ADDR);

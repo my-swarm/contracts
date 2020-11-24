@@ -110,7 +110,6 @@ async function deployBaseContracts(customOptions = {}) {
     swmPriceOracle.address,
   ]);
   await src20Registry.addMinter(tokenMinter.address);
-  const masterMinter = await deployContract('MasterMinter', [src20Registry.address]);
   const usdc = await deployContract('ERC20Mock', options.stablecoinParams);
   await swm.transfer(issuerAddress, options.issuerSwmBalance);
   const fundraiserManager = await deployFundraiserManager(options.fundraiserManager);
@@ -124,7 +123,6 @@ async function deployBaseContracts(customOptions = {}) {
     src20Factory,
     assetRegistry,
     tokenMinter,
-    masterMinter,
     usdc,
     disperse,
     fundraiserManager,

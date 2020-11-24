@@ -22,7 +22,6 @@ describe('Minting and Staking', async () => {
   let swmPriceOracle;
   let src20Registry;
   let tokenMinter;
-  let masterMinter;
 
   let src20;
 
@@ -37,7 +36,6 @@ describe('Minting and Staking', async () => {
     swm = baseContracts.swm;
     swmPriceOracle = baseContracts.swmPriceOracle;
     tokenMinter = baseContracts.tokenMinter;
-    masterMinter = baseContracts.masterMinter;
     src20Registry = baseContracts.src20Registry;
 
     await swmPriceOracle.updatePrice(1, 1); // set nice price 1 swm = 1 usd
@@ -160,24 +158,4 @@ describe('Minting and Staking', async () => {
       tokenMinter.connect(issuer).stakeAndMint(src20.address, maxSupply)
     ).to.be.revertedWith('revert ERC20: transfer amount exceeds balance');
   });
-
-  // this test doesn't work because token can only have one minter and we cannot change it here
-  // we won't be normally using the MasterMinter anyway
-  // would have to deploy all the stuff manually and that's not worth the trouble
-  /*
-  it('Can stake and mint anything with MasterMinter', async () => {
-    const swmAmount = parseSwm(500);
-    const src20Amount = parseUnits('2000', 18);
-
-    await src20Registry.addMinter(masterMinter.address);
-
-    await expect(
-      masterMinter
-        // .connect(await getSwarm())
-        .mintSupply(src20.address, issuerAddress, swmAmount, src20Amount)
-    )
-      .to.emit(src20Registry, 'SRC20SupplyIncreased')
-      .withArgs(src20.address, swmAmount, issuerAddress, src20Amount);
-  });
-  */
 });
