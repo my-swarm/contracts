@@ -21,6 +21,7 @@ const CONTRACTS = [
   'Fundraiser',
   'ContributorRestrictions',
   'AffiliateManager',
+  'FundraiserManager',
 ];
 const ARTIFACTS_DIR = path.resolve(__dirname, '../artifacts');
 const SUBGRAPH_DIR = path.resolve(__dirname, '../../subgraph');

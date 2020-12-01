@@ -8,7 +8,7 @@
     "compile": "buidler compile && node ./scripts/distribute-abis.js",
     "fundraise": "buidler test ./test/fundraising/ContributeFundsLocal.js",
     "deploy:base": "buidler run scripts/deploy-base.js --show-stack-traces --verbose --network",
-    "deploy:issuance": "buidler run scripts/deploy-issuance.js --show-stack-traces --network",
+    "deploy:issuance": "yarn compile && buidler run scripts/deploy-issuance.js --show-stack-traces --network",
     "dev:base": "concurrently \"buidler node --verbose --hostname 0.0.0.0 --port 7545\" \"(sleep 2 && npm run deploy:base local)\"",
     "dev:issuance": "concurrently \"buidler node --hostname 0.0.0.0 --port 7545\" \"(sleep 2 && npm run deploy:issuance local)\"",
     "lint": "solhint -f table contracts/*.sol contracts/**/*.sol",

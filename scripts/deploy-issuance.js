@@ -1,3 +1,4 @@
+const moment = require('moment');
 require('dotenv').config({ path: '.env' });
 const {
   deployContract,
@@ -110,11 +111,13 @@ async function main() {
     symbol: 'TT4',
   });
   await distributeToken(swarm, usdc, ca, 1000);
-  const [fundraiserContracts4, fundraiserOptions4] = await deployFundraiserContracts({
-    ...baseContracts,
-    ...token4,
-    affiliateManager: true,
-  });
+  const [fundraiserContracts4, fundraiserOptions4] = await deployFundraiserContracts(
+    {
+      ...baseContracts,
+      ...token4,
+    },
+    { affiliateManager: true, endDate: moment().add(10, 'month').unix() }
+  );
   token4 = { ...token4, ...fundraiserContracts4 };
   // day 1
   await contribute(token4, contributors[0], 200);
@@ -205,8 +208,8 @@ async function main() {
   dumpContractAddresses(baseContracts);
   exportBaseContractAddresses(baseContracts);
   exportTokenContractAddresses('token1', token1);
-  // exportTokenContractAddresses('token2', token2);
-  // exportTokenContractAddresses('token3', token3);
+  exportTokenContractAddresses('token2', token2);
+  exportTokenContractAddresses('token3', token3);
   exportTokenContractAddresses('token4', token4);
   exportTokenContractAddresses('token5', token5);
 }
