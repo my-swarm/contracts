@@ -24,6 +24,7 @@ const BASE_CONTRACTS = {
   assetRegistry: 'AssetRegistry',
   tokenMinter: 'TokenMinter',
   affiliateManager: 'AffiliateManager',
+  fundraiserManager: 'FundraiserManager',
   usdc: 'USDC',
   disperse: 'Disperse',
 };
