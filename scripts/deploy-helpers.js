@@ -2,6 +2,7 @@ const moment = require('moment');
 const bre = require('@nomiclabs/buidler');
 const { ethers } = require('@nomiclabs/buidler');
 const _ = require('lodash');
+const { BigNumber } = ethers;
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -45,7 +46,7 @@ async function getBaseContractsOptions() {
     stablecoinParams,
     issuerSwmBalance: ethers.utils.parseUnits('1000000'), // Fmillion baby
     fundraiserManager: {
-      fee: ethers.utils.parseUnits('2000', 6), // 2k baby
+      fee: BigNumber.from(0), // ethers.utils.parseUnits('2000', 6),
       expirationTime: 7 * 24 * 3600, // a week
     },
   };
@@ -67,8 +68,8 @@ function getSrc20Options(customOptions = {}) {
     symbol: 'TST',
     decimals: 18,
     maxSupply: ethers.utils.parseUnits('1000000'), // million baby
-    kyaHash: '0xedd7337baaf5035c0c572ef6ad7fc00b3f83dc789325ba7c4cfe2cd281637533', // sha256 hash of kya doc
-    kyaUrl: 'ipfs://QmNcxu72jVNXgXqtyFGfCWJddM78Mzxmh22T3yMe6VHCV6',
+    kyaHash: '0x80369b2e08a8d439afd5d7ef90dec05bd456bcf24b369c20e91ac3cbeea37cb2', // keccak256 hash of kya doc
+    kyaUrl: 'ipfs:QmWZzX6BgD878piQM9mCse8MfAFLmb6q1K1g3QGW9SFGuj',
     nav: 1000, // thousand baby!!!
     ...customOptions,
   };

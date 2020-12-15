@@ -11,7 +11,7 @@ import '../token/SRC20.sol';
 import './FundraiserManager.sol';
 import './AffiliateManager.sol';
 
-//import '@nomiclabs/buidler/console.sol';
+import '@nomiclabs/buidler/console.sol';
 
 /**
  * @title The Fundraise Contract
@@ -35,6 +35,7 @@ contract Fundraiser {
     uint256 tokenPrice,
     address affiliateManager,
     address contributorRestrictions,
+    address fundraiserManager,
     address minter,
     bool contributionsLocked
   );
@@ -196,6 +197,7 @@ contract Fundraiser {
       tokenPrice,
       affiliateManager,
       contributorRestrictions,
+      fundraiserManager,
       minter,
       contributionsLocked
     );
@@ -361,7 +363,7 @@ contract Fundraiser {
     require(affiliateShares[msg.sender] > 0, 'There are no referrals to be collected');
     uint256 amount = affiliateShares[msg.sender];
     affiliateShares[msg.sender] = 0;
-    require(IERC20(baseCurrency).transfer(msg.sender, amount), 'Token transfer failed');
+    require(IERC20(baseCurrency).transferFrom(owner, msg.sender, amount), 'Token transfer failed');
 
     emit ReferralClaimed(msg.sender, amount);
     return true;
@@ -382,6 +384,10 @@ contract Fundraiser {
     IERC20(baseCurrency).transferFrom(msg.sender, address(this), required);
     totalFeePaid = totalFeePaid.add(required);
     emit FeePaid(msg.sender, required);
+  }
+
+  function fee() external view returns (uint256) {
+    return FundraiserManager(fundraiserManager).fee();
   }
 
   function isFeePaid() external view returns (bool) {

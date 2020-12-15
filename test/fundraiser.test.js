@@ -118,6 +118,7 @@ describe('Fundraiser', async function () {
   });
 
   async function payFee() {
+    if ((await fundraiser.fee()).eq(0)) return;
     await fundraiser.connect(issuer).payFee(fee);
   }
 
@@ -429,6 +430,8 @@ describe('Fundraiser', async function () {
   });
 
   it('Allows to pay fee and returns what is over required fee', async () => {
+    if ((await fundraiser.fee()).eq(0)) return;
+
     await expect(fundraiser.connect(issuer).payFee(0)).to.be.revertedWith(
       'Fundraiser: Fee must be greater than 0.'
     );
@@ -509,6 +512,8 @@ describe('Fundraiser', async function () {
   });
 
   it('Cannot finish if fee is not paid', async () => {
+    if ((await fundraiser.fee()).eq(0)) return;
+
     await contributeApproved(0, softCap);
     await fundraiser.connect(issuer).payFee(fee.sub(1));
     await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(

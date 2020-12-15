@@ -115,7 +115,9 @@ describe('Fundraiser affiliate/referrer', async function () {
   }
 
   async function finalizeFundraiser() {
-    await fundraiser.connect(issuer).payFee(fee);
+    if ((await fundraiser.fee()).gt(0)) {
+      await fundraiser.connect(issuer).payFee(fee);
+    }
     await fundraiser.connect(issuer).stakeAndMint();
   }
 
