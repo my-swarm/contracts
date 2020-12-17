@@ -128,6 +128,11 @@ async function denyTransfer({ transferRules }, transferId) {
   await transferRules.connect(issuer).denyTransfer(transferId);
 }
 
+async function addAffiliate({ affiliateManager }, address, referral, percentage) {
+  const issuer = await getIssuer();
+  await affiliateManager.connect(issuer).addOrUpdate(address, referral, percentage);
+}
+
 // helper helers :)
 
 async function sanitizeAmount(amount, token) {
@@ -166,4 +171,5 @@ module.exports = {
   ungreylist,
   approveTransfer,
   denyTransfer,
+  addAffiliate,
 };

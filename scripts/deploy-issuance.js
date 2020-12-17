@@ -28,6 +28,7 @@ const {
   acceptContributors,
   removeContributors,
   refund,
+  addAffiliate,
 } = require('./token-helpers');
 
 const { exportBaseContractAddresses, exportTokenContractAddresses } = require('./export-helpers');
@@ -119,6 +120,9 @@ async function main() {
     { affiliateManager: true, endDate: moment().add(10, 'month').unix() }
   );
   token4 = { ...token4, ...fundraiserContracts4 };
+  await addAffiliate(token4, ca[1], 'referral1', 10 * 10000); // 4 decimals
+  await addAffiliate(token4, ca[2], 'referral2', 2 * 10000);
+
   // day 1
   await contribute(token4, contributors[0], 200);
   await contribute(token4, contributors[1], 100);
