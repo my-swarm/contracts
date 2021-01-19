@@ -7,12 +7,16 @@ const {
   ZERO_ADDRESS,
   getIssuer,
   getAddresses,
+  takeSnapshot,
+  revertToSnapshot,
 } = require('../scripts/deploy-helpers');
 const { updateAllowance, stakeAndMint } = require('../scripts/token-helpers');
 
 const { getRandomAddress, getRandomAddresses } = require('./test-helpers');
 
 describe('Transfering SRC20', async () => {
+  let snapshotId;
+
   let issuer;
   let src20;
   let transferRules;
@@ -23,7 +27,7 @@ describe('Transfering SRC20', async () => {
   let balance;
   let amount;
 
-  beforeEach(async () => {
+  before(async () => {
     const [baseContracts] = await deployBaseContracts();
     const [tokenContracts] = await deployTokenContracts(baseContracts, { transferRules: true });
 
@@ -45,6 +49,12 @@ describe('Transfering SRC20', async () => {
       addr.map((x) => balance)
     );
     // now we have addresses 0..3 with 100 tokens
+    snapshotId = await takeSnapshot();
+  });
+
+  beforeEach(async function () {
+    await revertToSnapshot(snapshotId);
+    snapshotId = await takeSnapshot();
   });
 
   it('Allows free transfer from A to B without transfer rules', async () => {
@@ -95,6 +105,13 @@ describe('Transfering SRC20', async () => {
     expect(await src20.balanceOf(addr[0])).to.equal(balance.sub(amount));
     expect(await src20.balanceOf(addr[1])).to.equal(balance.add(amount));
   });
+
+  /*
+  it('Creates transfer request if both accounts are graylisted', async () => {
+    await transferRules.connect(issuer).bulkGreylistAccount([addr[0], addr[1]]);
+    src20.connect(accounts[0]).transfer(addr[1], amount);
+  });
+*/
 
   async function createTransferRequest() {
     await transferRules.connect(issuer).bulkGreylistAccount([addr[0], addr[1]]);
