@@ -1,8 +1,13 @@
+const bre = require('@nomiclabs/buidler');
+
 require('dotenv').config({ path: '.env' });
 const { deployBaseContracts, getAddresses, dumpContractAddresses } = require('./deploy-helpers');
 
 async function main() {
   const [swarmAccount, issuerAccount] = await getAddresses();
+  console.log(
+    `Deploying to network '${bre.network.name}' using ${swarmAccount} as deployer, ${issuerAccount} as token issuer`
+  );
   const [baseContracts] = await deployBaseContracts();
 
   console.log('----------------------');

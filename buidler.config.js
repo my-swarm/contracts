@@ -32,6 +32,11 @@ const gasAuto = {
   gasPrice: 'auto',
 };
 
+const gasLow = {
+  gas: 'auto',
+  gasPrice: 1,
+};
+
 module.exports = {
   etherscan: {
     // The url for the Etherscan API you want to use.
@@ -71,12 +76,6 @@ module.exports = {
     kovan: {
       url: 'https://kovan.infura.io/v3/13749734f374422692b1699e51b0877f',
       chainId: 42,
-      ...gasAuto,
-      accounts,
-    },
-    ropsten: {
-      url: 'https://ropsten.infura.io/v3/13749734f374422692b1699e51b0877f',
-      chainId: 3,
       ...gasAuto,
       accounts,
     },

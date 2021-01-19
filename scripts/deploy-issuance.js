@@ -40,7 +40,7 @@ const fundraiserOptions = {};
 async function main() {
   const [swarm, issuer, ...contributors] = await ethers.getSigners();
   const [baseContracts, baseContractsOptions] = await deployBaseContracts();
-  const { usdc } = baseContracts;
+  const { usdc, swm } = baseContracts;
   const [swarmAddress, issuerAddress, ...ca] = await getAddresses();
 
   async function deployToken(customSrc20Options = {}, customOptions = {}) {
@@ -51,6 +51,9 @@ async function main() {
     const [tokenContracts, outputOptions] = await deployTokenContracts(baseContracts, options);
     return [{ ...baseContracts, ...tokenContracts }, outputOptions];
   }
+
+  await distributeToken(swarm, usdc, ca, 2000);
+  await distributeToken(swarm, swm, ca, 2000);
 
   // 1. unminted token
   const [token1, token1Options] = await deployToken({
@@ -105,13 +108,12 @@ async function main() {
   await transferToken(token3.src20, contributors[0], ca[7], 500);
   await approveTransfer(token3, 2);
   await denyTransfer(token3, 3);
-
+  /*
   // 4. fundraising token
   let [token4, token4Options] = await deployToken({
     name: 'Testing Token: Fundraising',
     symbol: 'TT4',
   });
-  await distributeToken(swarm, usdc, ca, 1000);
   const [fundraiserContracts4, fundraiserOptions4] = await deployFundraiserContracts(
     {
       ...baseContracts,
@@ -184,17 +186,19 @@ async function main() {
   // total qualified: 200 + 100 + 300 + 500 = 1100
   // total pending: 500 + 500 = 1000
   // total refunded: 400 + 500 + 500 + 500 = 1900
-
+*/
   // 5. fundraised token
   let [token5] = await deployToken({
     name: 'Testing Token: Fundraised',
     symbol: 'TT5',
   });
-  await distributeToken(swarm, usdc, ca, 1000);
-  const [fundraiserContracts5] = await deployFundraiserContracts({
-    ...baseContracts,
-    ...token5,
-  });
+  const [fundraiserContracts5] = await deployFundraiserContracts(
+    {
+      ...baseContracts,
+      ...token5,
+    },
+    { hardCap: parseUnits('9000', 6) }
+  );
   token5 = { ...token5, ...fundraiserContracts5 };
   await massContribute(
     token5,
@@ -202,7 +206,6 @@ async function main() {
     contributors.map((x) => 500)
   );
   await acceptContributors(token5, ca);
-  await advanceTimeAndBlock(40 * 24 * 3600); // make sure we are after end date
 
   console.log('----------------------');
   console.log('Prerequisites deployed');
@@ -214,7 +217,7 @@ async function main() {
   exportTokenContractAddresses('token1', token1);
   exportTokenContractAddresses('token2', token2);
   exportTokenContractAddresses('token3', token3);
-  exportTokenContractAddresses('token4', token4);
+  // exportTokenContractAddresses('token4', token4);
   exportTokenContractAddresses('token5', token5);
 }
 
