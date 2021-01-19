@@ -145,6 +145,7 @@ contract Fundraiser {
     uint256 _hardCap
   ) public {
     require(_hardCap >= _softCap, 'Hardcap has to be >= Softcap');
+    require(_endDate > _startDate, 'End date has to be after start date');
     owner = msg.sender;
     label = _label;
     token = _token;
