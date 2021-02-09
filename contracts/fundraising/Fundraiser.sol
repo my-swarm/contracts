@@ -98,7 +98,7 @@ contract Fundraiser {
   // a qualified amount is an amount that has passed min/max checks
   mapping(address => uint256) public qualifiedContributions;
 
-  // contributors who has been whitelisted and contributed funds
+  // contributors who have been whitelisted and contributed funds
   mapping(address => bool) public contributors;
 
   // contributor to affiliate address mapping
@@ -111,17 +111,20 @@ contract Fundraiser {
   mapping(address => uint256) public contributorShares;
 
   modifier onlyOwner() {
-    require(msg.sender == owner, 'Caller is not the owner!');
+    require(msg.sender == owner, 'Fundraiser: Caller is not the owner!');
     _;
   }
 
   modifier onlyContributorRestrictions {
-    require(msg.sender == contributorRestrictions, 'Caller not Contributor Restrictions contract!');
+    require(
+      msg.sender == contributorRestrictions,
+      'Fundraiser: Caller not Contributor Restrictions contract!'
+    );
     _;
   }
 
   modifier onlyAcceptedCurrencies(address currency) {
-    require(currency == baseCurrency, 'Unsupported contribution currency');
+    require(currency == baseCurrency, 'Fundraiser: Unsupported contribution currency');
     _;
   }
 
@@ -144,8 +147,8 @@ contract Fundraiser {
     uint256 _softCap,
     uint256 _hardCap
   ) public {
-    require(_hardCap >= _softCap, 'Hardcap has to be >= Softcap');
-    require(_endDate > _startDate, 'End date has to be after start date');
+    require(_hardCap >= _softCap, 'Fundraiser: Hardcap has to be >= Softcap');
+    require(_endDate > _startDate, 'Fundraiser: End date has to be after start date');
     owner = msg.sender;
     label = _label;
     token = _token;
@@ -172,9 +175,12 @@ contract Fundraiser {
     address _minter,
     bool _contributionsLocked
   ) external onlyOwner() {
-    require(_tokenPrice > 0 || supply > 0, 'Either price or amount to mint is needed');
-    require(!isSetup, 'Contract is already set up');
-    require(!isCanceled, 'Fundraiser is canceled');
+    require(
+      _tokenPrice != 0 || supply != 0,
+      'Fundraiser: Either price or amount to mint is needed'
+    );
+    require(!isSetup, 'Fundraiser: Contract is already set up');
+    require(!isCanceled, 'Fundraiser: Fundraiser is canceled');
     // I think this is a bullshit condition that makes testing ver annoying
     // I don't see a reason for this as long as setup is a condition for contributions and other actions
     // which it is by the ongoing modifier
@@ -231,7 +237,7 @@ contract Fundraiser {
 
     require(
       IERC20(baseCurrency).transferFrom(msg.sender, address(this), _amount),
-      'ERC20 transfer failed'
+      'Fundraiser: ERC20 transfer failed'
     );
 
     _contribute(msg.sender, _amount, _referral);
@@ -262,8 +268,9 @@ contract Fundraiser {
           contributorAffiliates[_contributor]
         );
       }
+
       uint256 realAmount = _contribute(_contributor, amount, referral);
-      emit PendingContributionAccepted(_contributor, amount);
+      emit PendingContributionAccepted(_contributor, realAmount);
     }
     emit ContributorAccepted(_contributor);
     return true;
@@ -303,9 +310,9 @@ contract Fundraiser {
       endDate.add(FundraiserManager(fundraiserManager).expirationTime());
     require(
       isCanceled || isExpired || !contributionsLocked,
-      'Condition for refund not met (event canceled, expired or contributions not locked)!'
+      'Fundraiser: Condition for refund not met (event canceled, expired or contributions not locked)!'
     );
-    require(_fullRefund(msg.sender), 'There are no funds to refund');
+    require(_fullRefund(msg.sender), 'Fundraiser: There are no funds to refund');
     _removeContributor(msg.sender);
     _removeShare(msg.sender);
     emit ContributorRemoved(msg.sender, false);
@@ -341,8 +348,8 @@ contract Fundraiser {
    *  @return true on success
    */
   function claimTokens() external returns (bool) {
-    require(isFinished, 'Fundraise has not finished');
-    require(qualifiedContributions[msg.sender] > 0, 'There are no tokens to claim');
+    require(isFinished, 'Fundraiser: Fundraise has not finished');
+    require(qualifiedContributions[msg.sender] != 0, 'Fundraiser: There are no tokens to claim');
 
     uint256 contributed = qualifiedContributions[msg.sender];
     qualifiedContributions[msg.sender] = 0;
@@ -354,17 +361,23 @@ contract Fundraiser {
     uint256 tokenAmount = contributed.mul(tokenDecimals).div(tokenPrice).mul(tokenDecimals).div(
       baseCurrencyDecimals
     );
-    require(ISRC20(token).transferFrom(owner, msg.sender, tokenAmount), 'Token transfer failed');
+    require(
+      ISRC20(token).transferFrom(owner, msg.sender, tokenAmount),
+      'Fundraiser: Token transfer failed'
+    );
     emit TokensClaimed(msg.sender, tokenAmount);
     return true;
   }
 
   function claimReferrals() external returns (bool) {
-    require(isFinished, 'Fundraise is not finished');
-    require(affiliateShares[msg.sender] > 0, 'There are no referrals to be collected');
+    require(isFinished, 'Fundraiser: Fundraise is not finished');
+    require(affiliateShares[msg.sender] != 0, 'Fundraiser: There are no referrals to be collected');
     uint256 amount = affiliateShares[msg.sender];
     affiliateShares[msg.sender] = 0;
-    require(IERC20(baseCurrency).transferFrom(owner, msg.sender, amount), 'Token transfer failed');
+    require(
+      IERC20(baseCurrency).transferFrom(owner, msg.sender, amount),
+      'Fundraiser: Token transfer failed'
+    );
 
     emit ReferralClaimed(msg.sender, amount);
     return true;
@@ -397,11 +410,11 @@ contract Fundraiser {
 
   // forced by bytecode limitations
   function _ongoing() internal view returns (bool) {
-    require(isSetup, 'Fundraise setup not completed');
-    require(!isFinished, 'Fundraise has finished');
-    require(!isHardcapReached, 'HardCap has been reached');
-    require(block.timestamp >= startDate, 'Fundraise has not started yet');
-    require(block.timestamp <= endDate, 'Fundraise has ended');
+    require(isSetup, 'Fundraiser: Fundraise setup not completed');
+    require(!isFinished, 'Fundraiser: Fundraise has finished');
+    require(!isHardcapReached, 'Fundraiser: HardCap has been reached');
+    require(block.timestamp >= startDate, 'Fundraiser: Fundraise has not started yet');
+    require(block.timestamp <= endDate, 'Fundraiser: Fundraise has ended');
     return true;
   }
 
@@ -421,7 +434,7 @@ contract Fundraiser {
   ) internal returns (uint256) {
     require(
       IContributorRestrictions(contributorRestrictions).checkMinInvestment(_amount),
-      'Cannot invest less than minAmount'
+      'Fundraiser: Cannot invest less than minAmount'
     );
 
     bool qualified = IContributorRestrictions(contributorRestrictions).isWhitelisted(_contributor);
@@ -435,16 +448,18 @@ contract Fundraiser {
     if (!IContributorRestrictions(contributorRestrictions).checkMaxInvestment(newAmount)) {
       refund = newAmount.sub(maxAmount);
       _amount = _amount.sub(refund);
-      require(_amount != 0, 'Cannot invest more than maxAmount');
+      require(_amount != 0, 'Fundraiser: Cannot invest more than maxAmount');
     }
 
+    // @JIRI: We are using two if statements for qualified users.
+    // Maybe this is just done for readability
     if (qualified) {
       if (
         !IContributorRestrictions(contributorRestrictions).checkMaxContributors(
           numContributors.add(1)
         )
       ) {
-        revert('Maximum number of contributors reached');
+        revert('Fundraiser: Maximum number of contributors reached');
       }
       (bool hardcapReached, uint256 overHardcap) = _checkHardCap(amountQualified.add(_amount));
       if (hardcapReached) {
@@ -455,7 +470,8 @@ contract Fundraiser {
     }
 
     // note: this never happens in reality, because every function that calls this has the ongoing modifier which checks for hardcap
-    require(_amount > 0, 'Hardcap already reached');
+    // @Jiri: I think this is here to check the above if (hardcapReached)
+    require(_amount != 0, 'Fundraiser: Hardcap already reached');
 
     if (qualified) {
       qualifiedContributions[_contributor] = qualifiedContributions[_contributor].add(_amount);
@@ -468,10 +484,11 @@ contract Fundraiser {
     } else {
       pendingContributions[_contributor] = pendingContributions[_contributor].add(_amount);
       amountPending = amountPending.add(_amount);
+      // @Jiri: Shouldn't the _amount being emitted in this event be the total amount pending for this contributor?
       emit ContributionPending(_contributor, _amount);
     }
 
-    if (refund > 0) {
+    if (refund != 0) {
       _refund(_contributor, refund);
     }
 
@@ -497,7 +514,7 @@ contract Fundraiser {
     string memory _referral,
     uint256 _amount
   ) internal {
-    if (bytes(_referral).length > 0) {
+    if (bytes(_referral).length != 0) {
       (address affiliate, uint256 percentage) = AffiliateManager(affiliateManager).getByReferral(
         _referral
       );
@@ -526,23 +543,25 @@ contract Fundraiser {
   }
 
   function _checkHardCap(uint256 _amount) internal view returns (bool, uint256) {
-    bool pass;
-    uint256 refund;
+    bool hardcapReached;
+    uint256 overflow;
 
     if (_amount >= hardCap) {
-      pass = true;
-      refund = _amount.sub(hardCap);
+      hardcapReached = true;
+      overflow = _amount.sub(hardCap);
     } else {
-      pass = false;
-      refund = 0;
+      hardcapReached = false;
+      overflow = 0;
     }
-    return (pass, refund);
+    return (hardcapReached, overflow);
   }
 
+  //@Jiri This internal method is not being called anywhere.
   function _forwardFunds(address _proxy, uint256 _amount) internal {
     IERC20(baseCurrency).transfer(_proxy, _amount);
   }
 
+  //@Jiri This internal method is not being called anywhere.
   function _retrieveFunds(address _proxy, uint256 _amount) internal {
     // proxy should hold the code to allow for funds to be retrieved
   }
@@ -553,19 +572,19 @@ contract Fundraiser {
    *  @return true on success
    */
   function _finish() internal returns (uint256) {
-    require(!isFinished, 'Already finished');
-    require(amountQualified >= softCap, 'SoftCap not reached');
+    require(!isFinished, 'Fundraiser: Already finished');
+    require(amountQualified >= softCap, 'Fundraiser: SoftCap not reached');
     require(
       totalFeePaid >= FundraiserManager(fundraiserManager).fee(),
       'Fundraiser: Fee must be fully paid.'
     );
     require(
       block.timestamp < endDate.add(FundraiserManager(fundraiserManager).expirationTime()),
-      'Expiration time passed'
+      'Fundraiser: Expiration time passed'
     );
 
     if (amountQualified < hardCap && block.timestamp < endDate) {
-      revert('EndDate or hardCap not reached');
+      revert('Fundraiser: EndDate or hardCap not reached');
     }
     // lock the fundraise amount... it will be somewhere between the soft and hard caps
     contributionsLocked = true;
@@ -575,7 +594,7 @@ contract Fundraiser {
     // find out the token price
     uint256 baseCurrencyDecimals = uint256(10)**ERC20Detailed(baseCurrency).decimals();
     uint256 tokenDecimals = uint256(10)**SRC20(token).decimals();
-    if (tokenPrice > 0) {
+    if (tokenPrice != 0) {
       // decimals: 6 + 18 - 6 = 18
       supply = ((amountQualified.mul(tokenDecimals)).div(tokenPrice));
     } else {
@@ -599,7 +618,10 @@ contract Fundraiser {
     amountWithdrawn = amountQualified;
     amountQualified = 0;
 
-    require(IERC20(baseCurrency).transfer(_user, amountWithdrawn), 'ERC20 transfer failed');
+    require(
+      IERC20(baseCurrency).transfer(_user, amountWithdrawn),
+      'Fundraiser: ERC20 transfer failed'
+    );
     emit Withdrawn(_user, amountWithdrawn);
 
     return true;
@@ -608,7 +630,7 @@ contract Fundraiser {
   function _fullRefund(address _user) internal returns (bool) {
     uint256 amount = qualifiedContributions[_user].add(pendingContributions[_user]);
 
-    if (amount > 0) {
+    if (amount != 0) {
       amountQualified = amountQualified.sub(qualifiedContributions[_user]);
       amountPending = amountPending.sub(pendingContributions[_user]);
       delete qualifiedContributions[_user];
@@ -621,11 +643,12 @@ contract Fundraiser {
   }
 
   function _refund(address _contributor, uint256 _amount) internal returns (bool) {
-    if (_amount > 0) {
-      require(IERC20(baseCurrency).transfer(_contributor, _amount), 'ERC20 transfer failed!');
+    require(
+      IERC20(baseCurrency).transfer(_contributor, _amount),
+      'Fundraiser: ERC20 transfer failed!'
+    );
 
-      emit ContributionRefunded(_contributor, _amount);
-    }
+    emit ContributionRefunded(_contributor, _amount);
     return true;
   }
 }
