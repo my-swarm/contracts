@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 import '@openzeppelin/contracts/ownership/Ownable.sol';
 import './ManualApproval.sol';
 import './Whitelisted.sol';
-import '../interfaces/ISRC20.sol';
+import '../token/SRC20.sol';
 import '../interfaces/ITransferRules.sol';
 
 /*
@@ -29,26 +29,27 @@ contract TransferRules is ITransferRules, ManualApproval, Whitelisted {
    */
   function setSRC(address _src20) external returns (bool) {
     require(address(src20) == address(0), 'SRC20 already set');
-    src20 = ISRC20(_src20);
+    src20 = SRC20(_src20);
     return true;
   }
 
   /**
    * @dev Checks if transfer passes transfer rules.
    *
-   * @param _from The address to transfer from.
-   * @param _to The address to send tokens to.
-   * @param _value The amount of tokens to send.
+   * @param sender The address to transfer from.
+   * @param recipient The address to send tokens to.
+   * @param amount The amount of tokens to send.
    */
   function authorize(
-    address _from,
-    address _to,
-    uint256 _value
+    address sender,
+    address recipient,
+    uint256 amount
   ) public view returns (bool) {
     uint256 v;
-    v = _value; // eliminate compiler warning
+    v = amount; // eliminate compiler warning
     return
-      (isWhitelisted(_from) || isGreylisted(_from)) && (isWhitelisted(_to) || isGreylisted(_to));
+      (isWhitelisted(sender) || isGreylisted(sender)) &&
+      (isWhitelisted(recipient) || isGreylisted(recipient));
   }
 
   /**
@@ -56,23 +57,23 @@ contract TransferRules is ITransferRules, ManualApproval, Whitelisted {
    * on the whitelist funds should be transferred but if one of them are on the
    * grey list token-issuer/owner need to approve transfer.
    *
-   * @param _from The address to transfer from.
-   * @param _to The address to send tokens to.
-   * @param _value The amount of tokens to send.
+   * @param sender The address to transfer from.
+   * @param recipient The address to send tokens to.
+   * @param amount The amount of tokens to send.
    */
   function doTransfer(
-    address _from,
-    address _to,
-    uint256 _value
+    address sender,
+    address recipient,
+    uint256 amount
   ) external onlySRC20 returns (bool) {
-    require(authorize(_from, _to, _value), 'Transfer not authorized');
+    require(authorize(sender, recipient, amount), 'Transfer not authorized');
 
-    if (isGreylisted(_from) || isGreylisted(_to)) {
-      _requestTransfer(_from, _to, _value);
+    if (isGreylisted(sender) || isGreylisted(recipient)) {
+      _requestTransfer(sender, recipient, amount);
       return true;
     }
 
-    require(ISRC20(src20).executeTransfer(_from, _to, _value), 'SRC20 transfer failed');
+    require(SRC20(src20).executeTransfer(sender, recipient, amount), 'SRC20 transfer failed');
 
     return true;
   }

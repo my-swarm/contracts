@@ -1,117 +1,134 @@
 pragma solidity ^0.5.0;
 
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
-import '@openzeppelin/contracts/ownership/Ownable.sol';
-import '../interfaces/ISRC20Registry.sol';
-import '../interfaces/INetAssetValueUSD.sol';
+
+import '../token/SRC20.sol';
+import '../factories/SRC20Registry.sol';
 import '../interfaces/IPriceUSD.sol';
-import '../interfaces/ISRC20.sol';
 import '@nomiclabs/buidler/console.sol';
 
 /**
  * @title TokenMinter
  * @dev Serves as proxy (manager) for SRC20 minting/burning.
  * @dev To be called by the token issuer.
- * The swm/src ratio comes from an oracle and the stake amount from the staking table.f
+ * The swm/src ratio comes from an oracle and the stake amount from the staking table.
  */
 contract TokenMinter {
-  ISRC20Registry public registry;
-  INetAssetValueUSD public asset;
-  IPriceUSD public SWMPriceOracle;
-
   using SafeMath for uint256;
+  using SafeERC20 for IERC20;
 
-  constructor(
-    address _registry,
-    address _asset,
-    address _swmRate
-  ) public {
-    registry = ISRC20Registry(_registry);
-    asset = INetAssetValueUSD(_asset);
-    SWMPriceOracle = IPriceUSD(_swmRate);
+  IPriceUSD public SWMPriceOracle;
+  address public swm;
+
+  constructor(address _swm, address _swmPriceOracle) public {
+    SWMPriceOracle = IPriceUSD(_swmPriceOracle);
+    swm = _swm;
   }
 
-  modifier onlyTokenOwner(address _src20) {
+  modifier onlyAuthorised(address _src20) {
+    SRC20Registry registry = _getRegistry(_src20);
+
     require(
-      msg.sender == Ownable(_src20).owner() || msg.sender == ISRC20(_src20).fundraiser(),
-      'caller not token owner'
+      SRC20(_src20).getMinter() == address(this),
+      'TokenMinter: Not registered to mint token'
+    );
+    require(
+      _src20 == msg.sender || registry.fundraise(_src20, msg.sender),
+      'TokenMinter: Caller not authorized'
     );
     _;
   }
 
   /**
-   *  Calculate how many SWM tokens need to be staked to tokenize an asset
-   *  This function is custom for each TokenMinter contract
-   *  Specification: https://docs.google.com/document/d/1Z-XuTxGf5LQudO5QLmnSnD-k3nTb0tlu3QViHbOSQXo/
-   *
-   *  Note: The stake requirement depends only on the asset USD value and USD/SWM exchange rate (SWM price).
-   *        It doesn't depend on the number of tokens to be minted!
-   *
+   *  Calculate how many SWM tokens need to be paid as fee to tokenize an asset
    *  @param _nav Tokenized Asset Value in USD
    *  @return the number of SWM tokens
    */
-  function calcStake(uint256 _nav) public view returns (uint256) {
-    uint256 stakeUSD;
+  function calcFee(uint256 _nav) public view returns (uint256) {
+    uint256 feeUSD;
 
-    // Up to 500,000 NAV the stake is flat at 2,500 USD
-    if (_nav >= 0 && _nav <= 500000) stakeUSD = 2500;
+    // Up to 10,000 NAV the stake is flat at 1 SWM
+    // We return zero because the rest of the values are calculated based on SWM price.
+    if (_nav >= 0 && _nav <= 10000) feeUSD = 0;
 
-    // From 500K up to 1M stake is 0.5%
-    if (_nav > 500000 && _nav <= 1000000) stakeUSD = _nav.mul(5).div(1000);
+    // From 10000K up to 1M stake is 0.5%
+    if (_nav > 10000 && _nav <= 1000000) feeUSD = _nav.mul(5).div(1000);
 
     // From 1M up to 5M stake is 0.45%
-    if (_nav > 1000000 && _nav <= 5000000) stakeUSD = _nav.mul(45).div(10000);
+    if (_nav > 1000000 && _nav <= 5000000) feeUSD = _nav.mul(45).div(10000);
 
     // From 5M up to 15M stake is 0.40%
-    if (_nav > 5000000 && _nav <= 15000000) stakeUSD = _nav.mul(4).div(1000);
+    if (_nav > 5000000 && _nav <= 15000000) feeUSD = _nav.mul(4).div(1000);
 
     // From 15M up to 50M stake is 0.25%
-    if (_nav > 15000000 && _nav <= 50000000) stakeUSD = _nav.mul(25).div(10000);
+    if (_nav > 15000000 && _nav <= 50000000) feeUSD = _nav.mul(25).div(10000);
 
     // From 50M up to 100M stake is 0.20%
-    if (_nav > 50000000 && _nav <= 100000000) stakeUSD = _nav.mul(2).div(1000);
+    if (_nav > 50000000 && _nav <= 100000000) feeUSD = _nav.mul(2).div(1000);
 
     // From 100M up to 150M stake is 0.15%
-    if (_nav > 100000000 && _nav <= 150000000) stakeUSD = _nav.mul(15).div(10000);
+    if (_nav > 100000000 && _nav <= 150000000) feeUSD = _nav.mul(15).div(10000);
 
     // From 150M up stake is 0.10%
-    if (_nav > 150000000) stakeUSD = _nav.mul(1).div(1000);
+    if (_nav > 150000000) feeUSD = _nav.mul(1).div(1000);
 
     // 0.04 is returned as (4, 100)
     (uint256 numerator, uint256 denominator) = SWMPriceOracle.getPrice();
 
     // 10**18 because we return Wei
-    return stakeUSD.mul(denominator).div(numerator).mul(10**18);
-  } /// fn calcStake
+    if (feeUSD != 0) {
+      return feeUSD.mul(denominator).mul(10**18).div(numerator);
+    } else {
+      // User must stake one SWM
+      return 1 ether;
+    }
+  }
 
   /**
-   *  This proxy function calls the SRC20Registry function that will do two things
-   *  Note: prior to this, the msg.sender has to call approve() on the SWM ERC20 contract
-   *        and allow the Manager to withdraw SWM tokens
-   *  1. Withdraw the SWM tokens that are required for staking
-   *  2. Mint the SRC20 tokens
-   *  Only the Owner of the SRC20 token can call this function
+   *  This function mints SRC20 tokens
+   *  Only the SRC20 token can call this function
+   *  Minter must be registered for the specific SRC20
    *
    *  @param _src20 The address of the SRC20 token to mint tokens for
-   *  @param _src20Amount Number of SRC20 tokens to mint
+   *  @param _recipient The address of the recipient
+   *  @param _amount Number of SRC20 tokens to mint
    *  @return true on success
    */
-  function stakeAndMint(address _src20, uint256 _src20Amount)
-    external
-    onlyTokenOwner(_src20)
-    returns (bool)
-  {
-    uint256 swmAmount = calcStake(asset.getNav(_src20));
-    // where to transfer SWM tokens from
-    address swmAccount = msg.sender == ISRC20(_src20).fundraiser()
-      ? Ownable(_src20).owner()
-      : msg.sender;
+  function mint(
+    address _src20,
+    address _recipient,
+    uint256 _amount
+  ) external onlyAuthorised(_src20) returns (bool) {
+    uint256 swmAmount = calcFee(SRC20(_src20).nav());
 
-    require(
-      registry.mintSupply(_src20, swmAccount, swmAmount, _src20Amount),
-      'supply minting failed'
-    );
+    require(_applyFee(swm, swmAmount, _src20), 'TokenMinter: Fee application failed');
+
+    require(SRC20(_src20).executeMint(_recipient, _amount), 'TokenMinter: Token minting failed');
 
     return true;
+  }
+
+  // @TODO Need to implement this function
+  function _applyFee(
+    address _feeToken,
+    uint256 _feeAmount,
+    address _src20
+  ) internal returns (bool) {
+    SRC20Registry registry = _getRegistry(_src20);
+    uint256 treasuryAmount = _feeAmount.mul(2).div(10);
+    uint256 rewardAmount = _feeAmount.sub(treasuryAmount);
+    address treasury = registry.treasury();
+    address rewardPool = registry.rewardPool();
+
+    IERC20(_feeToken).safeTransfer(treasury, treasuryAmount);
+    IERC20(_feeToken).safeTransfer(rewardPool, rewardAmount);
+
+    return true;
+  }
+
+  function _getRegistry(address _token) internal view returns (SRC20Registry) {
+    return SRC20Registry(SRC20(_token).registry());
   }
 }

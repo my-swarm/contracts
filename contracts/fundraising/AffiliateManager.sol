@@ -1,7 +1,6 @@
 pragma solidity ^0.5.0;
 
 import '@openzeppelin/contracts/ownership/Ownable.sol';
-import '../roles/DelegateRole.sol';
 
 /**
  * @title AffiliateManager
@@ -9,7 +8,7 @@ import '../roles/DelegateRole.sol';
  * Serves to implement all functionality related to managing Affiliates,
  * Affiliate links, etc
  */
-contract AffiliateManager is Ownable, DelegateRole {
+contract AffiliateManager is Ownable {
   struct Affiliate {
     string referral;
     uint256 percentage; // NOTE: percentage is treated as a decimal with 4 decimals

@@ -6,8 +6,8 @@ import '@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol';
 
 import '../interfaces/ITokenMinter.sol';
 import '../interfaces/IContributorRestrictions.sol';
-import '../interfaces/ISRC20.sol';
 import '../token/SRC20.sol';
+import '../factories/SRC20Registry.sol';
 import './FundraiserManager.sol';
 import './AffiliateManager.sol';
 
@@ -186,7 +186,7 @@ contract Fundraiser {
     // which it is by the ongoing modifier
     // require(block.timestamp < startDate, 'Set up should be done before start date');
 
-    ISRC20(token).setFundraiser();
+    SRC20Registry(SRC20(token).registry()).registerFundraise(token, address(this));
 
     baseCurrency = _baseCurrency;
     if (supply == 0) {
@@ -325,7 +325,7 @@ contract Fundraiser {
    *
    *  @return true on success
    */
-  function stakeAndMint() external onlyOwner() returns (bool) {
+  function concludeAndmint() external onlyOwner() returns (bool) {
     // This has all the conditions and will revert if they are not met
     uint256 amountToMint = _finish();
 
@@ -334,7 +334,7 @@ contract Fundraiser {
       SRC20(token).allowance(msg.sender, address(this)) >= amountToMint,
       'Fundraiser: Not enough token allowance for distribution.'
     );
-    ITokenMinter(minter).stakeAndMint(token, amountToMint);
+    ITokenMinter(minter).mint(token, address(this), amountToMint);
 
     // send funds to the issuer
     _withdraw(msg.sender);
@@ -362,7 +362,7 @@ contract Fundraiser {
       baseCurrencyDecimals
     );
     require(
-      ISRC20(token).transferFrom(owner, msg.sender, tokenAmount),
+      SRC20(token).transferFrom(owner, msg.sender, tokenAmount),
       'Fundraiser: Token transfer failed'
     );
     emit TokensClaimed(msg.sender, tokenAmount);
@@ -554,16 +554,6 @@ contract Fundraiser {
       overflow = 0;
     }
     return (hardcapReached, overflow);
-  }
-
-  //@Jiri This internal method is not being called anywhere.
-  function _forwardFunds(address _proxy, uint256 _amount) internal {
-    IERC20(baseCurrency).transfer(_proxy, _amount);
-  }
-
-  //@Jiri This internal method is not being called anywhere.
-  function _retrieveFunds(address _proxy, uint256 _amount) internal {
-    // proxy should hold the code to allow for funds to be retrieved
   }
 
   /**

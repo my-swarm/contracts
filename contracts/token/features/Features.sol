@@ -12,7 +12,7 @@ contract Features is IFeatures, Pausable, Freezable, Ownable {
   uint8 public features;
 
   modifier enabled(uint8 feature) {
-    require(isEnabled(feature), 'Token feature is not enabled');
+    require(isEnabled(feature), 'Features: Token feature is not enabled');
     _;
   }
 
@@ -31,7 +31,8 @@ contract Features is IFeatures, Pausable, Freezable, Ownable {
       _features & ForceTransfer != 0,
       _features & Pausable != 0,
       _features & AccountBurning != 0,
-      _features & AccountFreezing != 0
+      _features & AccountFreezing != 0,
+      _features & TransferRules != 0
     );
   }
 

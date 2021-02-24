@@ -5,7 +5,6 @@ pragma solidity ^0.5.0;
 import '../interfaces/IContributorRestrictions.sol';
 import '../rules/Whitelisted.sol';
 import '../fundraising/Fundraiser.sol';
-import '../roles/DelegateRole.sol';
 
 /**
  * @title ContributorRestrictions
@@ -13,7 +12,7 @@ import '../roles/DelegateRole.sol';
  * Various restrictions that a Fundraiser can have.
  * Each Fundraiser contract points to one. Issuer sets it up when setting u fundraiser.
  */
-contract ContributorRestrictions is IContributorRestrictions, Whitelisted, DelegateRole {
+contract ContributorRestrictions is IContributorRestrictions, Whitelisted {
   address fundraiser;
   uint256 public maxCount;
   uint256 public minAmount;
@@ -21,7 +20,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted, Deleg
 
   modifier onlyAuthorised() {
     require(
-      msg.sender == owner() || msg.sender == fundraiser || _hasDelegate(msg.sender),
+      msg.sender == owner() || msg.sender == fundraiser,
       'ContributorRestrictions: caller is not authorised'
     );
     _;

@@ -1,21 +1,17 @@
 pragma solidity ^0.5.0;
 import '../token/SRC20.sol';
-import '../interfaces/ISRC20Registry.sol';
-import '../token/AssetRegistry.sol';
+import './SRC20Registry.sol';
 
 /**
  * @dev Factory that creates SRC20 token with requested token
  * properties and features.
  */
 contract SRC20Factory {
-  ISRC20Registry private registry;
+  SRC20Registry public registry;
 
   event SRC20Created(
     address owner,
     address token,
-    address transferRules,
-    address roles,
-    address features,
     string name,
     string symbol,
     uint8 decimals,
@@ -28,7 +24,7 @@ contract SRC20Factory {
    * @param _registry address of SRC20Registry contract.
    */
   constructor(address _registry) public {
-    registry = ISRC20Registry(_registry);
+    registry = SRC20Registry(_registry);
   }
 
   /**
@@ -40,41 +36,28 @@ contract SRC20Factory {
    * definition provided in the comments.
    * @dev Array is used to avoid "stack too deep" error
    *
-   * addressList = 0:transferRules, 1:roles, 2:features, 3:assetRegistry, 4: minter
    */
   function create(
+    address _owner,
     string memory _name,
     string memory _symbol,
     uint8 _decimals,
     uint256 _maxTotalSupply,
-    bytes32 _kyaHash,
-    string memory _kyaUrl,
+    bytes32 _kyaCid,
     uint256 _netAssetValueUSD,
-    address[] memory _addressList
+    uint8 _features,
+    address _minter
   ) public returns (bool) {
     address token = address(
-      new SRC20(msg.sender, _name, _symbol, _decimals, _maxTotalSupply, _addressList)
+      new SRC20(_owner, _name, _symbol, _decimals, _maxTotalSupply, _features, address(registry))
     );
 
-    registry.put(
-      token,
-      _addressList[1], // roles
-      msg.sender, // tokenOwner
-      _addressList[4] // minter
-    );
+    registry.register(token, _minter);
 
-    emit SRC20Created(
-      msg.sender,
-      token,
-      _addressList[0],
-      _addressList[1],
-      _addressList[2],
-      _name,
-      _symbol,
-      _decimals,
-      _maxTotalSupply
-    );
-    IAssetRegistry(_addressList[3]).addAsset(token, _kyaHash, _kyaUrl, _netAssetValueUSD);
+    SRC20(token).updateKya(_kyaCid);
+    SRC20(token).updateNav(_netAssetValueUSD);
+
+    emit SRC20Created(msg.sender, token, _name, _symbol, _decimals, _maxTotalSupply);
     return true;
   }
 }

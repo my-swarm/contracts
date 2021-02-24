@@ -1,8 +1,9 @@
 pragma solidity ^0.5.0;
 
-import '../interfaces/ITransferRules.sol';
-import '../interfaces/ISRC20.sol';
 import '@openzeppelin/contracts/ownership/Ownable.sol';
+
+import '../interfaces/ITransferRules.sol';
+import '../token/SRC20.sol';
 
 /*
  * @title ManualApproval contract
@@ -17,7 +18,7 @@ contract ManualApproval is Ownable {
   }
 
   uint256 public requestCounter = 1;
-  ISRC20 public src20;
+  SRC20 public src20;
 
   mapping(uint256 => TransferRequest) public transferRequests;
   mapping(address => bool) public greylist;
@@ -62,9 +63,6 @@ contract ManualApproval is Ownable {
    */
   function denyTransfer(uint256 _requestId) external returns (bool) {
     TransferRequest memory req = transferRequests[_requestId];
-    // todo: it didn't have the isOwner() part.
-    //    imo issuer should be the one to deny/cancel the request primaryly no?
-    //    fair enough, the 'from' guy can cancel too
     require(isOwner() || req.from == msg.sender, 'Not owner or sender of the transfer request');
 
     require(
