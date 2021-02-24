@@ -1,6 +1,7 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
-import '@openzeppelin/contracts/ownership/Ownable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 import '../interfaces/IPriceUSD.sol';
 
 /**
@@ -38,10 +39,10 @@ contract SWMPriceOracle is IPriceUSD, Ownable {
    *  This function gets the price of SWM in USD
    *
    *  0.0736 is returned as (736, 10000)
-   *  @return numerator, The numerator of the currently valid price of SWM in USD
-   *  @return denominator, The denominator of the currently valid price of SWM in USD
-   */
-  function getPrice() external view returns (uint256 numerator, uint256 denominator) {
+   *  @return numerator The numerator of the currently valid price of SWM in USD
+   *  @return denominator The denominator of the currently valid price of SWM in USD
+   **/
+  function getPrice() external override view returns (uint256 numerator, uint256 denominator) {
     return (priceNumerator, priceDenominator);
   }
 

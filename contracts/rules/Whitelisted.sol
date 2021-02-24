@@ -1,6 +1,7 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
-import '@openzeppelin/contracts/ownership/Ownable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 
 /**
  * @title Whitelisted transfer restriction example
@@ -14,12 +15,12 @@ contract Whitelisted is Ownable {
   event AccountWhitelisted(address account, address sender);
   event AccountUnWhitelisted(address account, address sender);
 
-  function whitelistAccount(address _account) external onlyOwner {
+  function whitelistAccount(address _account) external virtual onlyOwner {
     whitelisted[_account] = true;
     emit AccountWhitelisted(_account, msg.sender);
   }
 
-  function bulkWhitelistAccount(address[] calldata _accounts) external onlyOwner {
+  function bulkWhitelistAccount(address[] calldata _accounts) external virtual onlyOwner {
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
       whitelisted[account] = true;
@@ -27,12 +28,12 @@ contract Whitelisted is Ownable {
     }
   }
 
-  function unWhitelistAccount(address _account) external onlyOwner {
+  function unWhitelistAccount(address _account) external virtual onlyOwner {
     delete whitelisted[_account];
     emit AccountUnWhitelisted(_account, msg.sender);
   }
 
-  function bulkUnWhitelistAccount(address[] calldata _accounts) external onlyOwner {
+  function bulkUnWhitelistAccount(address[] calldata _accounts) external virtual onlyOwner {
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
       delete whitelisted[account];

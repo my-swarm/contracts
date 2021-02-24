@@ -1,9 +1,9 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
-import '@openzeppelin/contracts/ownership/Ownable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/cryptography/ECDSA.sol';
 
 import '../factories/SRC20Registry.sol';
@@ -15,7 +15,7 @@ import './features/Features.sol';
  * @title SRC20 contract
  * @dev Base SRC20 contract.
  */
-contract SRC20 is ERC20, ERC20Detailed, Ownable {
+contract SRC20 is ERC20, Ownable {
   using SafeMath for uint256;
   using ECDSA for bytes32;
 
@@ -49,11 +49,10 @@ contract SRC20 is ERC20, ERC20Detailed, Ownable {
     address _owner,
     string memory _name,
     string memory _symbol,
-    uint8 _decimals,
     uint256 _maxTotalSupply,
     uint8 _features,
     address _registry
-  ) public ERC20Detailed(_name, _symbol, _decimals) {
+  ) public ERC20(_name, _symbol) {
     maxTotalSupply = _maxTotalSupply;
 
     features = new Features(_owner, _features);
@@ -93,7 +92,7 @@ contract SRC20 is ERC20, ERC20Detailed, Ownable {
     (minter, ) = SRC20Registry(registry).registry(address(this));
   }
 
-  function transfer(address recipient, uint256 amount) public returns (bool) {
+  function transfer(address recipient, uint256 amount) public override returns (bool) {
     require(
       features.checkTransfer(msg.sender, recipient),
       'SRC20: Cannot transfer due to disabled feature'
@@ -112,7 +111,7 @@ contract SRC20 is ERC20, ERC20Detailed, Ownable {
     address sender,
     address recipient,
     uint256 amount
-  ) public returns (bool) {
+  ) public override returns (bool) {
     require(features.checkTransfer(sender, recipient), 'SRC20: Feature transfer check');
 
     _approve(sender, msg.sender, allowance(sender, msg.sender).sub(amount));

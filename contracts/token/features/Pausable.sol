@@ -1,14 +1,16 @@
-pragma solidity ^0.5.0;
-
-import '../../interfaces/IPausable.sol';
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
 /**
  * @title Pausable token feature
  * @dev Base contract providing implementation for token pausing and
  * checking if token is paused.
  */
-contract Pausable is IPausable {
+contract Pausable {
   bool public paused;
+
+  event Paused(address account);
+  event Unpaused(address account);
 
   /**
    * @dev Modifier to make a function callable only when the contract is not paused.

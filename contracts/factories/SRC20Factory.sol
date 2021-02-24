@@ -1,4 +1,6 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
+
 import '../token/SRC20.sol';
 import './SRC20Registry.sol';
 
@@ -14,7 +16,6 @@ contract SRC20Factory {
     address token,
     string name,
     string symbol,
-    uint8 decimals,
     uint256 maxTotalSupply
   );
 
@@ -41,7 +42,6 @@ contract SRC20Factory {
     address _owner,
     string memory _name,
     string memory _symbol,
-    uint8 _decimals,
     uint256 _maxTotalSupply,
     bytes32 _kyaCid,
     uint256 _netAssetValueUSD,
@@ -49,7 +49,7 @@ contract SRC20Factory {
     address _minter
   ) public returns (bool) {
     address token = address(
-      new SRC20(_owner, _name, _symbol, _decimals, _maxTotalSupply, _features, address(registry))
+      new SRC20(_owner, _name, _symbol, _maxTotalSupply, _features, address(registry))
     );
 
     registry.register(token, _minter);
@@ -57,7 +57,7 @@ contract SRC20Factory {
     SRC20(token).updateKya(_kyaCid);
     SRC20(token).updateNav(_netAssetValueUSD);
 
-    emit SRC20Created(msg.sender, token, _name, _symbol, _decimals, _maxTotalSupply);
+    emit SRC20Created(msg.sender, token, _name, _symbol, _maxTotalSupply);
     return true;
   }
 }

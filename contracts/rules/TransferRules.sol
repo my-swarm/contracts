@@ -1,6 +1,7 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
-import '@openzeppelin/contracts/ownership/Ownable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 import './ManualApproval.sol';
 import './Whitelisted.sol';
 import '../token/SRC20.sol';
@@ -18,7 +19,7 @@ contract TransferRules is ITransferRules, ManualApproval, Whitelisted {
   }
 
   constructor(address _owner) public {
-    _transferOwnership(_owner);
+    transferOwnership(_owner);
     whitelisted[_owner] = true;
   }
 
@@ -27,7 +28,7 @@ contract TransferRules is ITransferRules, ManualApproval, Whitelisted {
    *
    * @param _src20 - Address of SRC20 contract.
    */
-  function setSRC(address _src20) external returns (bool) {
+  function setSRC(address _src20) external override returns (bool) {
     require(address(src20) == address(0), 'SRC20 already set');
     src20 = SRC20(_src20);
     return true;
@@ -65,7 +66,7 @@ contract TransferRules is ITransferRules, ManualApproval, Whitelisted {
     address sender,
     address recipient,
     uint256 amount
-  ) external onlySRC20 returns (bool) {
+  ) external override onlySRC20 returns (bool) {
     require(authorize(sender, recipient, amount), 'Transfer not authorized');
 
     if (isGreylisted(sender) || isGreylisted(recipient)) {

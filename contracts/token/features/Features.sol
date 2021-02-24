@@ -1,24 +1,38 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
-import '@openzeppelin/contracts/ownership/Ownable.sol';
-import '../../interfaces/IFeatures.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
+
 import './Pausable.sol';
 import './Freezable.sol';
 
 /**
  * @dev Support for "SRC20 feature" modifier.
  */
-contract Features is IFeatures, Pausable, Freezable, Ownable {
+contract Features is Pausable, Freezable, Ownable {
   uint8 public features;
+  uint8 public constant ForceTransfer = 0x01;
+  uint8 public constant Pausable = 0x02;
+  uint8 public constant AccountBurning = 0x04;
+  uint8 public constant AccountFreezing = 0x08;
+  uint8 public constant TransferRules = 0x16;
 
   modifier enabled(uint8 feature) {
     require(isEnabled(feature), 'Features: Token feature is not enabled');
     _;
   }
 
+  event FeaturesUpdated(
+    bool forceTransfer,
+    bool tokenFreeze,
+    bool accountFreeze,
+    bool accountBurn,
+    bool transferRules
+  );
+
   constructor(address _owner, uint8 _features) public {
     _enable(_features);
-    _transferOwnership(_owner);
+    transferOwnership(_owner);
   }
 
   /**

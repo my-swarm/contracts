@@ -1,13 +1,12 @@
-pragma solidity ^0.5.0;
-
-import '../../interfaces/IFreezable.sol';
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
 /**
  * @title Freezable account
  * @dev Base contract providing internal methods for freezing,
  * unfreezing and checking accounts' status.
  */
-contract Freezable is IFreezable {
+contract Freezable {
   mapping(address => bool) private frozen;
 
   event AccountFrozen(address indexed account);

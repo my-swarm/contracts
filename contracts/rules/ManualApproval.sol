@@ -1,6 +1,7 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
-import '@openzeppelin/contracts/ownership/Ownable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 
 import '../interfaces/ITransferRules.sol';
 import '../token/SRC20.sol';
@@ -63,7 +64,10 @@ contract ManualApproval is Ownable {
    */
   function denyTransfer(uint256 _requestId) external returns (bool) {
     TransferRequest memory req = transferRequests[_requestId];
-    require(isOwner() || req.from == msg.sender, 'Not owner or sender of the transfer request');
+    require(
+      owner() == msg.sender || req.from == msg.sender,
+      'Not owner or sender of the transfer request'
+    );
 
     require(
       src20.executeTransfer(address(this), req.from, req.value),

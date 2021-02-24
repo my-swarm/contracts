@@ -1,10 +1,10 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
-//import '@nomiclabs/buidler/console.sol';
-
-import '../interfaces/IContributorRestrictions.sol';
 import '../rules/Whitelisted.sol';
 import '../fundraising/Fundraiser.sol';
+
+//import '@nomiclabs/buidler/console.sol';
 
 /**
  * @title ContributorRestrictions
@@ -12,7 +12,7 @@ import '../fundraising/Fundraiser.sol';
  * Various restrictions that a Fundraiser can have.
  * Each Fundraiser contract points to one. Issuer sets it up when setting u fundraiser.
  */
-contract ContributorRestrictions is IContributorRestrictions, Whitelisted {
+contract ContributorRestrictions is Whitelisted {
   address fundraiser;
   uint256 public maxCount;
   uint256 public minAmount;
@@ -54,7 +54,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted {
     return maxCount == 0 || _num <= maxCount;
   }
 
-  function whitelistAccount(address _account) external onlyAuthorised {
+  function whitelistAccount(address _account) external override onlyAuthorised {
     whitelisted[_account] = true;
     require(
       Fundraiser(fundraiser).acceptContributor(_account),
@@ -63,7 +63,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted {
     emit AccountWhitelisted(_account, msg.sender);
   }
 
-  function unWhitelistAccount(address _account) external onlyAuthorised {
+  function unWhitelistAccount(address _account) external override onlyAuthorised {
     delete whitelisted[_account];
     require(
       Fundraiser(fundraiser).removeContributor(_account),
@@ -72,7 +72,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted {
     emit AccountUnWhitelisted(_account, msg.sender);
   }
 
-  function bulkWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
+  function bulkWhitelistAccount(address[] calldata _accounts) external override onlyAuthorised {
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
       whitelisted[_accounts[i]] = true;
@@ -84,7 +84,7 @@ contract ContributorRestrictions is IContributorRestrictions, Whitelisted {
     }
   }
 
-  function bulkUnWhitelistAccount(address[] calldata _accounts) external onlyAuthorised {
+  function bulkUnWhitelistAccount(address[] calldata _accounts) external override onlyAuthorised {
     uint256 accLen = _accounts.length;
     for (uint256 i = 0; i < accLen; i++) {
       delete whitelisted[_accounts[i]];

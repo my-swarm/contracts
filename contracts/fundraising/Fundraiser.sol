@@ -1,13 +1,14 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.5.0 <0.7.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 import '../interfaces/ITokenMinter.sol';
-import '../interfaces/IContributorRestrictions.sol';
 import '../token/SRC20.sol';
 import '../factories/SRC20Registry.sol';
+import './ContributorRestrictions.sol';
 import './FundraiserManager.sol';
 import './AffiliateManager.sol';
 
@@ -354,7 +355,7 @@ contract Fundraiser {
     uint256 contributed = qualifiedContributions[msg.sender];
     qualifiedContributions[msg.sender] = 0;
 
-    uint256 baseCurrencyDecimals = uint256(10)**ERC20Detailed(baseCurrency).decimals();
+    uint256 baseCurrencyDecimals = uint256(10)**ERC20(baseCurrency).decimals();
     uint256 tokenDecimals = uint256(10)**SRC20(token).decimals();
 
     // decimals: 6 + 18 - 18 + 18 - 6
@@ -433,19 +434,19 @@ contract Fundraiser {
     string memory _referral
   ) internal returns (uint256) {
     require(
-      IContributorRestrictions(contributorRestrictions).checkMinInvestment(_amount),
+      ContributorRestrictions(contributorRestrictions).checkMinInvestment(_amount),
       'Fundraiser: Cannot invest less than minAmount'
     );
 
-    bool qualified = IContributorRestrictions(contributorRestrictions).isWhitelisted(_contributor);
-    uint256 maxAmount = IContributorRestrictions(contributorRestrictions).maxAmount();
+    bool qualified = ContributorRestrictions(contributorRestrictions).isWhitelisted(_contributor);
+    uint256 maxAmount = ContributorRestrictions(contributorRestrictions).maxAmount();
     uint256 refund = 0;
 
     uint256 currentAmount = qualified
       ? qualifiedContributions[_contributor]
       : pendingContributions[_contributor];
     uint256 newAmount = currentAmount.add(_amount);
-    if (!IContributorRestrictions(contributorRestrictions).checkMaxInvestment(newAmount)) {
+    if (!ContributorRestrictions(contributorRestrictions).checkMaxInvestment(newAmount)) {
       refund = newAmount.sub(maxAmount);
       _amount = _amount.sub(refund);
       require(_amount != 0, 'Fundraiser: Cannot invest more than maxAmount');
@@ -455,7 +456,7 @@ contract Fundraiser {
     // Maybe this is just done for readability
     if (qualified) {
       if (
-        !IContributorRestrictions(contributorRestrictions).checkMaxContributors(
+        !ContributorRestrictions(contributorRestrictions).checkMaxContributors(
           numContributors.add(1)
         )
       ) {
@@ -582,7 +583,7 @@ contract Fundraiser {
     emit FundraiserFinished();
 
     // find out the token price
-    uint256 baseCurrencyDecimals = uint256(10)**ERC20Detailed(baseCurrency).decimals();
+    uint256 baseCurrencyDecimals = uint256(10)**ERC20(baseCurrency).decimals();
     uint256 tokenDecimals = uint256(10)**SRC20(token).decimals();
     if (tokenPrice != 0) {
       // decimals: 6 + 18 - 6 = 18
