@@ -12,7 +12,7 @@ import './ContributorRestrictions.sol';
 import './FundraiserManager.sol';
 import './AffiliateManager.sol';
 
-import '@nomiclabs/buidler/console.sol';
+import 'hardhat/console.sol';
 
 /**
  * @title The Fundraise Contract

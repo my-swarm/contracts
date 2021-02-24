@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { ethers } = require('@nomiclabs/buidler');
+const { ethers } = require('hardhat');
 const { parseUnits } = ethers.utils;
 const {
   getIssuer,

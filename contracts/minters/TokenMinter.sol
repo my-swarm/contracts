@@ -8,7 +8,7 @@ import '@openzeppelin/contracts/math/SafeMath.sol';
 import '../token/SRC20.sol';
 import '../factories/SRC20Registry.sol';
 import '../interfaces/IPriceUSD.sol';
-import '@nomiclabs/buidler/console.sol';
+import 'hardhat/console.sol';
 
 /**
  * @title TokenMinter

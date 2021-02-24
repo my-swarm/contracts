@@ -4,7 +4,7 @@ pragma solidity >=0.5.0 <0.7.0;
 import '../rules/Whitelisted.sol';
 import '../fundraising/Fundraiser.sol';
 
-//import '@nomiclabs/buidler/console.sol';
+//import 'hardhat/console.sol';
 
 /**
  * @title ContributorRestrictions

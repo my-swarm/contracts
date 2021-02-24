@@ -1,6 +1,6 @@
 const moment = require('moment');
-const bre = require('@nomiclabs/buidler');
-const { ethers } = require('@nomiclabs/buidler');
+const bre = require('hardhat');
+const { ethers } = require('hardhat');
 const _ = require('lodash');
 const { BigNumber } = ethers;
 

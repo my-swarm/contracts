@@ -1,4 +1,4 @@
-const bre = require('@nomiclabs/buidler');
+const bre = require('hardhat');
 
 require('dotenv').config({ path: '.env' });
 const { deployBaseContracts, getAddresses, dumpContractAddresses } = require('./deploy-helpers');
