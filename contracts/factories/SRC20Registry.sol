@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
@@ -44,7 +44,7 @@ contract SRC20Registry is Ownable {
   event MinterAdded(address minter);
   event MinterRemoved(address minter);
 
-  constructor(address _treasury, address _rewardPool) public {
+  constructor(address _treasury, address _rewardPool) {
     require(_treasury != address(0), 'SRC20Registry: Treasury must be set');
     require(_rewardPool != address(0), 'SRC20Registry: Reward pool must be set');
     treasury = _treasury;
@@ -54,20 +54,15 @@ contract SRC20Registry is Ownable {
   function updateTreasury(address _treasury) external onlyOwner returns (bool) {
     require(_treasury != address(0), 'SRC20Registry: Treasury cannot be the zero address');
     treasury = _treasury;
+    return true;
   }
 
   function updateRewardPool(address _rewardPool) external onlyOwner returns (bool) {
     require(_rewardPool != address(0), 'SRC20Registry: Treasury cannot be the zero address');
     rewardPool = _rewardPool;
+    return true;
   }
 
-  /**
-   * @dev Adds new factory that can register token.
-   * Emits FactoryAdded event.
-   *
-   * @param _factory The factory contract address.
-   * @return True on success.
-   */
   function addFactory(address _factory) external onlyOwner returns (bool) {
     require(_factory != address(0), 'SRC20Registry: Factory is zero address');
     require(authorizedFactories[_factory] != true, 'SRC20Registry: Factory already in registry');
@@ -78,13 +73,6 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  /**
-   * @dev Removes factory that can register token.
-   * Emits FactoryRemoved event.
-   *
-   * @param _factory The factory contract address.
-   * @return True on success.
-   */
   function removeFactory(address _factory) external onlyOwner returns (bool) {
     require(_factory != address(0), 'SRC20Registry: Factory is zero address');
     require(authorizedFactories[_factory] == true, 'SRC20Registry: Factory not in registry');
@@ -111,14 +99,6 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  /**
-   * @dev Adds token to registry. Only factories can add.
-   * Emits SRC20Registered event.
-   *
-   * @param _token The token address.
-   * @param _minter Minter associated with the token.
-   * @return true on success.
-   */
   function register(address _token, address _minter) external onlyFactory returns (bool) {
     require(_token != address(0), 'SRC20Registry: Token is zero address');
     require(authorizedMinters[_minter], 'SRC20Registry: Minter not authorized');
@@ -132,13 +112,6 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  /**
-   * @dev Removes token from registry.
-   * Emits SRC20Removed event.
-   *
-   * @param _token The token address.
-   * @return True on success.
-   */
   function unregister(address _token) external onlyOwner returns (bool) {
     require(_token != address(0), 'SRC20Registry: Token is zero address');
     require(registry[_token].isRegistered, 'SRC20Registry: Token not in registry');
@@ -151,22 +124,10 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  /**
-   *  With this function you can fetch address of authorized minters for SRC20.
-   *
-   *  @param _token Address of SRC20 token we want to check minters for.
-   *  @return address of authorized minters.
-   */
   function getMinter(address _token) external view returns (address) {
     return registry[_token].minter;
   }
 
-  /**
-   *  This proxy function adds a contract to the list of authorized minters
-   *
-   *  @param _minter The address of the minters contract to add to the list of authorized minters
-   *  @return true on success
-   */
   function addMinter(address _minter) external onlyOwner returns (bool) {
     require(_minter != address(0), 'SRC20Registry: Minter is zero address');
     require(authorizedMinters[_minter] == false, 'SRC20Registry: Minter is already authorized');
@@ -178,12 +139,6 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  /**
-   *  This proxy function removes a contract from the list of authorized minters
-   *
-   *  @param _minter The address of the minters contract to remove from the list of authorized minters
-   *  @return true on success
-   */
   function removeMinter(address _minter) external onlyOwner returns (bool) {
     require(_minter != address(0), 'SRC20Registry: Minter is zero address');
     require(authorizedMinters[_minter], 'SRC20Registry: Minter is not authorized');

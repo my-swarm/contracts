@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
@@ -147,7 +147,7 @@ contract Fundraiser {
     uint256 _endDate,
     uint256 _softCap,
     uint256 _hardCap
-  ) public {
+  ) {
     require(_hardCap >= _softCap, 'Fundraiser: Hardcap has to be >= Softcap');
     require(_endDate > _startDate, 'Fundraiser: End date has to be after start date');
     owner = msg.sender;
@@ -387,13 +387,13 @@ contract Fundraiser {
   function payFee(uint256 _amount) external {
     require(_amount != 0, 'Fundraiser: Fee must be greater than 0.');
 
-    uint256 fee = FundraiserManager(fundraiserManager).fee();
-    require(fee > totalFeePaid, 'Fundraiser: Fee already paid.');
+    uint256 _fee = FundraiserManager(fundraiserManager).fee();
+    require(_fee > totalFeePaid, 'Fundraiser: Fee already paid.');
     uint256 feeSum = totalFeePaid.add(_amount);
     uint256 required = _amount;
 
-    if (feeSum > fee) {
-      required = feeSum.sub(fee);
+    if (feeSum > _fee) {
+      required = feeSum.sub(_fee);
     }
 
     IERC20(baseCurrency).transferFrom(msg.sender, address(this), required);
