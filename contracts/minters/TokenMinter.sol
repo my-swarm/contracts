@@ -53,29 +53,29 @@ contract TokenMinter {
   function calcFee(uint256 _nav) public view returns (uint256) {
     uint256 feeUSD;
 
-    // Up to 10,000 NAV the stake is flat at 1 SWM
+    // Up to 10,000 NAV the fee is flat at 1 SWM
     // We return zero because the rest of the values are calculated based on SWM price.
     if (_nav >= 0 && _nav <= 10000) feeUSD = 0;
 
-    // From 10000K up to 1M stake is 0.5%
+    // From 10000K up to 1M fee is 0.5%
     if (_nav > 10000 && _nav <= 1000000) feeUSD = _nav.mul(5).div(1000);
 
-    // From 1M up to 5M stake is 0.45%
+    // From 1M up to 5M fee is 0.45%
     if (_nav > 1000000 && _nav <= 5000000) feeUSD = _nav.mul(45).div(10000);
 
-    // From 5M up to 15M stake is 0.40%
+    // From 5M up to 15M fee is 0.40%
     if (_nav > 5000000 && _nav <= 15000000) feeUSD = _nav.mul(4).div(1000);
 
-    // From 15M up to 50M stake is 0.25%
+    // From 15M up to 50M fee is 0.25%
     if (_nav > 15000000 && _nav <= 50000000) feeUSD = _nav.mul(25).div(10000);
 
-    // From 50M up to 100M stake is 0.20%
+    // From 50M up to 100M fee is 0.20%
     if (_nav > 50000000 && _nav <= 100000000) feeUSD = _nav.mul(2).div(1000);
 
-    // From 100M up to 150M stake is 0.15%
+    // From 100M up to 150M fee is 0.15%
     if (_nav > 100000000 && _nav <= 150000000) feeUSD = _nav.mul(15).div(10000);
 
-    // From 150M up stake is 0.10%
+    // From 150M up fee is 0.10%
     if (_nav > 150000000) feeUSD = _nav.mul(1).div(1000);
 
     // 0.04 is returned as (4, 100)
@@ -85,7 +85,7 @@ contract TokenMinter {
     if (feeUSD != 0) {
       return feeUSD.mul(denominator).mul(10**18).div(numerator);
     } else {
-      // User must stake one SWM
+      // User must pay one SWM
       return 1 ether;
     }
   }
