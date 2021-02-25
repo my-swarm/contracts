@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
@@ -13,6 +13,7 @@ import './features/Features.sol';
 
 /**
  * @title SRC20 contract
+ * @author 0x5W4RM
  * @dev Base SRC20 contract.
  */
 contract SRC20 is ERC20, Ownable {
@@ -43,8 +44,8 @@ contract SRC20 is ERC20, Ownable {
   event KyaUpdated(address indexed src20, bytes32 kyaCid);
   event NavUpdated(address indexed src20, uint256 nav);
 
-  // Constructors
-  // note: owner is passed explicitly from the factory, that's why not msg.sender
+  /// @dev The owner is passed explicitly from the factory,
+  /// that's why it is not msg.sender
   constructor(
     address _owner,
     string memory _name,
@@ -52,7 +53,7 @@ contract SRC20 is ERC20, Ownable {
     uint256 _maxTotalSupply,
     uint8 _features,
     address _registry
-  ) public ERC20(_name, _symbol) {
+  ) ERC20(_name, _symbol) {
     maxTotalSupply = _maxTotalSupply;
 
     features = new Features(_owner, _features);
@@ -66,12 +67,6 @@ contract SRC20 is ERC20, Ownable {
     registry = _registry;
   }
 
-  /**
-   * Change the transfer rules contract. Only owner can call this role
-   *
-   * @param _transferRules address implementing on-chain restriction checks
-   * @return true on success.
-   */
   function updateTransferRules(address _transferRules) external onlyOwner returns (bool) {
     return _updateTransferRules(_transferRules);
   }
@@ -125,10 +120,9 @@ contract SRC20 is ERC20, Ownable {
   }
 
   /**
-   * @dev Transfer tokens from one address to another, used by token issuer. This
-   * call requires only that from address has enough tokens, all other checks are
+   * @dev Force transfer tokens from one address to another. This
+   * call expects the from address to have enough tokens, all other checks are
    * skipped.
-   * Emits Transfer event.
    * Allowed only to token owners. Require 'ForceTransfer' feature enabled.
    *
    * @param sender The address which you want to send tokens from.
@@ -146,7 +140,7 @@ contract SRC20 is ERC20, Ownable {
   }
 
   /**
-   * @dev This method is intended to be executed by TransferRules contract when doTransfer is called in transfer
+   * @dev This method is intended to be executed by the TransferRules contract when doTransfer is called in transfer
    * and transferFrom methods to check where funds should go.
    *
    * @param sender The address to transfer from.

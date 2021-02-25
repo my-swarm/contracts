@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 
@@ -8,8 +8,8 @@ import '../token/SRC20.sol';
 
 /*
  * @title ManualApproval contract
- * @dev On-chain transfer rule that is handling transfer request/execution for
- * grey-listed account
+ * @dev On-chain transfer rules that handle transfer request/execution for
+ * grey-listed accounts
  */
 contract ManualApproval is Ownable {
   struct TransferRequest {
@@ -42,11 +42,6 @@ contract ManualApproval is Ownable {
     uint256 value
   );
 
-  /**
-   * @dev Owner of this contract have authority to approve tx which are valid.
-   *
-   * @param _requestId - transfer request number.
-   */
   function approveTransfer(uint256 _requestId) external onlyOwner returns (bool) {
     TransferRequest memory req = transferRequests[_requestId];
 
@@ -57,11 +52,6 @@ contract ManualApproval is Ownable {
     return true;
   }
 
-  /**
-   * @dev Deny (delete) the transfer request.
-   *
-   * @param _requestId - transfer request number.
-   */
   function denyTransfer(uint256 _requestId) external returns (bool) {
     TransferRequest memory req = transferRequests[_requestId];
     require(
@@ -80,7 +70,6 @@ contract ManualApproval is Ownable {
     return true;
   }
 
-  // Handling grey listing
   function isGreylisted(address _account) public view returns (bool) {
     return greylist[_account];
   }

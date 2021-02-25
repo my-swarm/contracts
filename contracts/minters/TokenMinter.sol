@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
@@ -8,7 +8,6 @@ import '@openzeppelin/contracts/math/SafeMath.sol';
 import '../token/SRC20.sol';
 import '../factories/SRC20Registry.sol';
 import '../interfaces/IPriceUSD.sol';
-import '@nomiclabs/buidler/console.sol';
 
 /**
  * @title TokenMinter
@@ -25,7 +24,7 @@ contract TokenMinter {
 
   mapping(address => uint256) netAssetValue;
 
-  constructor(address _swm, address _swmPriceOracle) public {
+  constructor(address _swm, address _swmPriceOracle) {
     SWMPriceOracle = IPriceUSD(_swmPriceOracle);
     swm = _swm;
   }

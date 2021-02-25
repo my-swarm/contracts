@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '../token/SRC20.sol';
 import './SRC20Registry.sol';
@@ -20,22 +20,14 @@ contract SRC20Factory {
   );
 
   /**
-   * @dev Factory constructor expects SRC20 tokens registry.
-   * Each created token will be registered in registry.
-   * @param _registry address of SRC20Registry contract.
+   * @dev Factory constructor expects the SRC20 tokens registry.
+   * Each created token must be registered.
+   * @param _registry The address of SRC20Registry contract.
    */
-  constructor(address _registry) public {
+  constructor(address _registry) {
     registry = SRC20Registry(_registry);
   }
 
-  /**
-   * Creates new SRC20 contract. Expects token properties and
-   * desired capabilities of the token.
-   * Emits SRC20Created event with address of new token.
-   * @dev The address list has to be constructed according to the
-   * definition provided in the comments.
-   *
-   */
   function create(
     address _owner,
     string memory _name,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
@@ -16,7 +16,7 @@ contract FundraiserManager is Ownable {
   uint256 public expirationTime;
   uint256 public fee; // USDC has 6 decimal places
 
-  constructor(uint256 _expirationTime, uint256 _fee) public {
+  constructor(uint256 _expirationTime, uint256 _fee) {
     expirationTime = _expirationTime;
     fee = _fee;
   }

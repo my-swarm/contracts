@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '../rules/Whitelisted.sol';
 import '../fundraising/Fundraiser.sol';
@@ -31,7 +31,7 @@ contract ContributorRestrictions is Whitelisted {
     uint256 _maxCount,
     uint256 _minAmount,
     uint256 _maxAmount
-  ) public Ownable() {
+  ) Ownable() {
     require(
       _maxAmount == 0 || _maxAmount >= _minAmount,
       'Maximum amount has to be >= minInvestmentAmount'

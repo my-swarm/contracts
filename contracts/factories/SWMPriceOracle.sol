@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '../interfaces/IPriceUSD.sol';
@@ -25,7 +25,7 @@ contract SWMPriceOracle is IPriceUSD, Ownable {
   uint256 public priceNumerator;
   uint256 public priceDenominator;
 
-  constructor(uint256 _priceNumerator, uint256 _priceDenominator) public {
+  constructor(uint256 _priceNumerator, uint256 _priceDenominator) {
     require(_priceNumerator > 0, 'numerator must not be zero');
     require(_priceDenominator > 0, 'denominator must not be zero');
 
