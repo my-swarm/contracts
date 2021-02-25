@@ -108,7 +108,7 @@ async function main() {
   await transferToken(token3.src20, contributors[0], ca[7], 500);
   await approveTransfer(token3, 2);
   await denyTransfer(token3, 3);
-  /*
+
   // 4. fundraising token
   let [token4, token4Options] = await deployToken({
     name: 'Testing Token: Fundraising',
@@ -186,7 +186,6 @@ async function main() {
   // total qualified: 200 + 100 + 300 + 500 = 1100
   // total pending: 500 + 500 = 1000
   // total refunded: 400 + 500 + 500 + 500 = 1900
-*/
   // 5. fundraised token
   let [token5] = await deployToken({
     name: 'Testing Token: Fundraised',
@@ -217,7 +216,7 @@ async function main() {
   exportTokenContractAddresses('token1', token1);
   exportTokenContractAddresses('token2', token2);
   exportTokenContractAddresses('token3', token3);
-  // exportTokenContractAddresses('token4', token4);
+  exportTokenContractAddresses('token4', token4);
   exportTokenContractAddresses('token5', token5);
 }
 
