@@ -63,7 +63,7 @@ contract SRC20 is ERC20, Ownable {
     features = new Features(_owner, _features);
 
     if (features.isEnabled(features.TransferRules())) {
-      transferRules = new TransferRules(_owner);
+      transferRules = new TransferRules(address(this), _owner);
     }
 
     transferOwnership(_owner);

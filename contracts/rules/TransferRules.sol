@@ -14,11 +14,12 @@ import '../interfaces/ITransferRules.sol';
  */
 contract TransferRules is ITransferRules, ManualApproval, Whitelisted {
   modifier onlySRC20 {
-    require(msg.sender == address(src20));
+    require(msg.sender == address(src20), 'TransferRules: Caller not SRC20');
     _;
   }
 
-  constructor(address _owner) {
+  constructor(address _src20, address _owner) {
+    src20 = SRC20(_src20);
     transferOwnership(_owner);
     whitelisted[_owner] = true;
   }
