@@ -21,7 +21,6 @@ const BASE_CONTRACTS = {
   swmPriceOracle: 'SWMPriceOracle',
   src20Registry: 'SRC20Registry',
   src20Factory: 'SRC20Factory',
-  assetRegistry: 'AssetRegistry',
   tokenMinter: 'TokenMinter',
   affiliateManager: 'AffiliateManager',
   fundraiserManager: 'FundraiserManager',

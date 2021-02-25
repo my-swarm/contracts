@@ -9,7 +9,6 @@ const jsonConfig = {
 };
 
 const CONTRACTS = [
-  'AssetRegistry',
   'Features',
   'TokenMinter',
   'SRC20Roles',

@@ -48,12 +48,6 @@ describe('Properly deploys base contracts', async () => {
     // doesn't store owner
   });
 
-  it('Has AssetRegistry contract properly setup', async () => {
-    const { assetRegistry } = baseContracts;
-    expect(await assetRegistry.address).to.match(REGEX_ADDR);
-    // doesn't store owner
-  });
-
   it('Has TokenMinter contract properly setup', async () => {
     const { tokenMinter } = baseContracts;
     expect(await tokenMinter.address).to.match(REGEX_ADDR);

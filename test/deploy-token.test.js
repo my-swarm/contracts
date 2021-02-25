@@ -26,13 +26,11 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
   });
 
   it('Has SRC20 contract properly deployed', async () => {
-    const { assetRegistry } = baseContracts;
     const { src20 } = tokenContracts;
     expect(src20.address).to.match(REGEX_ADDR);
     expect(await src20.owner()).to.equal(issuerAddress);
     expect(await src20.maxTotalSupply()).to.equal(tokenOptions.src20.maxSupply);
     expect(await src20.name()).to.equal(tokenOptions.src20.name);
-    expect(await src20.assetRegistry()).to.equal(assetRegistry.address);
   });
 
   it('Has all other contracts inside ', async () => {
