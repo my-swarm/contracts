@@ -2,8 +2,9 @@
 pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 
 import '../interfaces/ITokenMinter.sol';
 import '../token/SRC20.sol';
@@ -12,14 +13,13 @@ import './ContributorRestrictions.sol';
 import './FundraiserManager.sol';
 import './AffiliateManager.sol';
 
-import '@nomiclabs/buidler/console.sol';
-
 /**
  * @title Fundraise Contract
  * This contract allows a SRC20 token owner to perform a Swarm-Powered Fundraise.
  */
-contract Fundraiser {
+contract Fundraiser is Ownable {
   using SafeMath for uint256;
+  using SafeERC20 for ERC20;
 
   event FundraiserCreated(
     string label,
@@ -59,8 +59,6 @@ contract Fundraiser {
   event Withdrawn(address indexed account, uint256 amount);
   event ReferralClaimed(address indexed account, uint256 amount);
   event FeePaid(address indexed account, uint256 amount);
-
-  address private owner;
 
   // from constructor
   string public label;
@@ -111,11 +109,6 @@ contract Fundraiser {
   // affil share per contributor. we need this to be able to revert given contributors part of affiliate share
   mapping(address => uint256) public contributorShares;
 
-  modifier onlyOwner() {
-    require(msg.sender == owner, 'Fundraiser: Caller is not the owner!');
-    _;
-  }
-
   modifier onlyContributorRestrictions {
     require(
       msg.sender == contributorRestrictions,
@@ -153,7 +146,6 @@ contract Fundraiser {
     startDate = _startDate == 0 || _startDate < block.timestamp ? block.timestamp : _startDate;
     require(_endDate > _startDate, 'Fundraiser: End date has to be after start date');
 
-    owner = msg.sender;
     label = _label;
     token = _token;
     supply = _supply;
@@ -234,10 +226,7 @@ contract Fundraiser {
   function contribute(uint256 _amount, string calldata _referral) external ongoing returns (bool) {
     require(_amount != 0, 'Fundraiser: cannot contribute 0');
 
-    require(
-      IERC20(baseCurrency).transferFrom(msg.sender, address(this), _amount),
-      'Fundraiser: ERC20 transfer failed'
-    );
+    ERC20(baseCurrency).safeTransferFrom(msg.sender, address(this), _amount);
 
     _contribute(msg.sender, _amount, _referral);
     return true;
@@ -323,15 +312,16 @@ contract Fundraiser {
    *
    *  @return true on success
    */
-  function concludeAndmint() external onlyOwner() returns (bool) {
+  function concludeAndMint() external onlyOwner() returns (bool) {
     // This has all the conditions and will revert if they are not met
     uint256 amountToMint = _finish();
 
     // src20 allowance pre-mint is required so that this contract can distribute tokens
     require(
-      SRC20(token).allowance(msg.sender, address(this)) >= amountToMint,
+      ERC20(token).allowance(msg.sender, address(this)) >= amountToMint,
       'Fundraiser: Not enough token allowance for distribution.'
     );
+
     ITokenMinter(minter).mint(token, address(this), amountToMint);
 
     // send funds to the issuer
@@ -359,10 +349,9 @@ contract Fundraiser {
     uint256 tokenAmount = contributed.mul(tokenDecimals).div(tokenPrice).mul(tokenDecimals).div(
       baseCurrencyDecimals
     );
-    require(
-      SRC20(token).transferFrom(owner, msg.sender, tokenAmount),
-      'Fundraiser: Token transfer failed'
-    );
+
+    ERC20(token).safeTransfer(msg.sender, tokenAmount);
+
     emit TokensClaimed(msg.sender, tokenAmount);
     return true;
   }
@@ -372,10 +361,8 @@ contract Fundraiser {
     require(affiliateShares[msg.sender] != 0, 'Fundraiser: There are no referrals to be collected');
     uint256 amount = affiliateShares[msg.sender];
     affiliateShares[msg.sender] = 0;
-    require(
-      IERC20(baseCurrency).transferFrom(owner, msg.sender, amount),
-      'Fundraiser: Token transfer failed'
-    );
+
+    ERC20(baseCurrency).safeTransfer(msg.sender, amount);
 
     emit ReferralClaimed(msg.sender, amount);
     return true;
@@ -395,7 +382,7 @@ contract Fundraiser {
       required = feeSum.sub(_fee);
     }
 
-    IERC20(baseCurrency).transferFrom(msg.sender, address(this), required);
+    ERC20(baseCurrency).safeTransferFrom(msg.sender, address(this), required);
     totalFeePaid = totalFeePaid.add(required);
     emit FeePaid(msg.sender, required);
   }
@@ -600,10 +587,7 @@ contract Fundraiser {
     amountWithdrawn = amountQualified;
     amountQualified = 0;
 
-    require(
-      IERC20(baseCurrency).transfer(_user, amountWithdrawn),
-      'Fundraiser: ERC20 transfer failed'
-    );
+    ERC20(baseCurrency).safeTransfer(_user, amountWithdrawn);
     emit Withdrawn(_user, amountWithdrawn);
 
     return true;
@@ -625,10 +609,7 @@ contract Fundraiser {
   }
 
   function _refund(address _contributor, uint256 _amount) internal returns (bool) {
-    require(
-      IERC20(baseCurrency).transfer(_contributor, _amount),
-      'Fundraiser: ERC20 transfer failed!'
-    );
+    ERC20(baseCurrency).safeTransfer(_contributor, _amount);
 
     emit ContributionRefunded(_contributor, _amount);
     return true;

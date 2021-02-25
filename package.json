@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.4.0",
+    "@uniswap/sdk": "^3.0.3",
     "json-format": "^1.0.1"
   }
 }
