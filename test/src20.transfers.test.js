@@ -3,14 +3,14 @@ const { ethers } = require('hardhat');
 const { parseUnits } = ethers.utils;
 const {
   deployBaseContracts,
-  deployTokenContracts,
+  deployToken,
   ZERO_ADDRESS,
   getIssuer,
   getAddresses,
   takeSnapshot,
   revertToSnapshot,
 } = require('../scripts/deploy-helpers');
-const { updateAllowance, stakeAndMint } = require('../scripts/token-helpers');
+const { updateAllowance, mint } = require('../scripts/token-helpers');
 
 const { getRandomAddress, getRandomAddresses } = require('./test-helpers');
 
@@ -29,7 +29,7 @@ describe('Transfering SRC20', async () => {
 
   before(async () => {
     const [baseContracts] = await deployBaseContracts();
-    const [tokenContracts] = await deployTokenContracts(baseContracts, { transferRules: true });
+    const [tokenContracts] = await deployToken(baseContracts, { transferRules: true });
 
     issuer = await getIssuer();
 
@@ -42,7 +42,7 @@ describe('Transfering SRC20', async () => {
     accounts = (await ethers.getSigners()).slice(10, 14);
     addr = (await getAddresses()).slice(10, 14);
 
-    await stakeAndMint({ ...baseContracts, ...tokenContracts }, 1000, supply);
+    await mint({ ...baseContracts, ...tokenContracts }, 1000, supply);
 
     await src20.connect(issuer).bulkTransfer(
       addr,

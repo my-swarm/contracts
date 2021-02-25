@@ -3,12 +3,12 @@ const { ethers } = require('hardhat');
 const { parseUnits } = ethers.utils;
 const {
   deployBaseContracts,
-  deployTokenContracts,
+  deployToken,
   ZERO_ADDRESS,
   getIssuer,
   getAddresses,
 } = require('../scripts/deploy-helpers');
-const { stakeAndMint } = require('../scripts/token-helpers');
+const { mint } = require('../scripts/token-helpers');
 
 const FEATURE_TRANSFER = 1;
 const FEATURE_PAUSABLE = 2;
@@ -27,7 +27,7 @@ describe('Transfering SRC20 with features', async () => {
 
   async function deploy(featuresMap) {
     const [baseContracts] = await deployBaseContracts();
-    const [tokenContracts] = await deployTokenContracts(baseContracts, { features: featuresMap });
+    const [tokenContracts] = await deployToken(baseContracts, { features: featuresMap });
 
     issuer = await getIssuer();
 
@@ -39,7 +39,7 @@ describe('Transfering SRC20 with features', async () => {
     accounts = (await ethers.getSigners()).slice(10, 14);
     addr = (await getAddresses()).slice(10, 14);
 
-    await stakeAndMint({ ...baseContracts, ...tokenContracts }, 1000, supply);
+    await mint({ ...baseContracts, ...tokenContracts }, 1000, supply);
 
     await src20.connect(issuer).bulkTransfer(
       addr,

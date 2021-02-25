@@ -1,16 +1,14 @@
 const moment = require('moment');
 require('dotenv').config({ path: '.env' });
 const {
-  deployContract,
   deployBaseContracts,
-  getAddresses,
   dumpContractAddresses,
-  deployTokenContracts,
+  deployToken,
   deployFundraiserContracts,
   advanceTimeAndBlock,
 } = require('./deploy-helpers');
 const {
-  stakeAndMint,
+  mint,
   distributeToken,
   transferToken,
   bulkTransfer,
@@ -38,44 +36,39 @@ const { parseUnits } = ethers.utils;
 const fundraiserOptions = {};
 
 async function main() {
-  const [swarm, issuer, ...contributors] = await ethers.getSigners();
-  const [baseContracts, baseContractsOptions] = await deployBaseContracts();
+  const [swarm, issuer, trasury, rewardsPool, ...contributors] = await ethers.getSigners();
+  const [baseContracts] = await deployBaseContracts();
   const { usdc, swm } = baseContracts;
-  const [swarmAddress, issuerAddress, ...ca] = await getAddresses();
-
-  async function deployToken(customSrc20Options = {}, customOptions = {}) {
-    const options = {
-      src20: customSrc20Options,
-      ...customOptions,
-    };
-    const [tokenContracts, outputOptions] = await deployTokenContracts(baseContracts, options);
-    return [{ ...baseContracts, ...tokenContracts }, outputOptions];
-  }
+  const ca = contributors.map((c) => c.address);
 
   await distributeToken(swarm, usdc, ca, 2000);
   await distributeToken(swarm, swm, ca, 2000);
 
   // 1. unminted token
-  const [token1, token1Options] = await deployToken({
+  const [token1, token1Options] = await deployToken(baseContracts, {
     name: 'Testing Token: Unminted',
     symbol: 'TT1',
   });
 
   // 2. whitelist token
-  const [token2, token2Options] = await deployToken(
-    {
-      name: 'Testing Token: Minted with Whitelist',
-      symbol: 'TT2',
-    },
-    { transferRules: true }
-  );
-  await stakeAndMint(token2, token2Options.src20.nav, token2Options.src20.maxSupply.div(2));
+  const [token2, token2Options] = await deployToken(baseContracts, {
+    name: 'Testing Token: Minted with Whitelist',
+    symbol: 'TT2',
+    features: 31,
+  });
+  console.log('mint');
+  await mint(token2, token2Options.nav, token2Options.maxSupply.div(2));
+  console.log('updateAllowance');
   await updateAllowance(issuer, token2.swm, token2.src20Registry.address, -1); // unlimited allowance to simplify
   // max supply is 1 million, 500k minted so far. After we should have 500 + 200 - 100 = 600
-  await increaseSupply(token2, 200000);
-  await decreaseSupply(token2, 100000);
+  // console.log('increase supply');
+  // await increaseSupply(token2, 200000);
+  // console.log('decrease supply');
+  // await decreaseSupply(token2, 100000);
 
+  console.log('whitelist');
   await whitelist(token2, ca.slice(0, 5));
+  console.log('unwhitelist');
   await unwhitelist(token2, [ca[2], ca[4]]);
   await whitelist(token2, ca[2]);
   await distributeToken(issuer, token2.src20, ca.slice(0, 4), 1000);
@@ -84,17 +77,15 @@ async function main() {
   await transferToken(token2.src20, contributors[1], ca[2], 100);
 
   // 3. graylist token
-  const [token3, token3Options] = await deployToken(
-    {
-      name: 'Testing Token: Minted with Greylist',
-      symbol: 'TT3',
-    },
-    { transferRules: true, features: 5 }
-  );
-  await stakeAndMint(token3, token3Options.src20.nav, token3Options.src20.maxSupply.div(2));
+  const [token3, token3Options] = await deployToken(baseContracts, {
+    name: 'Testing Token: Minted with Greylist',
+    symbol: 'TT3',
+    features: 21, // 1 + 4 + 16
+  });
+  await mint(token3, token3Options.nav, token3Options.maxSupply.div(2));
   await updateAllowance(issuer, token3.swm, token3.src20Registry.address, -1); // unlimited allowance to simplify
 
-  await updateAllowance(issuer, token3.src20, issuerAddress, -1); // also allow myself to spend src for bulk
+  await updateAllowance(issuer, token3.src20, issuer.address, -1); // also allow myself to spend src for bulk
   await bulkTransfer(token3, ca.slice(0, 8), [5000, 2000, 3000, 4000, 5000, 1000, 1000, 1000]);
   await greylist(token3, ca.slice(0, 8));
   await ungreylist(token3, [ca[3], ca[4]]);
@@ -110,7 +101,7 @@ async function main() {
   await denyTransfer(token3, 3);
 
   // 4. fundraising token
-  let [token4, token4Options] = await deployToken({
+  let [token4, token4Options] = await deployToken(baseContracts, {
     name: 'Testing Token: Fundraising',
     symbol: 'TT4',
   });
@@ -187,7 +178,7 @@ async function main() {
   // total pending: 500 + 500 = 1000
   // total refunded: 400 + 500 + 500 + 500 = 1900
   // 5. fundraised token
-  let [token5] = await deployToken({
+  let [token5] = await deployToken(baseContracts, {
     name: 'Testing Token: Fundraised',
     symbol: 'TT5',
   });

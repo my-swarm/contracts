@@ -39,19 +39,15 @@ async function getAddresses() {
 async function getBaseContractsOptions() {
   const [swarm, issuer, treasury, rewardsPool] = await ethers.getSigners();
 
-  const swmSupply = ethers.utils.parseUnits('10000000'); // 10 million baby
-  const swmPrice = [1, 2]; // 0.5 USD in the format for the Oracle constructor
-  const swmParams = ['Swarm Token', 'SWM', 18];
-  const stablecoinParams = ['USDC', 'USDC', 6]; // billion baby
   return {
-    swmSupply,
+    swmSupply: ethers.utils.parseUnits('10000000'), // 10 million baby,
     swarm,
     issuer,
     treasury,
     rewardsPool,
-    swmPrice,
-    swmParams,
-    stablecoinParams,
+    swmPrice: [1, 2], // 0.5 USD in the format for the Oracle constructor,
+    stablecoinParams: ['USDC', 'USDC', 6],
+    stablecoinSupply: ethers.utils.parseUnits('10000000'), // 10 million baby,
     issuerSwmBalance: ethers.utils.parseUnits('1000000'), // million baby
     fundraiserManager: {
       fee: BigNumber.from(0), // ethers.utils.parseUnits('2000', 6),
@@ -60,25 +56,15 @@ async function getBaseContractsOptions() {
   };
 }
 
-async function getTokenContractsOptions() {
-  const issuer = await getIssuer();
-  return {
-    issuer,
-    features: 15, // token features bitmap: all anabled (1 + 2 + 4 + 8)
-    transferRules: false,
-    src20: getSrc20Options(),
-  };
-}
-
 function getSrc20Options(customOptions = {}) {
   return {
     name: 'Testing Security Token',
     symbol: 'TST',
-    decimals: 18,
     maxSupply: ethers.utils.parseUnits('1000000'), // million baby
-    kyaHash: '0x80369b2e08a8d439afd5d7ef90dec05bd456bcf24b369c20e91ac3cbeea37cb2', // keccak256 hash of kya doc
-    kyaUrl: 'ipfs:QmWZzX6BgD878piQM9mCse8MfAFLmb6q1K1g3QGW9SFGuj',
+    kyaUri: 'ipfs:QmWZzX6BgD878piQM9mCse8MfAFLmb6q1K1g3QGW9SFGuj',
     nav: 1000, // thousand baby!!!
+    features: 15, // token features bitmap: all anabled, no transfer rules (1 + 2 + 4 + 8)
+    // features: 31, // token features bitmap: all anabled (1 + 2 + 4 + 8 + 16)
     ...customOptions,
   };
 }
@@ -154,18 +140,20 @@ async function deployBaseTokens(options) {
   let swm;
   let usdc;
   if (bre.network.name === 'mainnet') {
-    swm = await ethers.getContractAt('MockERC20', '0x3505f494c3f0fed0b594e01fa41dd3967645ca39');
+    swm = await ethers.getContractAt('ERC20', '0x3505f494c3f0fed0b594e01fa41dd3967645ca39');
     log(`using mainnet swm: ${swm.address}`);
-    usdc = await ethers.getContractAt('MockERC20', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
+    usdc = await ethers.getContractAt('ERC20', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
     log(`using mainnet usdc: ${usdc.address}`);
   } else {
-    swm = await deployContract('MockERC20', options.swmParams);
+    swm = await deployContract('MockSwm');
     log(`mock swm deployed: ${swm.address}`);
     await swm.mint(swarm.address, options.swmSupply);
     await swm.transfer(issuer.address, options.issuerSwmBalance);
     log('SWM minted and sent to token issuer');
-    usdc = await deployContract('MockERC20', options.stablecoinParams);
+    usdc = await deployContract('MockUsdc');
     log(`mock usdc deployed: ${usdc.address}`);
+    await usdc.mint(swarm.address, options.stablecoinSupply);
+    log('SWM minted and sent to token issuer');
   }
   return { swm, usdc };
 }
@@ -173,10 +161,6 @@ async function deployBaseTokens(options) {
 async function deployDisperse() {
   let disperse;
   switch (bre.network.name) {
-    case 'local':
-      disperse = await deployContract('Disperse', []);
-      log(`mock disperse deployed: ${disperse.address}`);
-      break;
     case 'kovan':
       disperse = await ethers.getContractAt(
         'Disperse',
@@ -191,57 +175,39 @@ async function deployDisperse() {
       );
       log(`using mainnet disperse: ${disperse.address}`);
       break;
+    default:
+      disperse = await deployContract('Disperse', []);
+      log(`mock disperse deployed: ${disperse.address}`);
+      break;
   }
   return disperse;
 }
 
-async function deployTokenContracts(baseContracts, customOptions = {}, skipSrc20 = false) {
-  const options = _.merge(await getTokenContractsOptions(), customOptions);
-  const { issuer } = options;
-  const issuerAddress = await issuer.getAddress();
-  const { src20Factory, src20Registry, tokenMinter } = baseContracts;
-  const transferRules = options.transferRules
-    ? await deployContract('TransferRules', [issuerAddress], issuer)
-    : undefined;
-  const features = await deployContract('Features', [issuerAddress, options.features || 0], issuer);
-  const roles = await deployContract(
-    'SRC20Roles',
-    [src20Registry.address, transferRules ? transferRules.address : ZERO_ADDRESS],
-    issuer
-  );
+async function deployToken(baseContracts, customOptions = {}) {
+  const options = _.merge(await getSrc20Options(), customOptions);
+  log(`Deploying ${options.name} [${options.symbol}]...`);
+  const issuer = await getIssuer();
+  const { src20Factory, tokenMinter } = baseContracts;
 
-  const addresses = [
-    transferRules ? transferRules.address : ZERO_ADDRESS,
-    roles.address,
-    features.address,
-    assetRegistry.address,
+  const params = [
+    issuer.address,
+    options.name,
+    options.symbol,
+    options.maxSupply,
+    options.kyaUri,
+    options.nav,
+    options.features,
     tokenMinter.address,
   ];
+  console.log('params', params);
+  const transaction = await src20Factory.connect(issuer).create(...params);
+  const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
+  const src20 = await ethers.getContractAt('SRC20', src20Address);
+  console.log(`deployed: ${src20Address}`);
+  const minter = await ethers.getContractAt('TokenMinter', await src20.getMinter());
+  const transferRules = await ethers.getContractAt('TransferRules', await src20.transferRules());
 
-  let src20;
-  if (!skipSrc20) {
-    const transaction = await createSrc20(src20Factory, options.src20, addresses);
-    const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
-    src20 = await ethers.getContractAt('SRC20', src20Address);
-  }
-
-  return [{ ...baseContracts, transferRules, features, roles, src20 }, options];
-}
-
-async function createSrc20(src20Factory, options, addresses) {
-  const issuer = await getIssuer();
-  return src20Factory
-    .connect(issuer)
-    .create(
-      options.name,
-      options.symbol,
-      options.decimals,
-      options.maxSupply,
-      options.kyaHash,
-      options.kyaUrl,
-      options.nav,
-      addresses
-    );
+  return [{ ...baseContracts, src20, minter, transferRules }, options];
 }
 
 async function deployFundraiser(src20Address, options) {
@@ -263,7 +229,7 @@ async function deployFundraiser(src20Address, options) {
 
 async function deployContributorRestrictions(fundraiser, options) {
   const issuer = await getIssuer();
-  const result = await deployContract(
+  return await deployContract(
     'ContributorRestrictions',
     [
       fundraiser.address,
@@ -273,7 +239,6 @@ async function deployContributorRestrictions(fundraiser, options) {
     ],
     issuer
   );
-  return result;
 }
 
 async function deployFundraiserManager(options) {
@@ -366,11 +331,10 @@ module.exports = {
   getAddresses,
   getBaseContractsOptions,
   getSrc20Options,
-  getTokenContractsOptions,
   getFundraiserOptions,
   deployBaseContracts,
   deployContract,
-  deployTokenContracts,
+  deployToken,
   deployFundraiser,
   deployContributorRestrictions,
   setupFundraiser,
@@ -379,6 +343,5 @@ module.exports = {
   advanceTimeAndBlock,
   takeSnapshot,
   revertToSnapshot,
-  createSrc20,
   getEvent,
 };

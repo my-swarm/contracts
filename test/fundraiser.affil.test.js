@@ -4,7 +4,7 @@ const moment = require('moment');
 const { parseUnits } = ethers.utils;
 const {
   deployBaseContracts,
-  deployTokenContracts,
+  deployToken,
   deployFundraiserContracts,
   getAddresses,
   getIssuer,
@@ -45,7 +45,7 @@ describe('Fundraiser affiliate/referrer', async function () {
     issuer = await getIssuer();
     issuerAddress = await issuer.getAddress();
     const [baseContracts, baseContractOptions] = await deployBaseContracts();
-    const [tokenContracts, tokenOptions] = await deployTokenContracts(baseContracts);
+    const [tokenContracts, tokenOptions] = await deployToken(baseContracts);
     softCap = tokenOptions.softCap;
     fee = baseContractOptions.fundraiserManager.fee;
     const result = await deployFundraiserContracts(tokenContracts, { affiliateManager: true });
@@ -118,7 +118,7 @@ describe('Fundraiser affiliate/referrer', async function () {
     if ((await fundraiser.fee()).gt(0)) {
       await fundraiser.connect(issuer).payFee(fee);
     }
-    await fundraiser.connect(issuer).stakeAndMint();
+    await fundraiser.connect(issuer).mint();
   }
 
   async function setTokenAllowance() {

@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const {
   deployBaseContracts,
-  deployTokenContracts,
+  deployToken,
   deployFundraiserContracts,
   getAddresses,
   ZERO_ADDRESS,
@@ -17,7 +17,7 @@ describe('Properly deploys SRC20 token with all sidekick contracts', async () =>
 
   before(async () => {
     [baseContracts] = await deployBaseContracts();
-    [tokenContracts, tokenOptions] = await deployTokenContracts(baseContracts, {
+    [tokenContracts, tokenOptions] = await deployToken(baseContracts, {
       transferRules: true,
     });
     const addresses = await getAddresses();

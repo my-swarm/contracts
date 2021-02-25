@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const {
   getIssuer,
   deployBaseContracts,
-  deployTokenContracts,
+  deployToken,
   getSrc20Options,
   createSrc20,
   getEvent,
@@ -36,7 +36,7 @@ describe('SRC20Factory creates tokens', async () => {
     baseContracts = result[0];
     baseContractOptions = result[1];
     issuerAddress = await (await getIssuer()).getAddress();
-    result = await deployTokenContracts(baseContracts, { transferRules: true }, true);
+    result = await deployToken(baseContracts, { transferRules: true }, true);
     tokenContracts = result[0];
     tokenContractOptions = result[1];
   });
@@ -62,6 +62,6 @@ describe('SRC20Factory creates tokens', async () => {
     expect(await src20Registry.contains(event.token)).to.equal(true);
     expect(await assetRegistry.getNav(event.token)).to.equal(src20Options.nav);
     expect(await assetRegistry.getKyaHash(event.token)).to.equal(src20Options.kyaHash);
-    expect(await assetRegistry.getKyaUrl(event.token)).to.equal(src20Options.kyaUrl);
+    expect(await assetRegistry.getkyaUri(event.token)).to.equal(src20Options.kyaUri);
   });
 });

@@ -7,7 +7,7 @@ const {
   getAccount,
   deployContract,
   deployBaseContracts,
-  deployTokenContracts,
+  deployToken,
   ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
 
@@ -40,7 +40,7 @@ describe('Minting and Staking', async () => {
 
     await swmPriceOracle.updatePrice(1, 1); // set nice price 1 swm = 1 usd
 
-    const [tokenContracts, tokenOptions] = await deployTokenContracts(baseContracts);
+    const [tokenContracts, tokenOptions] = await deployToken(baseContracts);
     src20 = tokenContracts.src20;
     nav = tokenOptions.src20.nav;
     maxSupply = tokenOptions.src20.maxSupply;
@@ -68,7 +68,7 @@ describe('Minting and Staking', async () => {
     const supply = maxSupply.div(2);
 
     await swm.connect(issuer).approve(src20Registry.address, stake);
-    await expect(tokenMinter.connect(issuer).stakeAndMint(src20.address, supply))
+    await expect(tokenMinter.connect(issuer).mint(src20.address, supply))
       .to.emit(src20Registry, 'SRC20SupplyIncreased')
       .withArgs(src20.address, issuerAddress, stake, supply);
 
@@ -86,19 +86,19 @@ describe('Minting and Staking', async () => {
   it('Cannot mint more than total supply', async () => {
     await swm.connect(issuer).approve(src20Registry.address, stake);
     await expect(
-      tokenMinter.connect(issuer).stakeAndMint(src20.address, maxSupply.mul(2))
+      tokenMinter.connect(issuer).mint(src20.address, maxSupply.mul(2))
     ).to.be.revertedWith('trying to mint too many tokens!');
   });
 
   it('Cannot mint zero tokens', async () => {
-    await expect(tokenMinter.connect(issuer).stakeAndMint(src20.address, 0)).to.be.revertedWith(
+    await expect(tokenMinter.connect(issuer).mint(src20.address, 0)).to.be.revertedWith(
       'SRC20 amount is zero'
     );
   });
 
   it('Cannot mint unregistered tokens', async () => {
     await src20Registry.remove(src20.address);
-    await expect(tokenMinter.connect(issuer).stakeAndMint(src20.address, 1)).to.be.revertedWith(
+    await expect(tokenMinter.connect(issuer).mint(src20.address, 1)).to.be.revertedWith(
       'Caller not token minter.'
     );
     // note: one might expect this revert instead: 'SRC20 token contract not registered'
@@ -109,7 +109,7 @@ describe('Minting and Staking', async () => {
   it('Can increase and decrease supply after initial mint', async () => {
     const supply = maxSupply.div(2);
     await swm.connect(issuer).approve(src20Registry.address, stake.mul(10));
-    await tokenMinter.connect(issuer).stakeAndMint(src20.address, supply);
+    await tokenMinter.connect(issuer).mint(src20.address, supply);
     const issuerSwmBefore = await swm.balanceOf(issuerAddress);
 
     await expect(src20Registry.connect(issuer).increaseSupply(src20.address, issuerAddress, supply))
@@ -154,8 +154,8 @@ describe('Minting and Staking', async () => {
       .connect(issuer)
       .transfer(getRandomAddress(), (await swm.balanceOf(issuerAddress)).sub(1));
     await swm.connect(issuer).approve(src20Registry.address, stake.mul(10));
-    await expect(
-      tokenMinter.connect(issuer).stakeAndMint(src20.address, maxSupply)
-    ).to.be.revertedWith('revert ERC20: transfer amount exceeds balance');
+    await expect(tokenMinter.connect(issuer).mint(src20.address, maxSupply)).to.be.revertedWith(
+      'revert ERC20: transfer amount exceeds balance'
+    );
   });
 });

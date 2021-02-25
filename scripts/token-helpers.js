@@ -13,11 +13,14 @@ async function getIssuer() {
   return issuer;
 }
 
-async function stakeAndMint({ src20, src20Registry, tokenMinter, swm }, nav, supply) {
+async function mint({ src20, src20Registry, tokenMinter, swm }, nav, supply) {
   const issuer = await getIssuer();
-  const stakeAmount = await tokenMinter.calcStake(nav);
-  await swm.connect(issuer).approve(src20Registry.address, stakeAmount);
-  await tokenMinter.connect(issuer).stakeAndMint(src20.address, supply);
+  const feeAmount = await tokenMinter.calcFee(nav);
+  console.log('fee', feeAmount.toString());
+  await swm.connect(issuer).approve(tokenMinter.address, feeAmount);
+  console.log('about to mint');
+  await src20.connect(issuer).mint(supply);
+  console.log('just minted');
 }
 
 async function updateAllowance(account, token, spenderAddress, allowance = -1) {
@@ -30,6 +33,7 @@ async function updateAllowance(account, token, spenderAddress, allowance = -1) {
 }
 
 async function increaseSupply({ src20, src20Registry }, diff) {
+  throw new Error('Not implemented');
   const issuer = await getIssuer();
   const swmAddress = await issuer.getAddress();
   await src20Registry
@@ -38,6 +42,7 @@ async function increaseSupply({ src20, src20Registry }, diff) {
 }
 
 async function decreaseSupply({ src20, src20Registry }, diff) {
+  throw new Error('Not implemented');
   const issuer = await getIssuer();
   const swmAddress = await issuer.getAddress();
   await src20Registry
@@ -46,7 +51,9 @@ async function decreaseSupply({ src20, src20Registry }, diff) {
 }
 
 async function distributeToken(signer, token, holderAddresses, perHolder) {
+  console.log('distribute token');
   for (const holderAddress of holderAddresses) {
+    console.log(`transfering ${perHolder} from ${signer.address} to ${holderAddress}`);
     token.connect(signer).transfer(holderAddress, await sanitizeAmount(perHolder, token));
   }
 }
@@ -153,7 +160,7 @@ async function sanitizeAmounts(amounts, token) {
 
 module.exports = {
   getContributors,
-  stakeAndMint,
+  mint,
   distributeToken,
   transferToken,
   bulkTransfer,

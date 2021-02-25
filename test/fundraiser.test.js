@@ -5,7 +5,7 @@ const { parseUnits } = ethers.utils;
 const { BigNumber } = ethers;
 const {
   deployBaseContracts,
-  deployTokenContracts,
+  deployToken,
   deployFundraiserContracts,
   getAddresses,
   getIssuer,
@@ -60,7 +60,7 @@ describe('Fundraiser', async function () {
     const [baseContracts, baseOptions] = await deployBaseContracts();
     fee = baseOptions.fundraiserManager.fee;
     expirationTime = baseOptions.fundraiserManager.expirationTime;
-    contracts = (await deployTokenContracts(baseContracts))[0];
+    contracts = (await deployToken(baseContracts))[0];
     // fundraiserManager = contracts.fundraiserManager;
     accounts = (await ethers.getSigners()).slice(10, 13);
     addr = (await getAddresses()).slice(10, 13);
@@ -126,11 +126,11 @@ describe('Fundraiser', async function () {
     await updateAllowance(issuer, contracts.src20, fundraiser.address);
   }
 
-  async function stakeAndMint(setAllowance = true) {
+  async function mint(setAllowance = true) {
     if (setAllowance) {
       await setTokenAllowance();
     }
-    await fundraiser.connect(issuer).stakeAndMint();
+    await fundraiser.connect(issuer).mint();
   }
 
   async function runAndFinishFundraiser(contributions = [hardCap]) {
@@ -138,7 +138,7 @@ describe('Fundraiser', async function () {
       await contributeApproved(accountId, contributions[accountId]);
     }
     await payFee();
-    await stakeAndMint();
+    await mint();
   }
 
   async function contributeApproved(accountId, amount, aff = affil) {
@@ -460,10 +460,7 @@ describe('Fundraiser', async function () {
     const amountQualified = await fundraiser.amountQualified();
     const balanceBefore = await contracts.usdc.balanceOf(issuerAddress);
     await setTokenAllowance();
-    await expect(fundraiser.connect(issuer).stakeAndMint()).to.emit(
-      fundraiser,
-      'FundraiserFinished'
-    );
+    await expect(fundraiser.connect(issuer).mint()).to.emit(fundraiser, 'FundraiserFinished');
     expect(await fundraiser.contributionsLocked()).to.equal(true);
     expect(await fundraiser.isFinished()).to.equal(true);
     expect(await contracts.usdc.balanceOf(issuerAddress)).to.equal(
@@ -482,10 +479,7 @@ describe('Fundraiser', async function () {
     const snapshotId = await takeSnapshot();
     await setTokenAllowance();
     await advanceTimeAndBlock(2 * 24 * 3600);
-    await expect(fundraiser.connect(issuer).stakeAndMint()).to.emit(
-      fundraiser,
-      'FundraiserFinished'
-    );
+    await expect(fundraiser.connect(issuer).mint()).to.emit(fundraiser, 'FundraiserFinished');
     expect(await fundraiser.contributionsLocked()).to.equal(true);
     expect(await fundraiser.isFinished()).to.equal(true);
     await revertToSnapshot(snapshotId);
@@ -500,15 +494,13 @@ describe('Fundraiser', async function () {
 
   it('Cannot finish if already finished', async () => {
     await runAndFinishFundraiser();
-    await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith('Already finished');
+    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith('Already finished');
   });
 
   it('Cannot finish if softCap not reached', async () => {
     await contributeApproved(0, softCap.sub(1));
     await payFee();
-    await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(
-      'SoftCap not reached'
-    );
+    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith('SoftCap not reached');
   });
 
   it('Cannot finish if fee is not paid', async () => {
@@ -516,7 +508,7 @@ describe('Fundraiser', async function () {
 
     await contributeApproved(0, softCap);
     await fundraiser.connect(issuer).payFee(fee.sub(1));
-    await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(
+    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith(
       'Fundraiser: Fee must be fully paid.'
     );
   });
@@ -525,7 +517,7 @@ describe('Fundraiser', async function () {
     await contributeApproved(0, hardCap);
     await payFee();
     // NOT approving here
-    await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(
+    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith(
       'Fundraiser: Not enough token allowance for distribution.'
     );
   });
@@ -540,16 +532,14 @@ describe('Fundraiser', async function () {
     await contributeApproved(0, softCap);
     const snapshotId = await takeSnapshot();
     await advanceTimeAndBlock(2 * 24 * 3600 + expirationTime);
-    await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(
-      'Expiration time passed'
-    );
+    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith('Expiration time passed');
     await revertToSnapshot(snapshotId);
   });
 
   it('Cannot finish if neither hardcap nor end date has been reached', async () => {
     await contributeApproved(0, softCap);
     await payFee();
-    await expect(fundraiser.connect(issuer).stakeAndMint()).to.be.revertedWith(
+    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith(
       'EndDate or hardCap not reached'
     );
   });

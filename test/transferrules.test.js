@@ -6,7 +6,7 @@ const {
   getAccount,
   deployContract,
   deployBaseContracts,
-  deployTokenContracts,
+  deployToken,
 } = require('../scripts/deploy-helpers');
 
 const { getRandomAddress, getRandomAddresses } = require('./test-helpers');
@@ -14,9 +14,9 @@ const { getRandomAddress, getRandomAddresses } = require('./test-helpers');
 function getAssetOptions() {
   const src20Address = getRandomAddress();
   const kyaHash = ethers.utils.formatBytes32String('aaaa1234bbbb1234');
-  const kyaUrl = 'http://kya-updated.com';
+  const kyaUri = 'http://kya-updated.com';
   const nav = 3456;
-  return { src20Address, kyaHash, kyaUrl, nav };
+  return { src20Address, kyaHash, kyaUri, nav };
 }
 
 describe('TransferRules', async () => {
@@ -30,7 +30,7 @@ describe('TransferRules', async () => {
 
   before(async () => {
     const [baseContracts] = await deployBaseContracts();
-    const [tokenContracts] = await deployTokenContracts(baseContracts, { transferRules: true });
+    const [tokenContracts] = await deployToken(baseContracts, { transferRules: true });
     transferRules = tokenContracts.transferRules;
     src20 = tokenContracts.src20;
     issuer = await getIssuer();
