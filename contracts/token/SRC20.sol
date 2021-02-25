@@ -35,6 +35,11 @@ contract SRC20 is ERC20, Ownable {
     _;
   }
 
+  modifier onlyTransferRules() {
+    require(msg.sender == address(transferRules), 'SRC20: TransferRules is not the caller');
+    _;
+  }
+
   modifier enabled(uint8 feature) {
     require(features.isEnabled(feature), 'SRC20: Token feature is not enabled');
     _;
@@ -159,7 +164,7 @@ contract SRC20 is ERC20, Ownable {
     address sender,
     address recipient,
     uint256 amount
-  ) external onlyOwner returns (bool) {
+  ) external onlyTransferRules returns (bool) {
     _transfer(sender, recipient, amount);
     return true;
   }
