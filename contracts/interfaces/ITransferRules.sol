@@ -3,12 +3,9 @@ pragma solidity >=0.6.0 <0.8.0;
 
 /**
  * @title ITransferRules interface
- * @dev Represents interface for any on-chain SRC20 transfer rules
- * implementation. Transfer Rules are expected to follow
- * same interface, managing multiply transfer rule implementations with
- * capabilities of managing what happens with tokens.
- *
- * This interface is working with ERC20 transfer() function
+ * @dev The interface for any on-chain SRC20 transfer rule
+ * Transfer Rules are expected to have the same interface
+ * This interface is used by the SRC20 token
  */
 interface ITransferRules {
   function setSRC(address src20) external returns (bool);

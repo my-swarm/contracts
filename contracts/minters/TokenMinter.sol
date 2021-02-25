@@ -11,9 +11,11 @@ import '../interfaces/IPriceUSD.sol';
 
 /**
  * @title TokenMinter
- * @dev Serves as proxy (manager) for SRC20 minting/burning.
- * @dev To be called by the token issuer.
- * The swm/src ratio comes from an oracle and the stake amount from the staking table.
+ * @dev Serves as proxy (manager) for SRC20 minting.
+ * @dev To be called by the token issuer or fundraise.
+ * The swm/src ratio comes from a price oracle
+ * This contract is meant to be replaced if Swarm Governance decides to change
+ * the fee structure of the protocol.
  */
 contract TokenMinter {
   using SafeMath for uint256;

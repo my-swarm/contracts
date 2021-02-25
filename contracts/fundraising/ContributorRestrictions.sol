@@ -4,8 +4,6 @@ pragma solidity >=0.6.0 <0.8.0;
 import '../rules/Whitelisted.sol';
 import '../fundraising/Fundraiser.sol';
 
-//import 'hardhat/console.sol';
-
 /**
  * @title ContributorRestrictions
  *
