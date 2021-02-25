@@ -30,6 +30,11 @@ contract SRC20 is ERC20, Ownable {
   TransferRules public transferRules;
   Features public features;
 
+  modifier onlyFactory() {
+    require(msg.sender == getFactory(), 'SRC20: Factory is not the caller');
+    _;
+  }
+
   modifier onlyMinter() {
     require(msg.sender == getMinter(), 'SRC20: Minter is not the caller');
     _;
@@ -83,8 +88,20 @@ contract SRC20 is ERC20, Ownable {
     return true;
   }
 
-  function getMinter() public view returns (address minter) {
-    (minter, ) = SRC20Registry(registry).registry(address(this));
+  function setup(string memory _kyaUri, uint256 _nav) external onlyFactory returns (bool) {
+    kyaUri = _kyaUri;
+    emit KyaUpdated(address(this), _kyaUri);
+    nav = _nav;
+    emit NavUpdated(address(this), _nav);
+    return true;
+  }
+
+  function getMinter() public view returns (address) {
+    return SRC20Registry(registry).getMinter(address(this));
+  }
+
+  function getFactory() public view returns (address) {
+    return SRC20Registry(registry).getFactory(address(this));
   }
 
   function transfer(address recipient, uint256 amount) public override returns (bool) {

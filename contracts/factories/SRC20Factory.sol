@@ -44,8 +44,7 @@ contract SRC20Factory {
 
     registry.register(token, _minter);
 
-    SRC20(token).updateKya(_kyaUri);
-    SRC20(token).updateNav(_netAssetValueUSD);
+    SRC20(token).setup(_kyaUri, _netAssetValueUSD);
 
     emit SRC20Created(msg.sender, token, _name, _symbol, _maxTotalSupply);
     return true;

@@ -16,6 +16,7 @@ contract SRC20Registry is Ownable {
 
   struct SRC20Record {
     address minter;
+    address factory;
     bool isRegistered;
   }
 
@@ -105,6 +106,7 @@ contract SRC20Registry is Ownable {
     require(registry[_token].isRegistered == false, 'SRC20Registry: Token already in registry');
 
     registry[_token].minter = _minter;
+    registry[_token].factory = msg.sender;
     registry[_token].isRegistered = true;
 
     emit SRC20Registered(_token, _minter);
@@ -117,6 +119,7 @@ contract SRC20Registry is Ownable {
     require(registry[_token].isRegistered, 'SRC20Registry: Token not in registry');
 
     registry[_token].minter = address(0);
+    registry[_token].factory = address(0);
     registry[_token].isRegistered = false;
 
     emit SRC20Removed(_token);
@@ -126,6 +129,10 @@ contract SRC20Registry is Ownable {
 
   function getMinter(address _token) external view returns (address) {
     return registry[_token].minter;
+  }
+
+  function getFactory(address _token) external view returns (address) {
+    return registry[_token].factory;
   }
 
   function addMinter(address _minter) external onlyOwner returns (bool) {
