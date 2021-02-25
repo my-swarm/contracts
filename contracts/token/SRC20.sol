@@ -20,7 +20,7 @@ contract SRC20 is ERC20, Ownable {
   using SafeMath for uint256;
   using ECDSA for bytes32;
 
-  bytes32 public kyaCid;
+  string public kyaUri;
 
   uint256 public nav;
   uint256 public maxTotalSupply;
@@ -41,7 +41,7 @@ contract SRC20 is ERC20, Ownable {
   }
 
   event TransferRulesUpdated(address transferRrules);
-  event KyaUpdated(address indexed src20, bytes32 kyaCid);
+  event KyaUpdated(address indexed src20, string kyaUri);
   event NavUpdated(address indexed src20, uint256 nav);
 
   /// @dev The owner is passed explicitly from the factory,
@@ -71,9 +71,9 @@ contract SRC20 is ERC20, Ownable {
     return _updateTransferRules(_transferRules);
   }
 
-  function updateKya(bytes32 _kyaCid) external onlyOwner returns (bool) {
-    kyaCid = _kyaCid;
-    emit KyaUpdated(address(this), _kyaCid);
+  function updateKya(string memory _kyaUri) external onlyOwner returns (bool) {
+    kyaUri = _kyaUri;
+    emit KyaUpdated(address(this), _kyaUri);
     return true;
   }
 
