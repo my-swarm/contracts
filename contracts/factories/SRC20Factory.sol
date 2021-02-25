@@ -30,12 +30,10 @@ contract SRC20Factory {
 
   /**
    * Creates new SRC20 contract. Expects token properties and
-   * desired capabilities of the token. Only SRC20Factory owner an call
-   * this function.
+   * desired capabilities of the token.
    * Emits SRC20Created event with address of new token.
    * @dev The address list has to be constructed according to the
    * definition provided in the comments.
-   * @dev Array is used to avoid "stack too deep" error
    *
    */
   function create(

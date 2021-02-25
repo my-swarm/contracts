@@ -23,6 +23,8 @@ contract TokenMinter {
   IPriceUSD public SWMPriceOracle;
   address public swm;
 
+  mapping(address => uint256) netAssetValue;
+
   constructor(address _swm, address _swmPriceOracle) public {
     SWMPriceOracle = IPriceUSD(_swmPriceOracle);
     swm = _swm;
@@ -89,7 +91,7 @@ contract TokenMinter {
 
   /**
    *  This function mints SRC20 tokens
-   *  Only the SRC20 token can call this function
+   *  Only the SRC20 token or fundraiser can call this function
    *  Minter must be registered for the specific SRC20
    *
    *  @param _src20 The address of the SRC20 token to mint tokens for
@@ -102,16 +104,25 @@ contract TokenMinter {
     address _recipient,
     uint256 _amount
   ) external onlyAuthorised(_src20) returns (bool) {
-    uint256 swmAmount = calcFee(SRC20(_src20).nav());
+    uint256 swmAmount;
 
-    require(_applyFee(swm, swmAmount, _src20), 'TokenMinter: Fee application failed');
+    if (SRC20(_src20).nav() > netAssetValue[_src20]) {
+      uint256 navDifference = SRC20(_src20).nav().sub(netAssetValue[_src20]);
+      swmAmount = calcFee(navDifference);
+    }
+
+    if (swmAmount != 0) {
+      IERC20(swm).safeTransferFrom(SRC20(_src20).owner(), address(this), swmAmount);
+      require(_applyFee(swm, swmAmount, _src20), 'TokenMinter: Fee application failed');
+    }
 
     require(SRC20(_src20).executeMint(_recipient, _amount), 'TokenMinter: Token minting failed');
+
+    netAssetValue[_src20] = SRC20(_src20).nav();
 
     return true;
   }
 
-  // @TODO Need to implement this function
   function _applyFee(
     address _feeToken,
     uint256 _feeAmount,

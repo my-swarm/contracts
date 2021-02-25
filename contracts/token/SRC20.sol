@@ -6,8 +6,8 @@ import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/cryptography/ECDSA.sol';
 
+import '../minters/TokenMinter.sol';
 import '../factories/SRC20Registry.sol';
-import '../interfaces/ITokenMinter.sol';
 import '../rules/TransferRules.sol';
 import './features/Features.sol';
 
@@ -207,11 +207,9 @@ contract SRC20 is ERC20, Ownable {
     return true;
   }
 
-  // @JIRI Fundraiser should also be able to call this function.
-  // Maybe fundraiser get ownership of the contract until fundraising is over
   function mint(uint256 amount) external onlyOwner returns (bool) {
     require(amount != 0, 'SRC20: Mint amount must be greater than zero');
-    ITokenMinter(getMinter()).mint(address(this), msg.sender, amount);
+    TokenMinter(getMinter()).mint(address(this), msg.sender, amount);
 
     return true;
   }
