@@ -7,7 +7,7 @@ const { BigNumber } = ethers;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 function log(x) {
-  console.log(x);
+  if (process.env.LOG === '1') console.log(x);
 }
 
 async function getSigners() {
@@ -189,6 +189,18 @@ async function deployToken(baseContracts, customOptions = {}) {
   const issuer = await getIssuer();
   const { src20Factory, tokenMinter } = baseContracts;
 
+  const transaction = await createSrc20(issuer, options, tokenMinter);
+  const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
+  const src20 = await ethers.getContractAt('SRC20', src20Address);
+  const minter = await ethers.getContractAt('TokenMinter', await src20.getMinter());
+  const transferRules = await ethers.getContractAt('TransferRules', await src20.transferRules());
+  const features = await ethers.getContractAt('Features', await src20.features());
+
+  return [{ ...baseContracts, src20, minter, transferRules, features }, options];
+}
+
+async function createSrc20(baseContracts, issuer, options) {
+  const { tokenMinter, src20Factory } = baseContracts;
   const params = [
     issuer.address,
     options.name,
@@ -199,15 +211,7 @@ async function deployToken(baseContracts, customOptions = {}) {
     options.features,
     tokenMinter.address,
   ];
-  console.log('params', params);
-  const transaction = await src20Factory.connect(issuer).create(...params);
-  const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
-  const src20 = await ethers.getContractAt('SRC20', src20Address);
-  console.log(`deployed: ${src20Address}`);
-  const minter = await ethers.getContractAt('TokenMinter', await src20.getMinter());
-  const transferRules = await ethers.getContractAt('TransferRules', await src20.transferRules());
-
-  return [{ ...baseContracts, src20, minter, transferRules }, options];
+  return await src20Factory.connect(issuer).create(...params);
 }
 
 async function deployFundraiser(src20Address, options) {
@@ -344,4 +348,5 @@ module.exports = {
   takeSnapshot,
   revertToSnapshot,
   getEvent,
+  createSrc20,
 };
