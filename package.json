@@ -6,8 +6,8 @@
   "scripts": {
     "clean": "hardhat clean",
     "test": "hardhat test",
-    "compile": "hardhat compile && node ./scripts/distribute-abis.js",
-    "fundraise": "hardhat test ./test/fundraising/ContributeFundsLocal.js",
+    "compile": "hardhat compile",
+    "publish": "node ./scripts/distribute-abis.js",
     "deploy:base": "hardhat run scripts/deploy-base.js --show-stack-traces --network",
     "deploy:issuance": "yarn compile && hardhat run scripts/deploy-issuance.js --show-stack-traces --network",
     "dev:base": "concurrently \"hardhat node --hostname 0.0.0.0\" \"(sleep 2 && yarn deploy:base localhost)\"",
