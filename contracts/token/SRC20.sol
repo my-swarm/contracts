@@ -20,7 +20,7 @@ contract SRC20 is ERC20, Ownable {
   using SafeMath for uint256;
   using ECDSA for bytes32;
 
-  bytes32 public kyaCid;
+  string public kyaUri;
 
   uint256 public nav;
   uint256 public maxTotalSupply;
@@ -41,7 +41,7 @@ contract SRC20 is ERC20, Ownable {
   }
 
   event TransferRulesUpdated(address transferRrules);
-  event KyaUpdated(address indexed src20, bytes32 kyaCid);
+  event KyaUpdated(address indexed src20, string kyaUri);
   event NavUpdated(address indexed src20, uint256 nav);
 
   /// @dev The owner is passed explicitly from the factory,
@@ -51,10 +51,14 @@ contract SRC20 is ERC20, Ownable {
     string memory _name,
     string memory _symbol,
     uint256 _maxTotalSupply,
+    string memory _kyaUri,
+    uint256 _netAssetValueUSD,
     uint8 _features,
     address _registry
   ) ERC20(_name, _symbol) {
     maxTotalSupply = _maxTotalSupply;
+    kyaUri = _kyaUri;
+    nav = _netAssetValueUSD;
 
     features = new Features(_owner, _features);
 
@@ -71,9 +75,9 @@ contract SRC20 is ERC20, Ownable {
     return _updateTransferRules(_transferRules);
   }
 
-  function updateKya(bytes32 _kyaCid) external onlyOwner returns (bool) {
-    kyaCid = _kyaCid;
-    emit KyaUpdated(address(this), _kyaCid);
+  function updateKya(string memory _kyaUri) external onlyOwner returns (bool) {
+    kyaUri = _kyaUri;
+    emit KyaUpdated(address(this), _kyaUri);
     return true;
   }
 
@@ -83,8 +87,12 @@ contract SRC20 is ERC20, Ownable {
     return true;
   }
 
-  function getMinter() public view returns (address minter) {
-    (minter, ) = SRC20Registry(registry).registry(address(this));
+  function getMinter() public view returns (address) {
+    return SRC20Registry(registry).getMinter(address(this));
+  }
+
+  function getFactory() public view returns (address) {
+    return SRC20Registry(registry).getFactory(address(this));
   }
 
   function transfer(address recipient, uint256 amount) public override returns (bool) {

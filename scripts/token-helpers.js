@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { ethers } = require('@nomiclabs/buidler');
+const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { parseUnits } = ethers.utils;
 

@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { ethers } = require('@nomiclabs/buidler');
+const { ethers } = require('hardhat');
 const moment = require('moment');
 const { parseUnits } = ethers.utils;
 const { BigNumber } = ethers;

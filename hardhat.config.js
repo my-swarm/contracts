@@ -1,7 +1,7 @@
 require('dotenv').config();
-usePlugin('@nomiclabs/buidler-waffle');
-usePlugin('@nomiclabs/buidler-ethers');
-usePlugin('@nomiclabs/buidler-etherscan');
+require('@nomiclabs/hardhat-waffle');
+require('@nomiclabs/hardhat-ethers');
+require('@nomiclabs/hardhat-etherscan');
 
 const fs = require('fs');
 const mnemonic = fs.readFileSync('.private').toString().trim();
@@ -58,31 +58,25 @@ module.exports = {
     timeout: 50000,
   },
   // This is a sample solc configuration that specifies which version of solc to use
-  solc: {
+
+  solidity: {
     version: '0.7.6',
     optimizer: {
       enabled: true,
-      runs: 200,
+      runs: 100,
     },
   },
   networks: {
-    fork: {
-      url: 'https://localhost:8545',
-      chainId: 1,
-      gas: 21000000,
-      gasPrice: 'auto',
-      accounts,
-    },
     kovan: {
       url: 'https://kovan.infura.io/v3/13749734f374422692b1699e51b0877f',
       chainId: 42,
       ...gasAuto,
       accounts,
     },
-    local: {
-      url: 'http://127.0.0.1:7545',
-      chainId: 31337,
-      ...gasAuto,
+    hardhat: {
+      gas: 12000000,
+      blockGasLimit: 12000000,
+      allowUnlimitedContractSize: true,
     },
   },
 };

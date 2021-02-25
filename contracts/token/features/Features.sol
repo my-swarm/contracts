@@ -15,7 +15,7 @@ contract Features is PausableFeature, FreezableFeature, Ownable {
   uint8 public constant Pausable = 0x02;
   uint8 public constant AccountBurning = 0x04;
   uint8 public constant AccountFreezing = 0x08;
-  uint8 public constant TransferRules = 0x16;
+  uint8 public constant TransferRules = 0x10;
 
   modifier enabled(uint8 feature) {
     require(isEnabled(feature), 'Features: Token feature is not enabled');

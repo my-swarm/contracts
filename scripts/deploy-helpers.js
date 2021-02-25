@@ -1,10 +1,14 @@
 const moment = require('moment');
-const bre = require('@nomiclabs/buidler');
-const { ethers } = require('@nomiclabs/buidler');
+const bre = require('hardhat');
+const { ethers } = require('hardhat');
 const _ = require('lodash');
 const { BigNumber } = ethers;
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+function log(x) {
+  console.log(x);
+}
 
 async function getSigners() {
   const signers = await ethers.getSigners();
@@ -33,18 +37,22 @@ async function getAddresses() {
 }
 
 async function getBaseContractsOptions() {
-  const [swarm, issuer] = await ethers.getSigners();
+  const [swarm, issuer, treasury, rewardsPool] = await ethers.getSigners();
 
   const swmSupply = ethers.utils.parseUnits('10000000'); // 10 million baby
   const swmPrice = [1, 2]; // 0.5 USD in the format for the Oracle constructor
-  const stablecoinParams = ['USDC', 'USDC', 6, ethers.utils.parseUnits('1000000000')]; // billion baby
+  const swmParams = ['Swarm Token', 'SWM', 18];
+  const stablecoinParams = ['USDC', 'USDC', 6]; // billion baby
   return {
     swmSupply,
     swarm,
     issuer,
+    treasury,
+    rewardsPool,
     swmPrice,
+    swmParams,
     stablecoinParams,
-    issuerSwmBalance: ethers.utils.parseUnits('1000000'), // Fmillion baby
+    issuerSwmBalance: ethers.utils.parseUnits('1000000'), // million baby
     fundraiserManager: {
       fee: BigNumber.from(0), // ethers.utils.parseUnits('2000', 6),
       expirationTime: 7 * 24 * 3600, // a week
@@ -94,81 +102,44 @@ function getFundraiserOptions() {
   };
 }
 
-async function deployBaseContracts(customOptions = {}, log = false) {
+async function deployBaseContracts(customOptions = {}) {
   const options = _.merge(await getBaseContractsOptions(), customOptions);
-  const swarmAddress = await options.swarm.getAddress();
-  const issuerAddress = await options.issuer.getAddress();
+  const { treasury, rewardsPool } = options;
 
-  let swm;
-  if (bre.network.name === 'mainnet') {
-    usdc = await ethers.getContractAt(
-      'SwarmTokenMock',
-      '0x3505f494c3f0fed0b594e01fa41dd3967645ca39'
-    );
-    if (log) console.log(`using mainnet usdc: ${usdc.address}`);
-  } else {
-    swm = await deployContract('SwarmTokenMock', [swarmAddress, options.swmSupply]);
-    if (log) console.log(`mock swm deployed: ${swm.address}`);
-  }
+  const { swm, usdc } = await deployBaseTokens(options);
+
+  // todo: decide if to redeploy on mainnet
   const swmPriceOracle = await deployContract('SWMPriceOracle', options.swmPrice);
-  if (log) console.log(`swmPriceOracle deployed: ${swmPriceOracle.address}`);
-  const src20Registry = await deployContract('SRC20Registry', [swm.address]);
-  if (log) console.log(`src20Registry deployed: ${src20Registry.address}`);
-  const src20Factory = await deployContract('SRC20Factory', [src20Registry.address]);
-  if (log) console.log(`src20Factory deployed: ${src20Factory.address}`);
-  await src20Registry.addFactory(src20Factory.address);
-  if (log) console.log(`factory added to registry`);
-  const assetRegistry = await deployContract('AssetRegistry', [src20Factory.address]);
-  if (log) console.log(`assetRegistry deployed: ${assetRegistry.address}`);
-  const tokenMinter = await deployContract('TokenMinter', [
-    src20Registry.address,
-    assetRegistry.address,
-    swmPriceOracle.address,
-  ]);
-  if (log) console.log(`tokenMinter deployed: ${tokenMinter.address}`);
-  await src20Registry.addMinter(tokenMinter.address);
-  if (log) console.log('minter added to registry');
-  let usdc;
-  if (bre.network.name === 'mainnet') {
-    usdc = await ethers.getContractAt('ERC20Mock', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
-    if (log) console.log(`using mainnet usdc: ${usdc.address}`);
-  } else {
-    usdc = await deployContract('ERC20Mock', options.stablecoinParams);
-    if (log) console.log(`mock usdc deployed: ${usdc.address}`);
-  }
-  await swm.transfer(issuerAddress, options.issuerSwmBalance);
-  if (log) console.log('some SWM sent to token issuer');
-  const fundraiserManager = await deployFundraiserManager(options.fundraiserManager);
-  if (log) console.log(`fundraiserManager deployed: ${fundraiserManager.address}`);
+  log(`swmPriceOracle deployed: ${swmPriceOracle.address}`);
 
-  let disperse;
-  switch (bre.network.name) {
-    case 'local':
-      disperse = await deployContract('Disperse', []);
-      if (log) console.log(`mock disperse deployed: ${disperse.address}`);
-      break;
-    case 'kovan':
-      disperse = await ethers.getContractAt(
-        'Disperse',
-        '0xD152f549545093347A162Dce210e7293f1452150'
-      );
-      if (log) console.log(`using konvat disperse: ${disperse.address}`);
-      break;
-    case 'mainnet':
-      disperse = await ethers.getContractAt(
-        'Disperse',
-        '0xD152f549545093347A162Dce210e7293f1452150'
-      );
-      if (log) console.log(`using mainnet disperse: ${disperse.address}`);
-      break;
-  }
+  const src20Registry = await deployContract('SRC20Registry', [
+    treasury.address,
+    rewardsPool.address,
+  ]);
+  log(`src20Registry deployed: ${src20Registry.address}`);
+
+  const src20Factory = await deployContract('SRC20Factory', [src20Registry.address]);
+  log(`src20Factory deployed: ${src20Factory.address}`);
+
+  const tokenMinter = await deployContract('TokenMinter', [swm.address, swmPriceOracle.address]);
+  log(`tokenMinter deployed: ${tokenMinter.address}`);
+
+  await src20Registry.addFactory(src20Factory.address);
+  log(`factory added to registry`);
+
+  await src20Registry.addMinter(tokenMinter.address);
+  log('minter added to registry');
+
+  const fundraiserManager = await deployFundraiserManager(options.fundraiserManager);
+  log(`fundraiserManager deployed: ${fundraiserManager.address}`);
+
+  const disperse = await deployDisperse();
 
   const addresses = {
     swm,
     swmPriceOracle,
     src20Registry,
     src20Factory,
-    assetRegistry,
     tokenMinter,
     usdc,
     disperse,
@@ -177,11 +148,58 @@ async function deployBaseContracts(customOptions = {}, log = false) {
   return [addresses, options];
 }
 
+async function deployBaseTokens(options) {
+  const { swarm, issuer } = options;
+
+  let swm;
+  let usdc;
+  if (bre.network.name === 'mainnet') {
+    swm = await ethers.getContractAt('MockERC20', '0x3505f494c3f0fed0b594e01fa41dd3967645ca39');
+    log(`using mainnet swm: ${swm.address}`);
+    usdc = await ethers.getContractAt('MockERC20', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
+    log(`using mainnet usdc: ${usdc.address}`);
+  } else {
+    swm = await deployContract('MockERC20', options.swmParams);
+    log(`mock swm deployed: ${swm.address}`);
+    await swm.mint(swarm.address, options.swmSupply);
+    await swm.transfer(issuer.address, options.issuerSwmBalance);
+    log('SWM minted and sent to token issuer');
+    usdc = await deployContract('MockERC20', options.stablecoinParams);
+    log(`mock usdc deployed: ${usdc.address}`);
+  }
+  return { swm, usdc };
+}
+
+async function deployDisperse() {
+  let disperse;
+  switch (bre.network.name) {
+    case 'local':
+      disperse = await deployContract('Disperse', []);
+      log(`mock disperse deployed: ${disperse.address}`);
+      break;
+    case 'kovan':
+      disperse = await ethers.getContractAt(
+        'Disperse',
+        '0xD152f549545093347A162Dce210e7293f1452150'
+      );
+      log(`using konva disperse: ${disperse.address}`);
+      break;
+    case 'mainnet':
+      disperse = await ethers.getContractAt(
+        'Disperse',
+        '0xD152f549545093347A162Dce210e7293f1452150'
+      );
+      log(`using mainnet disperse: ${disperse.address}`);
+      break;
+  }
+  return disperse;
+}
+
 async function deployTokenContracts(baseContracts, customOptions = {}, skipSrc20 = false) {
   const options = _.merge(await getTokenContractsOptions(), customOptions);
   const { issuer } = options;
   const issuerAddress = await issuer.getAddress();
-  const { src20Factory, src20Registry, assetRegistry, tokenMinter } = baseContracts;
+  const { src20Factory, src20Registry, tokenMinter } = baseContracts;
   const transferRules = options.transferRules
     ? await deployContract('TransferRules', [issuerAddress], issuer)
     : undefined;

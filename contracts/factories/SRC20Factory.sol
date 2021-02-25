@@ -33,19 +33,25 @@ contract SRC20Factory {
     string memory _name,
     string memory _symbol,
     uint256 _maxTotalSupply,
-    bytes32 _kyaCid,
+    string memory _kyaUri,
     uint256 _netAssetValueUSD,
     uint8 _features,
     address _minter
   ) public returns (bool) {
     address token = address(
-      new SRC20(_owner, _name, _symbol, _maxTotalSupply, _features, address(registry))
+      new SRC20(
+        _owner,
+        _name,
+        _symbol,
+        _maxTotalSupply,
+        _kyaUri,
+        _netAssetValueUSD,
+        _features,
+        address(registry)
+      )
     );
 
     registry.register(token, _minter);
-
-    SRC20(token).updateKya(_kyaCid);
-    SRC20(token).updateNav(_netAssetValueUSD);
 
     emit SRC20Created(msg.sender, token, _name, _symbol, _maxTotalSupply);
     return true;
