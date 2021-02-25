@@ -15,8 +15,8 @@ import './AffiliateManager.sol';
 import '@nomiclabs/buidler/console.sol';
 
 /**
- * @title The Fundraise Contract
- * This contract allows the deployer to perform a Swarm-Powered Fundraise.
+ * @title Fundraise Contract
+ * This contract allows a SRC20 token owner to perform a Swarm-Powered Fundraise.
  */
 contract Fundraiser {
   using SafeMath for uint256;
@@ -137,7 +137,7 @@ contract Fundraiser {
   /**
    *  Pass all the most important parameters that define the Fundraise
    *  All variables cannot be in the constructor because we get "stack too deep" error
-   *  After deployment setup() function needs to be called to set them up
+   *  After deployment, the setup() function needs to be called to set them up
    */
   constructor(
     string memory _label,
@@ -149,12 +149,14 @@ contract Fundraiser {
     uint256 _hardCap
   ) {
     require(_hardCap >= _softCap, 'Fundraiser: Hardcap has to be >= Softcap');
+
+    startDate = _startDate == 0 || _startDate < block.timestamp ? block.timestamp : _startDate;
     require(_endDate > _startDate, 'Fundraiser: End date has to be after start date');
+
     owner = msg.sender;
     label = _label;
     token = _token;
     supply = _supply;
-    startDate = _startDate;
     endDate = _endDate;
     softCap = _softCap;
     hardCap = _hardCap;
@@ -182,10 +184,6 @@ contract Fundraiser {
     );
     require(!isSetup, 'Fundraiser: Contract is already set up');
     require(!isCanceled, 'Fundraiser: Fundraiser is canceled');
-    // I think this is a bullshit condition that makes testing ver annoying
-    // I don't see a reason for this as long as setup is a condition for contributions and other actions
-    // which it is by the ongoing modifier
-    // require(block.timestamp < startDate, 'Set up should be done before start date');
 
     SRC20Registry(SRC20(token).registry()).registerFundraise(token, address(this));
 
@@ -213,7 +211,7 @@ contract Fundraiser {
 
   /**
    *  Cancel the fundraise. Can be done by the Token Issuer at any time
-   *  The contributions are then available to be withdrawn by contributors
+   *  Contributions are then available to be withdrawn by contributors
    *
    *  @return true on success
    */
@@ -321,8 +319,7 @@ contract Fundraiser {
   }
 
   /**
-   *  Stake and Mint
-   *  SWM has to be on the fundraise contract
+   *  Conclude fundraise and mint SRC20 tokens
    *
    *  @return true on success
    */
@@ -385,10 +382,12 @@ contract Fundraiser {
   }
 
   function payFee(uint256 _amount) external {
-    require(_amount != 0, 'Fundraiser: Fee must be greater than 0.');
+    require(_amount != 0, 'Fundraiser: Fee amount to pay must be greater than 0');
 
     uint256 _fee = FundraiserManager(fundraiserManager).fee();
-    require(_fee > totalFeePaid, 'Fundraiser: Fee already paid.');
+    require(_fee != 0, 'Fundraiser: There is no fee at the moment');
+    require(_fee > totalFeePaid, 'Fundraiser: Fee already paid');
+
     uint256 feeSum = totalFeePaid.add(_amount);
     uint256 required = _amount;
 
@@ -445,15 +444,15 @@ contract Fundraiser {
     uint256 currentAmount = qualified
       ? qualifiedContributions[_contributor]
       : pendingContributions[_contributor];
+
     uint256 newAmount = currentAmount.add(_amount);
+
     if (!ContributorRestrictions(contributorRestrictions).checkMaxInvestment(newAmount)) {
       refund = newAmount.sub(maxAmount);
       _amount = _amount.sub(refund);
       require(_amount != 0, 'Fundraiser: Cannot invest more than maxAmount');
     }
 
-    // @JIRI: We are using two if statements for qualified users.
-    // Maybe this is just done for readability
     if (qualified) {
       if (
         !ContributorRestrictions(contributorRestrictions).checkMaxContributors(
@@ -470,8 +469,6 @@ contract Fundraiser {
       }
     }
 
-    // note: this never happens in reality, because every function that calls this has the ongoing modifier which checks for hardcap
-    // @Jiri: I think this is here to check the above if (hardcapReached)
     require(_amount != 0, 'Fundraiser: Hardcap already reached');
 
     if (qualified) {
@@ -599,12 +596,6 @@ contract Fundraiser {
     return supply;
   }
 
-  /**
-   *  Loop through the accepted currencies and initiate a withdrawal for
-   *  each currency, sending the funds to the Token Issuer
-   *
-   *  @return true on success
-   */
   function _withdraw(address _user) internal returns (bool) {
     amountWithdrawn = amountQualified;
     amountQualified = 0;

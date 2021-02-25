@@ -4,9 +4,6 @@ pragma solidity >=0.6.0 <0.8.0;
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
-/**
- * @title The Fundraise Manager
- */
 contract FundraiserManager is Ownable {
   using SafeMath for uint256;
 
