@@ -7,15 +7,22 @@ const {
   ZERO_ADDRESS,
   getIssuer,
   getAddresses,
+  takeSnapshot,
+  revertToSnapshot,
 } = require('../scripts/deploy-helpers');
 const { mint } = require('../scripts/token-helpers');
+
+const { getRandomAddress } = require('./test-helpers');
 
 const FEATURE_TRANSFER = 1;
 const FEATURE_PAUSABLE = 2;
 const FEATURE_ACCOUNT_BURN = 4;
 const FEATURE_ACCOUNT_FREEZE = 8;
+const FEATURE_TRANSFER_RULES = 16;
 
 describe('Transfering SRC20 with features', async () => {
+  let snapshotId;
+
   let issuer;
   let src20;
   let features;
@@ -24,16 +31,27 @@ describe('Transfering SRC20 with features', async () => {
   let supply;
   let balance;
   let amount;
+  let baseContracts;
+
+  before(async () => {
+    [baseContracts] = await deployBaseContracts();
+    supply = parseUnits('1000000', 18);
+    balance = parseUnits('100', 18);
+    amount = parseUnits('20', 18);
+
+    snapshotId = await takeSnapshot();
+  });
+
+  beforeEach(async function () {
+    await revertToSnapshot(snapshotId);
+    snapshotId = await takeSnapshot();
+  });
 
   async function deploy(featuresMap) {
-    const [baseContracts] = await deployBaseContracts();
     const [tokenContracts] = await deployToken(baseContracts, { features: featuresMap });
 
     issuer = await getIssuer();
 
-    supply = parseUnits('1000000', 18);
-    balance = parseUnits('100', 18);
-    amount = parseUnits('20', 18);
     features = tokenContracts.features;
     src20 = tokenContracts.src20;
     accounts = (await ethers.getSigners()).slice(10, 14);
@@ -43,14 +61,14 @@ describe('Transfering SRC20 with features', async () => {
 
     await src20.connect(issuer).bulkTransfer(
       addr,
-      addr.map((x) => balance)
+      addr.map(() => balance)
     );
     // now we have addresses 0..3 with 100 tokens
   }
 
   it('Can forceTransfer as owner', async () => {
     await deploy(FEATURE_TRANSFER);
-    await expect(src20.connect(issuer).transferForced(addr[0], addr[1], amount)).to.emit(
+    await expect(src20.connect(issuer).forceTransfer(addr[0], addr[1], amount)).to.emit(
       src20,
       'Transfer'
     );
@@ -58,14 +76,14 @@ describe('Transfering SRC20 with features', async () => {
   it('Cannot forceTransfer as a random account', async () => {
     await deploy(FEATURE_TRANSFER);
     await expect(
-      src20.connect(accounts[3]).transferForced(addr[0], addr[1], amount)
+      src20.connect(accounts[3]).forceTransfer(addr[0], addr[1], amount)
     ).to.be.revertedWith('Ownable: caller is not the owner');
   });
 
   it('Cannot forceTransfer if not enabled', async () => {
     await deploy(0);
     await expect(
-      src20.connect(accounts[3]).transferForced(addr[0], addr[1], amount)
+      src20.connect(accounts[3]).forceTransfer(addr[0], addr[1], amount)
     ).to.be.revertedWith('Token feature is not enabled');
   });
 
@@ -85,15 +103,15 @@ describe('Transfering SRC20 with features', async () => {
 
   it('Cannot transfer if token is frozen (aka paused)', async () => {
     await deploy(FEATURE_PAUSABLE);
-    await features.pauseToken();
+    await features.connect(issuer).pauseToken();
     await checkCannotTransfer();
   });
 
   it('Cannot transfer if first account is frozen', async () => {
     await deploy(FEATURE_ACCOUNT_FREEZE);
-    await features.freezeAccount(addr[0]);
+    await features.connect(issuer).freezeAccount(addr[0]);
     await checkCannotTransfer();
-    await features.unfreezeAccount(addr[0]);
+    await features.connect(issuer).unfreezeAccount(addr[0]);
     await checkCanTransfer();
   });
 
@@ -105,7 +123,22 @@ describe('Transfering SRC20 with features', async () => {
     await checkCanTransfer();
   });
 
-  it('It can burn account if enabled', async () => {
+  it('Cannot freeze account if not owner', async () => {
+    await deploy(FEATURE_ACCOUNT_FREEZE);
+    await expect(features.connect(accounts[0]).freezeAccount(addr[0])).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    );
+  });
+
+  it('Cannot unfreeze account if not owner', async () => {
+    await deploy(FEATURE_ACCOUNT_FREEZE);
+    await features.connect(issuer).freezeAccount(addr[1]);
+    await expect(features.connect(accounts[0]).freezeAccount(addr[0])).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    );
+  });
+
+  it('Can burn account if enabled', async () => {
     await deploy(FEATURE_ACCOUNT_BURN);
     await expect(src20.connect(issuer).burnAccount(addr[0], amount))
       .to.emit(src20, 'Transfer')
@@ -113,10 +146,34 @@ describe('Transfering SRC20 with features', async () => {
     expect(await src20.balanceOf(addr[0])).to.equal(balance.sub(amount));
   });
 
-  it('It can not burn account if disabled', async () => {
+  it('Can not burn account if disabled', async () => {
     await deploy(0);
     await expect(src20.burnAccount(addr[0], amount)).to.be.revertedWith(
       'Token feature is not enabled'
+    );
+  });
+
+  it('Can change transfer rules contract if enabled', async () => {
+    await deploy(FEATURE_TRANSFER_RULES);
+    await expect(src20.connect(issuer).updateTransferRules(ZERO_ADDRESS))
+      .to.emit(src20, 'TransferRulesUpdated')
+      .withArgs(ZERO_ADDRESS);
+    expect(await src20.transferRules()).to.equal(ZERO_ADDRESS);
+  });
+
+  it('Can not change transfer rules contract if disabled', async () => {
+    await deploy(0);
+    const address = getRandomAddress();
+    await expect(src20.connect(issuer).updateTransferRules(address)).to.be.revertedWith(
+      'Token feature is not enabled'
+    );
+  });
+
+  it('Can not change transfer rules if not an owner', async () => {
+    await deploy(FEATURE_TRANSFER_RULES);
+    const address = getRandomAddress();
+    await expect(src20.connect(accounts[0]).updateTransferRules(address)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
     );
   });
 });

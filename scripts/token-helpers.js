@@ -16,11 +16,8 @@ async function getIssuer() {
 async function mint({ src20, src20Registry, tokenMinter, swm }, nav, supply) {
   const issuer = await getIssuer();
   const feeAmount = await tokenMinter.calcFee(nav);
-  console.log('fee', feeAmount.toString());
   await swm.connect(issuer).approve(tokenMinter.address, feeAmount);
-  console.log('about to mint');
   await src20.connect(issuer).mint(supply);
-  console.log('just minted');
 }
 
 async function updateAllowance(account, token, spenderAddress, allowance = -1) {
