@@ -30,7 +30,7 @@ describe('TransferRules', async () => {
 
   before(async () => {
     const [baseContracts] = await deployBaseContracts();
-    const [tokenContracts] = await deployToken(baseContracts, { transferRules: true });
+    const [tokenContracts] = await deployToken(baseContracts, { features: 31 });
     transferRules = tokenContracts.transferRules;
     src20 = tokenContracts.src20;
     issuer = await getIssuer();
@@ -158,14 +158,16 @@ describe('TransferRules', async () => {
   // authorize & doTransfer
   it('Does not authorize if no account listed', async () => {
     const a = getRandomAddresses(2);
-    expect(await transferRules.authorize(addresses[0], addresses[1], 100)).to.equal(false);
+    expect(await transferRules.connect(issuer).authorize(addresses[0], addresses[1], 100)).to.equal(
+      false
+    );
   });
 
   // authorize & doTransfer
   it('Does not authorize if only one listed', async () => {
     const a = getRandomAddresses(3);
-    await transferRules.whitelistAccount(a[1]);
-    await transferRules.greylistAccount(a[1]);
+    await transferRules.connect(issuer).whitelistAccount(a[1]);
+    await transferRules.connect(issuer).greylistAccount(a[1]);
     expect(await transferRules.authorize(a[0], a[1], 100)).to.equal(false);
     expect(await transferRules.authorize(a[1], a[2], 100)).to.equal(false);
   });
@@ -173,8 +175,8 @@ describe('TransferRules', async () => {
   it('Does authorize if both listed', async () => {
     const a = getRandomAddresses(2);
     expect(await transferRules.authorize(a[0], a[1], 100)).to.equal(false);
-    await transferRules.whitelistAccount(a[0]);
-    await transferRules.greylistAccount(a[1]);
+    await transferRules.connect(issuer).whitelistAccount(a[0]);
+    await transferRules.connect(issuer).greylistAccount(a[1]);
     expect(await transferRules.authorize(a[0], a[1], 100)).to.equal(true);
   });
   /*
