@@ -97,6 +97,46 @@ describe('Fundraiser', async function () {
     await updateAllowance(issuer, contracts.usdc, fundraiser.address); // for staking
   }
 
+  it('Can start', async () => {
+    const [
+      { fundraiser, affiliateManager, contributorRestrictions },
+      options,
+    ] = await deployFundraiserContracts(
+      {
+        ...baseContracts,
+        ...tokenContracts,
+      },
+      { affiliateManager: true }
+    );
+
+    expect(fundraiser.address).to.match(REGEX_ADDR);
+    expect(await fundraiser.affiliateManager()).to.equal(affiliateManager.address);
+    expect(await fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
+    expect(await fundraiser.label()).to.equal(options.label);
+    expect(await fundraiser.token()).to.equal(tokenContracts.src20.address);
+    expect(await fundraiser.supply()).to.equal(options.supply);
+    expect(await fundraiser.startDate()).to.equal(options.startDate);
+    expect(await fundraiser.endDate()).to.equal(options.endDate);
+    expect(await fundraiser.softCap()).to.equal(options.softCap);
+    expect(await fundraiser.hardCap()).to.equal(options.hardCap);
+
+    expect(await fundraiser.baseCurrency()).to.equal(baseContracts.usdc.address);
+    expect(await fundraiser.tokenPrice()).to.equal(options.tokenPrice);
+    expect(await fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
+    expect(await fundraiser.fundraiserManager()).to.equal(baseContracts.fundraiserManager.address);
+    expect(await fundraiser.minter()).to.equal(baseContracts.tokenMinter.address);
+    expect(await fundraiser.contributionsLocked()).to.equal(options.contributionsLocked);
+
+    expect(await fundraiser.numContributors()).to.equal(0);
+    expect(await fundraiser.amountQualified()).to.equal(0);
+    expect(await fundraiser.amountPending()).to.equal(0);
+    expect(await fundraiser.amountWithdrawn()).to.equal(0);
+    expect(await fundraiser.isFinished()).to.equal(false);
+    expect(await fundraiser.isCanceled()).to.equal(false);
+    expect(await fundraiser.isSetup()).to.equal(true);
+    expect(await fundraiser.isHardcapReached()).to.equal(false);
+  });
+
   async function testContributeAcceptRemoveRevert(message) {
     await expect(
       fundraiser.connect(accounts[0]).contribute(amount, affil),

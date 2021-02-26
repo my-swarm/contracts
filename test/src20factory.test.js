@@ -53,8 +53,8 @@ describe('SRC20Factory creates tokens', async () => {
     expect((await src20.maxTotalSupply()).toString()).to.equal(options.maxSupply.toString());
     expect(await src20.getMinter()).to.equal(tokenMinter.address);
     expect(await src20.getFactory()).to.equal(src20Factory.address);
-    expect(await src20.transferRules()).not.to.be.empty;
-    expect(await src20.features()).not.to.be.empty;
+    expect(await src20.transferRules()).to.match(REGEX_ADDR);
+    expect(await src20.features()).to.match(REGEX_ADDR);
     expect(await src20.owner()).to.equal(issuer.address);
   });
 });

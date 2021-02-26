@@ -187,9 +187,8 @@ async function deployToken(baseContracts, customOptions = {}) {
   const options = _.merge(await getSrc20Options(), customOptions);
   log(`Deploying ${options.name} [${options.symbol}]...`);
   const issuer = await getIssuer();
-  const { src20Factory, tokenMinter } = baseContracts;
 
-  const transaction = await createSrc20(issuer, options, tokenMinter);
+  const transaction = await createSrc20(baseContracts, issuer, options);
   const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
   const src20 = await ethers.getContractAt('SRC20', src20Address);
   const minter = await ethers.getContractAt('TokenMinter', await src20.getMinter());
@@ -202,7 +201,6 @@ async function deployToken(baseContracts, customOptions = {}) {
 async function createSrc20(baseContracts, issuer, options) {
   const { tokenMinter, src20Factory } = baseContracts;
   const params = [
-    issuer.address,
     options.name,
     options.symbol,
     options.maxSupply,
