@@ -210,6 +210,12 @@ contract SRC20 is ERC20, Ownable {
   }
 
   function burn(address account, uint256 amount) external onlyOwner returns (bool) {
+    require(amount != 0, 'SRC20: Burn amount must be greater than zero');
+    TokenMinter(getMinter()).burn(address(this), account, amount);
+    return true;
+  }
+
+  function executeBurn(address account, uint256 amount) external onlyMinter returns (bool) {
     _burn(account, amount);
     return true;
   }

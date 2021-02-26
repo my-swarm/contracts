@@ -36,7 +36,7 @@ contract TokenMinter {
 
     require(
       SRC20(_src20).getMinter() == address(this),
-      'TokenMinter: Not registered to mint token'
+      'TokenMinter: Not registered to manage token'
     );
     require(
       _src20 == msg.sender || registry.fundraise(_src20, msg.sender),
@@ -120,6 +120,16 @@ contract TokenMinter {
     require(SRC20(_src20).executeMint(_recipient, _amount), 'TokenMinter: Token minting failed');
 
     netAssetValue[_src20] = SRC20(_src20).nav();
+
+    return true;
+  }
+
+  function burn(
+    address _src20,
+    address _account,
+    uint256 _amount
+  ) external onlyAuthorised(_src20) returns (bool) {
+    SRC20(_src20).executeBurn(_account, _amount);
 
     return true;
   }

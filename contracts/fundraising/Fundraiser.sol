@@ -141,6 +141,7 @@ contract Fundraiser is Ownable {
     uint256 _softCap,
     uint256 _hardCap
   ) {
+    require(msg.sender == SRC20(_token).owner(), 'Only token owner can initiate fundraise');
     require(_hardCap >= _softCap, 'Fundraiser: Hardcap has to be >= Softcap');
 
     startDate = _startDate == 0 || _startDate < block.timestamp ? block.timestamp : _startDate;
@@ -312,17 +313,20 @@ contract Fundraiser is Ownable {
    *
    *  @return true on success
    */
-  function concludeAndMint() external onlyOwner() returns (bool) {
+  function concludeFundraise(bool mintTokens) external onlyOwner() returns (bool) {
     // This has all the conditions and will revert if they are not met
-    uint256 amountToMint = _finish();
+    uint256 amountToAllocate = _finish();
 
-    // src20 allowance pre-mint is required so that this contract can distribute tokens
-    require(
-      ERC20(token).allowance(msg.sender, address(this)) >= amountToMint,
-      'Fundraiser: Not enough token allowance for distribution.'
-    );
+    require(amountToAllocate != 0, 'Fundraiser: No tokens to allocate');
 
-    ITokenMinter(minter).mint(token, address(this), amountToMint);
+    if (mintTokens == false) {
+      require(
+        ERC20(token).balanceOf(msg.sender) >= amountToAllocate,
+        'Fundraiser: Not enough tokens were minted'
+      );
+      ITokenMinter(minter).burn(token, msg.sender, amountToAllocate);
+    }
+    ITokenMinter(minter).mint(token, address(this), amountToAllocate);
 
     // send funds to the issuer
     _withdraw(msg.sender);
@@ -359,6 +363,7 @@ contract Fundraiser is Ownable {
   function claimReferrals() external returns (bool) {
     require(isFinished, 'Fundraiser: Fundraise is not finished');
     require(affiliateShares[msg.sender] != 0, 'Fundraiser: There are no referrals to be collected');
+
     uint256 amount = affiliateShares[msg.sender];
     affiliateShares[msg.sender] = 0;
 
@@ -393,6 +398,15 @@ contract Fundraiser is Ownable {
 
   function isFeePaid() external view returns (bool) {
     return totalFeePaid == FundraiserManager(fundraiserManager).fee();
+  }
+
+  function withdrawStuckTokens(address _token, uint256 _amount) public onlyOwner {
+    require(
+      _token != address(baseCurrency) || _token != address(token),
+      'Fundraiser: Cannot withdraw token'
+    );
+
+    ERC20(_token).safeTransfer(msg.sender, _amount);
   }
 
   // forced by bytecode limitations

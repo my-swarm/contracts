@@ -13,4 +13,10 @@ interface ITokenMinter {
     address recipitent,
     uint256 amount
   ) external returns (bool);
+
+  function burn(
+    address src20,
+    address account,
+    uint256 amount
+  ) external returns (bool);
 }
