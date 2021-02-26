@@ -66,11 +66,11 @@ contract Features is PausableFeature, FreezableFeature, Ownable {
     _unfreezeAccount(_account);
   }
 
-  function pauseToken() external enabled(Pausable) onlyOwner {
+  function pause() external enabled(Pausable) onlyOwner {
     _pause();
   }
 
-  function unpauseToken() external enabled(Pausable) onlyOwner {
+  function unpause() external enabled(Pausable) onlyOwner {
     _unpause();
   }
 }
