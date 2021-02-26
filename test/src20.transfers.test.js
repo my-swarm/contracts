@@ -29,7 +29,7 @@ describe('Transfering SRC20', async () => {
 
   before(async () => {
     const [baseContracts] = await deployBaseContracts();
-    const [tokenContracts] = await deployToken(baseContracts, { transferRules: true });
+    const [tokenContracts] = await deployToken(baseContracts, { features: 31 });
 
     issuer = await getIssuer();
 
@@ -40,13 +40,13 @@ describe('Transfering SRC20', async () => {
     features = tokenContracts.features;
     src20 = tokenContracts.src20;
     accounts = (await ethers.getSigners()).slice(10, 14);
-    addr = (await getAddresses()).slice(10, 14);
+    addr = accounts.map((x) => x.address);
 
     await mint({ ...baseContracts, ...tokenContracts }, 1000, supply);
 
     await src20.connect(issuer).bulkTransfer(
       addr,
-      addr.map((x) => balance)
+      addr.map(() => balance)
     );
     // now we have addresses 0..3 with 100 tokens
     snapshotId = await takeSnapshot();
@@ -183,7 +183,7 @@ describe('Transfering SRC20', async () => {
 
   it('Does not allow executeTransfer to be called directly', async () => {
     await expect(src20.executeTransfer(addr[0], addr[1], amount)).to.be.revertedWith(
-      'Caller not authority'
+      'RC20: TransferRules is not the caller'
     );
   });
 
@@ -230,7 +230,7 @@ describe('Transfering SRC20', async () => {
 
   it('Does not allow bulk transfer to anyone else', async () => {
     await expect(src20.connect(accounts[3]).bulkTransfer([], [])).to.be.revertedWith(
-      'Caller not delegate'
+      'Ownable: caller is not the owner'
     );
   });
 });

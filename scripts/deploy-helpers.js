@@ -32,8 +32,7 @@ async function getAccount(number = 0) {
 }
 
 async function getAddresses() {
-  const signers = await ethers.getSigners();
-  return await Promise.all(signers.map(async (x) => await x.getAddress()));
+  return (await ethers.getSigners()).map((x) => x.address);
 }
 
 async function getBaseContractsOptions() {
