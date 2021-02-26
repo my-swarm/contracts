@@ -19,8 +19,7 @@ describe('Properly deploys base contracts', async () => {
   it('Has SWM contract properly setup', async () => {
     const { swm } = baseContracts;
     expect(await swm.address).to.match(REGEX_ADDR);
-    expect(await swm.owner()).to.equal(swarmAddress);
-    expect(await swm.totalSupply()).to.equal(options.swmSupply);
+    expect((await swm.totalSupply()).toString()).to.equal(options.swmSupply.toString());
     expect(await swm.balanceOf(swarmAddress)).to.equal(
       options.swmSupply.sub(options.issuerSwmBalance)
     );
@@ -37,9 +36,11 @@ describe('Properly deploys base contracts', async () => {
   });
 
   it('Has SRC20Registry contract properly setup', async () => {
-    const { src20Registry } = baseContracts;
+    const { src20Registry, tokenMinter, src20Factory } = baseContracts;
     expect(await src20Registry.address).to.match(REGEX_ADDR);
     expect(await src20Registry.owner()).to.equal(swarmAddress);
+    expect(await src20Registry.authorizedMinters(tokenMinter.address)).to.equal(true);
+    expect(await src20Registry.authorizedFactories(src20Factory.address)).to.equal(true);
   });
 
   it('Has SRC20Factory contract properly setup', async () => {
@@ -60,7 +61,7 @@ describe('Properly deploys base contracts', async () => {
     expect(await usdc.name()).to.equal(options.stablecoinParams[0]);
     expect(await usdc.symbol()).to.equal(options.stablecoinParams[1]);
     expect(await usdc.decimals()).to.equal(options.stablecoinParams[2]);
-    expect(await usdc.totalSupply()).to.equal(options.stablecoinParams[3]);
+    expect(await usdc.totalSupply()).to.equal(options.stablecoinSupply);
   });
 
   it('Has FundraiserManager properly setup', async () => {

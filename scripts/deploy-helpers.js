@@ -46,7 +46,7 @@ async function getBaseContractsOptions() {
     treasury,
     rewardsPool,
     swmPrice: [1, 2], // 0.5 USD in the format for the Oracle constructor,
-    stablecoinParams: ['USDC', 'USDC', 6],
+    stablecoinParams: ['Mock USDC', 'USDC', 6],
     stablecoinSupply: ethers.utils.parseUnits('10000000'), // 10 million baby,
     issuerSwmBalance: ethers.utils.parseUnits('1000000'), // million baby
     fundraiserManager: {
