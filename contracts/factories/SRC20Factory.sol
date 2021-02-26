@@ -29,7 +29,6 @@ contract SRC20Factory {
   }
 
   function create(
-    address _owner,
     string memory _name,
     string memory _symbol,
     uint256 _maxTotalSupply,
@@ -40,7 +39,7 @@ contract SRC20Factory {
   ) public returns (bool) {
     address token = address(
       new SRC20(
-        _owner,
+        msg.sender,
         _name,
         _symbol,
         _maxTotalSupply,
