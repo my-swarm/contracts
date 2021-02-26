@@ -76,7 +76,12 @@ contract SRC20 is ERC20, Ownable {
     registry = _registry;
   }
 
-  function updateTransferRules(address _transferRules) external onlyOwner returns (bool) {
+  function updateTransferRules(address _transferRules)
+    external
+    enabled(features.TransferRules())
+    onlyOwner
+    returns (bool)
+  {
     return _updateTransferRules(_transferRules);
   }
 
