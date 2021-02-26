@@ -84,11 +84,8 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  function registerFundraise(address _token, address _fundraise)
-    external
-    onlyTokenOwner(_token)
-    returns (bool)
-  {
+  function registerFundraise(address _token, address _fundraise) external returns (bool) {
+    require(msg.sender == _fundraise, 'SRC20Registry: Fundraiser has to register itself');
     require(registry[_token].isRegistered, 'SRC20Registry: Token not in registry');
     require(
       fundraise[_token][_fundraise] == false,
