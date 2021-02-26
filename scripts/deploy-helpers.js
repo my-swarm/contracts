@@ -27,8 +27,7 @@ async function getSwarm() {
 }
 
 async function getAccount(number = 0) {
-  const signer = (await ethers.getSigners())[number];
-  return [signer, await signer.getAddress()];
+  return (await ethers.getSigners())[number];
 }
 
 async function getAddresses() {

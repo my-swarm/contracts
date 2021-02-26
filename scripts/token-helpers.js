@@ -48,9 +48,7 @@ async function decreaseSupply({ src20, src20Registry }, diff) {
 }
 
 async function distributeToken(signer, token, holderAddresses, perHolder) {
-  console.log('distribute token');
   for (const holderAddress of holderAddresses) {
-    console.log(`transfering ${perHolder} from ${signer.address} to ${holderAddress}`);
     token.connect(signer).transfer(holderAddress, await sanitizeAmount(perHolder, token));
   }
 }

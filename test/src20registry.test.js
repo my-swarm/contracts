@@ -16,13 +16,16 @@ describe('SRC20Registry does the registering', async () => {
   let swarmAddress;
   let swm;
   let src20Registry;
-  const swmSupply = 1000;
+  let treasury;
+  let rewardsPool;
 
   beforeEach(async () => {
-    issuerAddress = await (await getIssuer()).getAddress();
-    swarmAddress = await (await getSwarm()).getAddress();
-    swm = await deployContract('SwarmTokenMock', [swarmAddress, swmSupply]);
-    src20Registry = await deployContract('SRC20Registry', [swm.address]);
+    issuerAddress = await getIssuer().address;
+    swarmAddress = await getSwarm().address;
+    treasury = await getAccount(2);
+    rewardsPool = await getAccount(3);
+    swm = await deployContract('MockSwm');
+    src20Registry = await deployContract('SRC20Registry', [treasury.address, rewardsPool.address]);
   });
 
   // todo: cannot create with wrong constructors
@@ -56,14 +59,14 @@ describe('SRC20Registry does the registering', async () => {
   });
 
   it('Only allows owner to add a factory', async () => {
-    const [sender] = await getAccount(10);
+    const sender = await getAccount(10);
     await expect(src20Registry.connect(sender).addFactory(getRandomAddress())).to.be.revertedWith(
       MSG_ONLY_OWNER
     );
   });
 
   it('Only allows owner to remove a factory', async () => {
-    const [sender] = await getAccount(10);
+    const sender = await getAccount(10);
     await expect(
       src20Registry.connect(sender).removeFactory(getRandomAddress())
     ).to.be.revertedWith(MSG_ONLY_OWNER);
@@ -84,14 +87,14 @@ describe('SRC20Registry does the registering', async () => {
   });
 
   it('Only allows owner to add a minters', async () => {
-    const [sender] = await getAccount(10);
+    const sender = await getAccount(10);
     await expect(src20Registry.connect(sender).addMinter(getRandomAddress())).to.be.revertedWith(
       MSG_ONLY_OWNER
     );
   });
 
   it('Only allows owner to remove a minters', async () => {
-    const [sender] = await getAccount(10);
+    const sender = await getAccount(10);
     await expect(src20Registry.connect(sender).removeMinter(getRandomAddress())).to.be.revertedWith(
       MSG_ONLY_OWNER
     );
@@ -121,17 +124,17 @@ describe('SRC20Registry does the registering', async () => {
 
   it('Cannot add a token without authorized minters', async () => {
     // sender pretends he's the factory
-    const [sender, senderAddress] = await getAccount();
+    const sender = await getAccount(10);
     const params = getRandomAddresses(4);
-    await src20Registry.addFactory(senderAddress);
+    await src20Registry.addFactory(sender.address);
     await expect(src20Registry.put(...params)).to.be.revertedWith('minter not authorized');
   });
 
   async function addTokenToRegistry() {
-    const [sender, senderAddress] = await getAccount();
+    const sender = await getAccount(10);
     const params = getRandomAddresses(4);
     const [tokenAddress, rolesAddress, ownerAddress, minterAddress] = params;
-    await src20Registry.addFactory(senderAddress);
+    await src20Registry.addFactory(sender.address);
     await src20Registry.addMinter(minterAddress);
 
     await expect(src20Registry.put(...params))
@@ -156,7 +159,7 @@ describe('SRC20Registry does the registering', async () => {
   });
 
   it('Only allows owner to remove token', async () => {
-    const [sender, senderAddress] = await getAccount(10);
+    const sender = await getAccount(10);
     const { tokenAddress } = await addTokenToRegistry();
     await expect(src20Registry.connect(sender).remove(tokenAddress)).to.be.revertedWith(
       MSG_ONLY_OWNER

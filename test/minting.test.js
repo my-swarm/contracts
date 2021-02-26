@@ -27,7 +27,6 @@ describe('Minting and Staking', async () => {
 
   let issuer;
   let issuerAddress;
-  let nav;
   let stake;
   let maxSupply;
 
@@ -42,25 +41,24 @@ describe('Minting and Staking', async () => {
 
     const [tokenContracts, tokenOptions] = await deployToken(baseContracts);
     src20 = tokenContracts.src20;
-    nav = tokenOptions.src20.nav;
-    maxSupply = tokenOptions.src20.maxSupply;
-    stake = await tokenMinter.calcStake(nav);
+    maxSupply = tokenOptions.maxSupply;
+    stake = await tokenMinter.calcFee(tokenOptions.nav);
 
     issuer = await getIssuer();
     issuerAddress = await issuer.getAddress();
   });
 
   it('Computes stake properly', async () => {
-    expect(await tokenMinter.calcStake(1000)).to.equal(parseSwm(2500));
-    expect(await tokenMinter.calcStake(500000)).to.equal(parseSwm(2500));
-    expect(await tokenMinter.calcStake(600000)).to.equal(parseSwm(600000 * 0.005));
-    expect(await tokenMinter.calcStake(1000000)).to.equal(parseSwm(1000000 * 0.005));
-    expect(await tokenMinter.calcStake(5000000)).to.equal(parseSwm(5000000 * 0.0045));
-    expect(await tokenMinter.calcStake(15000000)).to.equal(parseSwm(15000000 * 0.004));
-    expect(await tokenMinter.calcStake(50000000)).to.equal(parseSwm(50000000 * 0.0025));
-    expect(await tokenMinter.calcStake(100000000)).to.equal(parseSwm(100000000 * 0.002));
-    expect(await tokenMinter.calcStake(150000000)).to.equal(parseSwm(150000000 * 0.0015));
-    expect(await tokenMinter.calcStake(160000000)).to.equal(parseSwm(160000000 * 0.001));
+    expect(await tokenMinter.calcFee(1000)).to.equal(parseSwm(2500));
+    expect(await tokenMinter.calcFee(500000)).to.equal(parseSwm(2500));
+    expect(await tokenMinter.calcFee(600000)).to.equal(parseSwm(600000 * 0.005));
+    expect(await tokenMinter.calcFee(1000000)).to.equal(parseSwm(1000000 * 0.005));
+    expect(await tokenMinter.calcFee(5000000)).to.equal(parseSwm(5000000 * 0.0045));
+    expect(await tokenMinter.calcFee(15000000)).to.equal(parseSwm(15000000 * 0.004));
+    expect(await tokenMinter.calcFee(50000000)).to.equal(parseSwm(50000000 * 0.0025));
+    expect(await tokenMinter.calcFee(100000000)).to.equal(parseSwm(100000000 * 0.002));
+    expect(await tokenMinter.calcFee(150000000)).to.equal(parseSwm(150000000 * 0.0015));
+    expect(await tokenMinter.calcFee(160000000)).to.equal(parseSwm(160000000 * 0.001));
   });
 
   it('Can mint as a token issuer with TokenMinter', async () => {

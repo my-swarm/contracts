@@ -37,7 +37,7 @@ describe('TransferRules', async () => {
     issuerAddress = await issuer.getAddress();
     address1 = getRandomAddress();
     addresses = getRandomAddresses(2);
-    wrongAccount = (await getAccount(10))[0];
+    wrongAccount = await getAccount(10);
   });
 
   it('Cannot set SRC20 if already set', async () => {
