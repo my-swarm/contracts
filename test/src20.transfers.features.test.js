@@ -103,7 +103,7 @@ describe('Transfering SRC20 with features', async () => {
 
   it('Cannot transfer if token is frozen (aka paused)', async () => {
     await deploy(FEATURE_PAUSABLE);
-    await features.connect(issuer).pauseToken();
+    await features.connect(issuer).pause();
     await checkCannotTransfer();
   });
 
