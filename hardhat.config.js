@@ -2,6 +2,8 @@ require('dotenv').config();
 require('@nomiclabs/hardhat-waffle');
 require('@nomiclabs/hardhat-ethers');
 require('@nomiclabs/hardhat-etherscan');
+// 3-rd party plugins
+require('hardhat-contract-sizer');
 
 const fs = require('fs');
 const mnemonic = fs.readFileSync('.private').toString().trim();
@@ -76,7 +78,12 @@ module.exports = {
     hardhat: {
       gas: 12000000,
       blockGasLimit: 12000000,
-      allowUnlimitedContractSize: true,
+      // allowUnlimitedContractSize: true,
+    },
+    fork: {
+      url: 'https://mainnet.infura.io/v3/4aaace1ae3d8484f81138b24012ae2d2',
+      chainId: 1,
+      ...gasAuto,
     },
   },
 };

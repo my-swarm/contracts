@@ -29,6 +29,7 @@
     "ethereum-waffle": "^3.0.2",
     "ethers": "^5.0.8",
     "hardhat": "^2.0.11",
+    "hardhat-contract-sizer": "^2.0.2",
     "json-format": "^1.0.1",
     "lodash": "^4.17.20",
     "moment": "^2.27.0",
