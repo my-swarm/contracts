@@ -9,6 +9,8 @@ import '../token/SRC20.sol';
 import '../factories/SRC20Registry.sol';
 import '../interfaces/IPriceUSD.sol';
 
+import 'hardhat/console.sol';
+
 /**
  * @title TokenMinter
  * @dev Serves as proxy (manager) for SRC20 minting.
@@ -44,6 +46,9 @@ contract TokenMinter {
     );
     _;
   }
+
+  event Minted(uint256 amount, uint256 fee, address account);
+  event Burned(uint256 amount, address account);
 
   /**
    *  Calculate how many SWM tokens need to be paid as fee to tokenize an asset
@@ -121,6 +126,7 @@ contract TokenMinter {
 
     netAssetValue[_src20] = SRC20(_src20).nav();
 
+    emit Minted(_amount, swmAmount, _recipient);
     return true;
   }
 
@@ -131,6 +137,7 @@ contract TokenMinter {
   ) external onlyAuthorised(_src20) returns (bool) {
     SRC20(_src20).executeBurn(_account, _amount);
 
+    emit Burned(_amount, _account);
     return true;
   }
 

@@ -33,15 +33,12 @@ contract SRC20Registry is Ownable {
     _;
   }
 
-  modifier onlyTokenOwner(address _token) {
-    require(SRC20(_token).owner() == msg.sender, 'SRC20Registry: Caller not token owner');
-    _;
-  }
-
+  event TreasuryUpdated(address treasury);
+  event RewardPoolUpdated(address treasury);
   event FactoryAdded(address account);
   event FactoryRemoved(address account);
   event SRC20Registered(address token, address minter);
-  event SRC20Removed(address token);
+  event SRC20Unregistered(address token);
   event MinterAdded(address minter);
   event MinterRemoved(address minter);
 
@@ -55,12 +52,14 @@ contract SRC20Registry is Ownable {
   function updateTreasury(address _treasury) external onlyOwner returns (bool) {
     require(_treasury != address(0), 'SRC20Registry: Treasury cannot be the zero address');
     treasury = _treasury;
+    emit TreasuryUpdated(_treasury);
     return true;
   }
 
   function updateRewardPool(address _rewardPool) external onlyOwner returns (bool) {
-    require(_rewardPool != address(0), 'SRC20Registry: Treasury cannot be the zero address');
+    require(_rewardPool != address(0), 'SRC20Registry: Reward pool cannot be the zero address');
     rewardPool = _rewardPool;
+    emit RewardPoolUpdated(_rewardPool);
     return true;
   }
 
@@ -84,15 +83,15 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  function registerFundraise(address _token, address _fundraise) external returns (bool) {
-    require(msg.sender == _fundraise, 'SRC20Registry: Fundraiser has to register itself');
+  function registerFundraise(address _registrant, address _token) external returns (bool) {
+    require(_registrant == SRC20(_token).owner(), 'SRC20Registry: Registrant not token owner');
     require(registry[_token].isRegistered, 'SRC20Registry: Token not in registry');
     require(
-      fundraise[_token][_fundraise] == false,
+      fundraise[_token][msg.sender] == false,
       'SRC20Registry: Fundraiser already in registry'
     );
 
-    fundraise[_token][_fundraise] = true;
+    fundraise[_token][msg.sender] = true;
 
     return true;
   }
@@ -119,9 +118,13 @@ contract SRC20Registry is Ownable {
     registry[_token].factory = address(0);
     registry[_token].isRegistered = false;
 
-    emit SRC20Removed(_token);
+    emit SRC20Unregistered(_token);
 
     return true;
+  }
+
+  function contains(address _token) external view returns (bool) {
+    return registry[_token].minter != address(0);
   }
 
   function getMinter(address _token) external view returns (address) {

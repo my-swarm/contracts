@@ -178,7 +178,7 @@ contract Fundraiser is Ownable {
     require(!isSetup, 'Fundraiser: Contract is already set up');
     require(!isCanceled, 'Fundraiser: Fundraiser is canceled');
 
-    SRC20Registry(SRC20(token).registry()).registerFundraise(token, address(this));
+    SRC20Registry(SRC20(token).registry()).registerFundraise(msg.sender, token);
 
     baseCurrency = _baseCurrency;
     if (supply == 0) {
@@ -295,8 +295,8 @@ contract Fundraiser is Ownable {
    *  @return true on success
    */
   function getRefund() external returns (bool) {
-    bool isExpired = block.timestamp >
-      endDate.add(FundraiserManager(fundraiserManager).expirationTime());
+    bool isExpired =
+      block.timestamp > endDate.add(FundraiserManager(fundraiserManager).expirationTime());
     require(
       isCanceled || isExpired || !contributionsLocked,
       'Fundraiser: Condition for refund not met (event canceled, expired or contributions not locked)!'
@@ -350,9 +350,8 @@ contract Fundraiser is Ownable {
     uint256 tokenDecimals = uint256(10)**SRC20(token).decimals();
 
     // decimals: 6 + 18 - 18 + 18 - 6
-    uint256 tokenAmount = contributed.mul(tokenDecimals).div(tokenPrice).mul(tokenDecimals).div(
-      baseCurrencyDecimals
-    );
+    uint256 tokenAmount =
+      contributed.mul(tokenDecimals).div(tokenPrice).mul(tokenDecimals).div(baseCurrencyDecimals);
 
     ERC20(token).safeTransfer(msg.sender, tokenAmount);
 
@@ -442,9 +441,8 @@ contract Fundraiser is Ownable {
     uint256 maxAmount = ContributorRestrictions(contributorRestrictions).maxAmount();
     uint256 refund = 0;
 
-    uint256 currentAmount = qualified
-      ? qualifiedContributions[_contributor]
-      : pendingContributions[_contributor];
+    uint256 currentAmount =
+      qualified ? qualifiedContributions[_contributor] : pendingContributions[_contributor];
 
     uint256 newAmount = currentAmount.add(_amount);
 
@@ -514,9 +512,8 @@ contract Fundraiser is Ownable {
     uint256 _amount
   ) internal {
     if (bytes(_referral).length != 0) {
-      (address affiliate, uint256 percentage) = AffiliateManager(affiliateManager).getByReferral(
-        _referral
-      );
+      (address affiliate, uint256 percentage) =
+        AffiliateManager(affiliateManager).getByReferral(_referral);
       if (affiliate != address(0)) {
         if (
           contributorAffiliates[_contributor] == address(0) ||
@@ -534,7 +531,9 @@ contract Fundraiser is Ownable {
 
   function _removeShare(address _contributor) internal {
     if (contributorAffiliates[_contributor] != address(0)) {
-      affiliateShares[contributorAffiliates[_contributor]] = affiliateShares[contributorAffiliates[_contributor]]
+      affiliateShares[contributorAffiliates[_contributor]] = affiliateShares[
+        contributorAffiliates[_contributor]
+      ]
         .sub(contributorShares[_contributor]);
       contributorShares[_contributor] = 0;
       contributorAffiliates[_contributor] = address(0);

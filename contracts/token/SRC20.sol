@@ -46,8 +46,10 @@ contract SRC20 is ERC20, Ownable {
   }
 
   event TransferRulesUpdated(address transferRrules);
-  event KyaUpdated(address indexed src20, string kyaUri);
-  event NavUpdated(address indexed src20, uint256 nav);
+  event KyaUpdated(string kyaUri);
+  event NavUpdated(uint256 nav);
+  event SupplyMinted(uint256 amount, address account);
+  event SupplyBurned(uint256 amount, address account);
 
   /// @dev The owner is passed explicitly from the factory,
   /// that's why it is not msg.sender
@@ -87,13 +89,13 @@ contract SRC20 is ERC20, Ownable {
 
   function updateKya(string memory _kyaUri) external onlyOwner returns (bool) {
     kyaUri = _kyaUri;
-    emit KyaUpdated(address(this), _kyaUri);
+    emit KyaUpdated(_kyaUri);
     return true;
   }
 
   function updateNav(uint256 _nav) external onlyOwner returns (bool) {
     nav = _nav;
-    emit NavUpdated(address(this), _nav);
+    emit NavUpdated(_nav);
     return true;
   }
 
@@ -222,6 +224,7 @@ contract SRC20 is ERC20, Ownable {
 
   function executeBurn(address account, uint256 amount) external onlyMinter returns (bool) {
     _burn(account, amount);
+    emit SupplyBurned(amount, account);
     return true;
   }
 
@@ -241,6 +244,7 @@ contract SRC20 is ERC20, Ownable {
     );
 
     _mint(recipient, amount);
+    emit SupplyMinted(amount, recipient);
     return true;
   }
 
