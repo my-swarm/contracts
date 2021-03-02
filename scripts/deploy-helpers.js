@@ -10,12 +10,6 @@ function log(x) {
   if (process.env.LOG === '1') console.log(x);
 }
 
-async function getSigners() {
-  const signers = await ethers.getSigners();
-
-  return { accounts: signers, addresses };
-}
-
 async function getIssuer() {
   const [, issuer] = await ethers.getSigners();
   return issuer;
@@ -324,7 +318,6 @@ async function revertToSnapshot(id) {
 
 module.exports = {
   ZERO_ADDRESS,
-  getSigners,
   getAccount,
   getIssuer,
   getSwarm,
