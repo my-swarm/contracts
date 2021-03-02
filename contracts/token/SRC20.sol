@@ -54,28 +54,29 @@ contract SRC20 is ERC20, Ownable {
   /// @dev The owner is passed explicitly from the factory,
   /// that's why it is not msg.sender
   constructor(
-    address _owner,
     string memory _name,
     string memory _symbol,
     uint256 _maxTotalSupply,
     string memory _kyaUri,
     uint256 _netAssetValueUSD,
     uint8 _features,
-    address _registry
+    address _registry,
+    address _minter
   ) ERC20(_name, _symbol) {
     maxTotalSupply = _maxTotalSupply;
     kyaUri = _kyaUri;
     nav = _netAssetValueUSD;
 
-    features = new Features(_owner, _features);
+    features = new Features(msg.sender, _features);
 
     if (features.isEnabled(features.TransferRules())) {
-      transferRules = new TransferRules(address(this), _owner);
+      transferRules = new TransferRules(address(this), msg.sender);
     }
 
-    transferOwnership(_owner);
+    transferOwnership(msg.sender);
 
     registry = _registry;
+    SRC20Registry(registry).register(address(this), _minter);
   }
 
   function updateTransferRules(address _transferRules)
