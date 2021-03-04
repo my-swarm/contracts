@@ -7,7 +7,7 @@
     "clean": "hardhat clean",
     "test": "hardhat test",
     "compile": "hardhat compile",
-    "publish": "node ./scripts/distribute-abis.js",
+    "distribute": "node ./scripts/distribute-abis.js",
     "deploy:base": "LOG=1 hardhat run scripts/deploy-base.js --show-stack-traces --network",
     "deploy:issuance": "yarn compile && hardhat run scripts/deploy-issuance.js --show-stack-traces --network",
     "dev:base": "concurrently \"hardhat node --hostname 0.0.0.0\" \"(sleep 2 && yarn deploy:base localhost)\"",
