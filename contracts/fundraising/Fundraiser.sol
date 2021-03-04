@@ -145,7 +145,7 @@ contract Fundraiser is Ownable {
     require(_hardCap >= _softCap, 'Fundraiser: Hardcap has to be >= Softcap');
 
     startDate = _startDate == 0 || _startDate < block.timestamp ? block.timestamp : _startDate;
-    require(_endDate > _startDate, 'Fundraiser: End date has to be after start date');
+    require(_endDate > startDate, 'Fundraiser: End date has to be after start date');
 
     label = _label;
     token = _token;
@@ -597,6 +597,8 @@ contract Fundraiser is Ownable {
   }
 
   function _withdraw(address _user) internal returns (bool) {
+    // Note for Sasa: this should only withdraw amountQualified - sum of affiliateShares
+    // or is there a different logic for the shares claim (what's not claimed prior _withdraw cannot be claimed)?
     amountWithdrawn = amountQualified;
     amountQualified = 0;
 

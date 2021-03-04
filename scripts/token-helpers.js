@@ -49,7 +49,7 @@ async function decreaseSupply({ src20, src20Registry }, diff) {
 
 async function distributeToken(signer, token, holderAddresses, perHolder) {
   for (const holderAddress of holderAddresses) {
-    token.connect(signer).transfer(holderAddress, await sanitizeAmount(perHolder, token));
+    await token.connect(signer).transfer(holderAddress, await sanitizeAmount(perHolder, token));
   }
 }
 

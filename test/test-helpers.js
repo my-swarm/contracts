@@ -31,5 +31,4 @@ module.exports = {
   REGEX_ADDR,
   getRandomAddress,
   getRandomAddresses,
-  deploySrc20Mock,
 };

@@ -65,7 +65,7 @@ function getFundraiserOptions() {
   return {
     label: 'Testing Fundraiser',
     supply: ethers.utils.parseUnits('100000'), // 10k baby
-    startDate: moment().unix(),
+    startDate: 0,
     endDate: moment().add(1, 'month').unix(),
     softCap: ethers.utils.parseUnits('5000', 6),
     hardCap: ethers.utils.parseUnits('10000', 6),
@@ -96,14 +96,8 @@ async function deployBaseContracts(customOptions = {}) {
   ]);
   log(`src20Registry deployed: ${src20Registry.address}`);
 
-  const src20Factory = await deployContract('SRC20Factory', [src20Registry.address]);
-  log(`src20Factory deployed: ${src20Factory.address}`);
-
   const tokenMinter = await deployContract('TokenMinter', [swm.address, swmPriceOracle.address]);
   log(`tokenMinter deployed: ${tokenMinter.address}`);
-
-  await src20Registry.addFactory(src20Factory.address);
-  log(`factory added to registry`);
 
   await src20Registry.addMinter(tokenMinter.address);
   log('minter added to registry');
@@ -117,7 +111,6 @@ async function deployBaseContracts(customOptions = {}) {
     swm,
     swmPriceOracle,
     src20Registry,
-    src20Factory,
     tokenMinter,
     usdc,
     disperse,
@@ -180,9 +173,7 @@ async function deployToken(baseContracts, customOptions = {}) {
   log(`Deploying ${options.name} [${options.symbol}]...`);
   const issuer = await getIssuer();
 
-  const transaction = await createSrc20(baseContracts, issuer, options);
-  const src20Address = (await getEvent(transaction, 'SRC20Created')).token;
-  const src20 = await ethers.getContractAt('SRC20', src20Address);
+  const src20 = await createSrc20(baseContracts, issuer, options);
   const minter = await ethers.getContractAt('TokenMinter', await src20.getMinter());
   const transferRules = await ethers.getContractAt('TransferRules', await src20.transferRules());
   const features = await ethers.getContractAt('Features', await src20.features());
@@ -191,7 +182,7 @@ async function deployToken(baseContracts, customOptions = {}) {
 }
 
 async function createSrc20(baseContracts, issuer, options) {
-  const { tokenMinter, src20Factory } = baseContracts;
+  const { src20Registry, tokenMinter } = baseContracts;
   const params = [
     options.name,
     options.symbol,
@@ -199,13 +190,16 @@ async function createSrc20(baseContracts, issuer, options) {
     options.kyaUri,
     options.nav,
     options.features,
+    src20Registry.address,
     tokenMinter.address,
   ];
-  return await src20Factory.connect(issuer).create(...params);
+  // todo: deploy
+  return await deployContract('SRC20', params, issuer);
 }
 
-async function deployFundraiser(src20Address, options) {
-  const issuer = await getIssuer();
+async function deployFundraiser(src20Address, options, signer) {
+  options = _.merge(getFundraiserOptions(), options);
+  if (!signer) signer = await getIssuer();
   return await deployContract(
     'Fundraiser',
     [
@@ -217,7 +211,7 @@ async function deployFundraiser(src20Address, options) {
       options.softCap,
       options.hardCap,
     ],
-    issuer
+    signer
   );
 }
 

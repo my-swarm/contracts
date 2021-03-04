@@ -16,7 +16,6 @@ contract SRC20Registry is Ownable {
 
   struct SRC20Record {
     address minter;
-    address factory;
     bool isRegistered;
   }
 
@@ -28,15 +27,8 @@ contract SRC20Registry is Ownable {
   mapping(address => bool) public authorizedFactories;
   mapping(address => SRC20Record) public registry;
 
-  modifier onlyFactory() {
-    require(authorizedFactories[msg.sender], 'SRC20Registry: Caller not authorized factory');
-    _;
-  }
-
   event TreasuryUpdated(address treasury);
   event RewardPoolUpdated(address treasury);
-  event FactoryAdded(address account);
-  event FactoryRemoved(address account);
   event SRC20Registered(address token, address minter);
   event SRC20Unregistered(address token);
   event MinterAdded(address minter);
@@ -63,26 +55,6 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  function addFactory(address _factory) external onlyOwner returns (bool) {
-    require(_factory != address(0), 'SRC20Registry: Factory is zero address');
-    require(authorizedFactories[_factory] != true, 'SRC20Registry: Factory already in registry');
-
-    authorizedFactories[_factory] = true;
-    emit FactoryAdded(_factory);
-
-    return true;
-  }
-
-  function removeFactory(address _factory) external onlyOwner returns (bool) {
-    require(_factory != address(0), 'SRC20Registry: Factory is zero address');
-    require(authorizedFactories[_factory] == true, 'SRC20Registry: Factory not in registry');
-
-    authorizedFactories[_factory] = false;
-    emit FactoryRemoved(_factory);
-
-    return true;
-  }
-
   function registerFundraise(address _registrant, address _token) external returns (bool) {
     require(_registrant == SRC20(_token).owner(), 'SRC20Registry: Registrant not token owner');
     require(registry[_token].isRegistered, 'SRC20Registry: Token not in registry');
@@ -96,13 +68,12 @@ contract SRC20Registry is Ownable {
     return true;
   }
 
-  function register(address _token, address _minter) external onlyFactory returns (bool) {
+  function register(address _token, address _minter) external returns (bool) {
     require(_token != address(0), 'SRC20Registry: Token is zero address');
     require(authorizedMinters[_minter], 'SRC20Registry: Minter not authorized');
     require(registry[_token].isRegistered == false, 'SRC20Registry: Token already in registry');
 
     registry[_token].minter = _minter;
-    registry[_token].factory = msg.sender;
     registry[_token].isRegistered = true;
 
     emit SRC20Registered(_token, _minter);
@@ -115,7 +86,6 @@ contract SRC20Registry is Ownable {
     require(registry[_token].isRegistered, 'SRC20Registry: Token not in registry');
 
     registry[_token].minter = address(0);
-    registry[_token].factory = address(0);
     registry[_token].isRegistered = false;
 
     emit SRC20Unregistered(_token);
@@ -129,10 +99,6 @@ contract SRC20Registry is Ownable {
 
   function getMinter(address _token) external view returns (address) {
     return registry[_token].minter;
-  }
-
-  function getFactory(address _token) external view returns (address) {
-    return registry[_token].factory;
   }
 
   function addMinter(address _minter) external onlyOwner returns (bool) {

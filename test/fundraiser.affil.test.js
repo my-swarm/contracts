@@ -48,8 +48,7 @@ describe('Fundraiser affiliate/referrer', async function () {
     const [tokenContracts, tokenOptions] = await deployToken(baseContracts);
     softCap = tokenOptions.softCap;
     fee = baseContractOptions.fundraiserManager.fee;
-    const result = await deployFundraiserContracts(tokenContracts, { affiliateManager: true });
-    contracts = result[0];
+    [contracts] = await deployFundraiserContracts(tokenContracts, { affiliateManager: true });
     fundraiser = contracts.fundraiser;
     cRestrictions = contracts.contributorRestrictions;
     affiliateManager = contracts.affiliateManager;
@@ -92,8 +91,8 @@ describe('Fundraiser affiliate/referrer', async function () {
     for (const account of accounts) {
       await updateAllowance(account, contracts.usdc, fundraiser.address);
     }
-    await updateAllowance(issuer, contracts.swm, contracts.src20Registry.address); // for paying fee
-    await updateAllowance(issuer, contracts.usdc, fundraiser.address); // for staking
+    await updateAllowance(issuer, contracts.swm, contracts.tokenMinter.address); // for paying fee
+    // await updateAllowance(issuer, contracts.usdc, fundraiser.address); // for staking
 
     snapshotId = await takeSnapshot();
   });
@@ -118,11 +117,12 @@ describe('Fundraiser affiliate/referrer', async function () {
     if ((await fundraiser.fee()).gt(0)) {
       await fundraiser.connect(issuer).payFee(fee);
     }
-    await fundraiser.connect(issuer).mint();
+    await fundraiser.connect(issuer).concludeFundraise(true);
   }
 
   async function setTokenAllowance() {
     await updateAllowance(issuer, contracts.src20, fundraiser.address);
+    await updateAllowance(issuer, contracts.src20, contracts.tokenMinter.address);
   }
 
   it('Adds affiliate when contributing', async () => {

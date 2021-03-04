@@ -36,17 +36,10 @@ describe('Properly deploys base contracts', async () => {
   });
 
   it('Has SRC20Registry contract properly setup', async () => {
-    const { src20Registry, tokenMinter, src20Factory } = baseContracts;
+    const { src20Registry, tokenMinter } = baseContracts;
     expect(await src20Registry.address).to.match(REGEX_ADDR);
     expect(await src20Registry.owner()).to.equal(swarmAddress);
     expect(await src20Registry.authorizedMinters(tokenMinter.address)).to.equal(true);
-    expect(await src20Registry.authorizedFactories(src20Factory.address)).to.equal(true);
-  });
-
-  it('Has SRC20Factory contract properly setup', async () => {
-    const { src20Factory } = baseContracts;
-    expect(await src20Factory.address).to.match(REGEX_ADDR);
-    // doesn't store owner
   });
 
   it('Has TokenMinter contract properly setup', async () => {

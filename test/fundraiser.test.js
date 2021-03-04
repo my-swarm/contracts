@@ -7,14 +7,15 @@ const {
   deployBaseContracts,
   deployToken,
   deployFundraiserContracts,
-  getAddresses,
   getIssuer,
   getSwarm,
   advanceTimeAndBlock,
   takeSnapshot,
   revertToSnapshot,
+  deployFundraiser,
 } = require('../scripts/deploy-helpers');
 const { distributeToken, updateAllowance } = require('../scripts/token-helpers');
+const { REGEX_ADDR } = require('./test-helpers');
 
 const stateProps = [
   'numContributors',
@@ -29,10 +30,11 @@ function parseUsd(x) {
 }
 
 describe('Fundraiser', async function () {
+  let snapshotId;
+
   let accounts;
   let addr;
   let issuer;
-  let issuerAddress;
   let softCap;
   let hardCap;
   let fee;
@@ -54,33 +56,42 @@ describe('Fundraiser', async function () {
   let prevState;
 
   before(async function () {
-    const swarm = await getSwarm();
     issuer = await getIssuer();
-    issuerAddress = await issuer.getAddress();
     const [baseContracts, baseOptions] = await deployBaseContracts();
-    fee = baseOptions.fundraiserManager.fee;
-    expirationTime = baseOptions.fundraiserManager.expirationTime;
-    contracts = (await deployToken(baseContracts))[0];
-    // fundraiserManager = contracts.fundraiserManager;
+    [contracts] = await deployToken(baseContracts);
+
     accounts = (await ethers.getSigners()).slice(10, 13);
-    addr = (await getAddresses()).slice(10, 13);
-    usdc = baseContracts.usdc;
+    addr = accounts.map((a) => a.address);
+
     // everyone gets 100k USDC, that should suffice for all tests
-    await distributeToken(swarm, contracts.usdc, [...addr, issuerAddress], parseUsd(200000));
+    await distributeToken(
+      await getSwarm(),
+      contracts.usdc,
+      [...addr, issuer.address],
+      parseUsd(200000)
+    );
 
     amount = parseUsd(1000);
     amount2 = parseUsd(2000);
     amount3 = parseUsd(3000);
     amount9 = parseUsd(9000);
+
+    fee = baseOptions.fundraiserManager.fee;
+    expirationTime = baseOptions.fundraiserManager.expirationTime;
+    usdc = baseContracts.usdc;
+
+    snapshotId = await takeSnapshot();
   });
 
   beforeEach(async function () {
+    await revertToSnapshot(snapshotId);
+    snapshotId = await takeSnapshot();
     if (!this.currentTest.title.match(/@nodeploy/)) {
-      await deployFundraiser({});
+      await createFundraiser({});
     }
   });
 
-  async function deployFundraiser(customOptions = {}) {
+  async function createFundraiser(customOptions = {}) {
     // default options: softCap: 5000, hardCap: 10000, supply: 100K, startDate: now, endDate: 1 month
     const [fc, options] = await deployFundraiserContracts(contracts, customOptions);
     fundraiser = fc.fundraiser;
@@ -93,38 +104,35 @@ describe('Fundraiser', async function () {
     for (const account of accounts) {
       await updateAllowance(account, contracts.usdc, fundraiser.address);
     }
-    await updateAllowance(issuer, contracts.swm, contracts.src20Registry.address); // for paying fee
-    await updateAllowance(issuer, contracts.usdc, fundraiser.address); // for staking
+    await updateAllowance(issuer, contracts.swm, contracts.tokenMinter.address); // for paying fee
+    // await updateAllowance(issuer, contracts.usdc, fundraiser.address); // for staking
   }
 
-  it('Can start', async () => {
+  it('Can start @nodeploy', async () => {
     const [
       { fundraiser, affiliateManager, contributorRestrictions },
       options,
-    ] = await deployFundraiserContracts(
-      {
-        ...baseContracts,
-        ...tokenContracts,
-      },
-      { affiliateManager: true }
-    );
+    ] = await deployFundraiserContracts(contracts, {
+      affiliateManager: true,
+      startDate: moment().add(1, 'day').unix(),
+    });
 
     expect(fundraiser.address).to.match(REGEX_ADDR);
     expect(await fundraiser.affiliateManager()).to.equal(affiliateManager.address);
     expect(await fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
     expect(await fundraiser.label()).to.equal(options.label);
-    expect(await fundraiser.token()).to.equal(tokenContracts.src20.address);
+    expect(await fundraiser.token()).to.equal(contracts.src20.address);
     expect(await fundraiser.supply()).to.equal(options.supply);
     expect(await fundraiser.startDate()).to.equal(options.startDate);
     expect(await fundraiser.endDate()).to.equal(options.endDate);
     expect(await fundraiser.softCap()).to.equal(options.softCap);
     expect(await fundraiser.hardCap()).to.equal(options.hardCap);
 
-    expect(await fundraiser.baseCurrency()).to.equal(baseContracts.usdc.address);
+    expect(await fundraiser.baseCurrency()).to.equal(contracts.usdc.address);
     expect(await fundraiser.tokenPrice()).to.equal(options.tokenPrice);
     expect(await fundraiser.contributorRestrictions()).to.equal(contributorRestrictions.address);
-    expect(await fundraiser.fundraiserManager()).to.equal(baseContracts.fundraiserManager.address);
-    expect(await fundraiser.minter()).to.equal(baseContracts.tokenMinter.address);
+    expect(await fundraiser.fundraiserManager()).to.equal(contracts.fundraiserManager.address);
+    expect(await fundraiser.minter()).to.equal(contracts.tokenMinter.address);
     expect(await fundraiser.contributionsLocked()).to.equal(options.contributionsLocked);
 
     expect(await fundraiser.numContributors()).to.equal(0);
@@ -135,6 +143,39 @@ describe('Fundraiser', async function () {
     expect(await fundraiser.isCanceled()).to.equal(false);
     expect(await fundraiser.isSetup()).to.equal(true);
     expect(await fundraiser.isHardcapReached()).to.equal(false);
+  });
+
+  it('Cannot be crated if startDate > endDate @nodeploy', async () => {
+    await expect(
+      deployFundraiser(contracts.src20.address, {
+        startDate: moment().add(20, 'day').unix(),
+        endDate: moment().add(10, 'day').unix(),
+      })
+    ).to.be.revertedWith('Fundraiser: End date has to be after start date');
+  });
+
+  it('Cannot be crated if softCap > hardCap @nodeploy', async () => {
+    await expect(
+      deployFundraiser(contracts.src20.address, {
+        softCap: 2000,
+        hardCap: 1000,
+      })
+    ).to.be.revertedWith('Fundraiser: Hardcap has to be >= Softcap');
+  });
+
+  it('Can only be created by token owner @nodeploy', async () => {
+    const randomAccount = accounts[1];
+    await expect(
+      deployFundraiser(contracts.src20.address, {
+        softCap: 2000,
+        hardCap: 1000,
+      })
+    ).to.be.revertedWith('Fundraiser: Hardcap has to be >= Softcap');
+  });
+
+  it('When startDate not provided, uses the current date @nodeploy', async () => {
+    const fundraiser = await deployFundraiser(contracts.src20.address, { startDate: 0 });
+    expect((await fundraiser.startDate()).toNumber()).to.be.greaterThan(Date.now() / 1000 - 60);
   });
 
   async function testContributeAcceptRemoveRevert(message) {
@@ -153,7 +194,7 @@ describe('Fundraiser', async function () {
   }
 
   it('Does not allow to contribute/accept/remove if not setup @nodeploy', async () => {
-    await deployFundraiser({ skipSetup: true });
+    await createFundraiser({ skipSetup: true });
     await testContributeAcceptRemoveRevert('Fundraise setup not completed');
   });
 
@@ -164,13 +205,13 @@ describe('Fundraiser', async function () {
 
   async function setTokenAllowance() {
     await updateAllowance(issuer, contracts.src20, fundraiser.address);
+    await updateAllowance(issuer, contracts.src20, contracts.tokenMinter.address);
   }
 
-  async function mint(setAllowance = true) {
-    if (setAllowance) {
-      await setTokenAllowance();
-    }
-    await fundraiser.connect(issuer).mint();
+  async function conclude(setAllowance = true) {
+    if (setAllowance) await setTokenAllowance();
+    // need to approve both minter and fundraiser
+    await fundraiser.connect(issuer).concludeFundraise(true);
   }
 
   async function runAndFinishFundraiser(contributions = [hardCap]) {
@@ -178,7 +219,7 @@ describe('Fundraiser', async function () {
       await contributeApproved(accountId, contributions[accountId]);
     }
     await payFee();
-    await mint();
+    await conclude();
   }
 
   async function contributeApproved(accountId, amount, aff = affil) {
@@ -189,7 +230,7 @@ describe('Fundraiser', async function () {
   async function whitelistContributor(address) {
     await expect(cRestrictions.connect(issuer).whitelistAccount(address))
       .to.emit(cRestrictions, 'AccountWhitelisted')
-      .withArgs(address, issuerAddress);
+      .withArgs(address, issuer.address);
   }
 
   async function storeState() {
@@ -220,12 +261,12 @@ describe('Fundraiser', async function () {
   it('💪 Can whitelist and unwhitelist contributors', async function () {
     await expect(cRestrictions.connect(issuer).whitelistAccount(addr[0]))
       .to.emit(cRestrictions, 'AccountWhitelisted')
-      .withArgs(addr[0], issuerAddress);
+      .withArgs(addr[0], issuer.address);
     expect(await cRestrictions.isWhitelisted(addr[0])).to.equal(true);
 
     await expect(cRestrictions.connect(issuer).unWhitelistAccount(addr[0]))
       .to.emit(cRestrictions, 'AccountUnWhitelisted')
-      .withArgs(addr[0], issuerAddress);
+      .withArgs(addr[0], issuer.address);
     expect(await cRestrictions.isWhitelisted(addr[0])).to.equal(false);
   });
 
@@ -356,7 +397,7 @@ describe('Fundraiser', async function () {
 
   it('Does not allow to contribute more than maxAmount when not accepted yet @nodeploy', async function () {
     const maxAmount = parseUsd(2000);
-    await deployFundraiser({ contributors: { maxAmount } });
+    await createFundraiser({ contributors: { maxAmount } });
     await expect(fundraiser.connect(accounts[0]).contribute(amount2, affil)).to.emit(
       fundraiser,
       'ContributionPending'
@@ -376,7 +417,7 @@ describe('Fundraiser', async function () {
 
   it('Does not allow to contribute more than maxAmount when qualified @nodeploy', async function () {
     const maxAmount = parseUsd(2000);
-    await deployFundraiser({ contributors: { maxAmount } });
+    await createFundraiser({ contributors: { maxAmount } });
     await cRestrictions.connect(issuer).whitelistAccount(addr[0]);
     await cRestrictions.connect(issuer).whitelistAccount(addr[1]);
 
@@ -399,7 +440,7 @@ describe('Fundraiser', async function () {
 
   it('Does not allow to contribute less than minAmount @nodeploy', async () => {
     const minAmount = parseUsd(2000);
-    await deployFundraiser({ contributors: { minAmount } });
+    await createFundraiser({ contributors: { minAmount } });
     await cRestrictions.connect(issuer).whitelistAccount(addr[1]);
 
     await expect(fundraiser.connect(accounts[0]).contribute(amount, affil)).to.be.revertedWith(
@@ -414,7 +455,7 @@ describe('Fundraiser', async function () {
 
   it('Does not check max number of non-accepted contributors @nodeploy', async () => {
     const maxNum = 2;
-    await deployFundraiser({ contributors: { maxNum } });
+    await createFundraiser({ contributors: { maxNum } });
     for (let i = 0; i <= maxNum; i++) {
       await expect(fundraiser.connect(accounts[i]).contribute(amount, affil)).to.emit(
         fundraiser,
@@ -425,7 +466,7 @@ describe('Fundraiser', async function () {
 
   it('Does not allow more contributors than maxCount @nodeploy', async () => {
     const maxNum = 2;
-    await deployFundraiser({ contributors: { maxNum } });
+    await createFundraiser({ contributors: { maxNum } });
     for (let i = 0; i <= maxNum; i++) {
       await cRestrictions.connect(issuer).whitelistAccount(addr[i]);
     }
@@ -448,13 +489,13 @@ describe('Fundraiser', async function () {
   it('Does not allow to contribute/accept/remove if hardcap reached @nodeploy', async () => {
     const hardCap = parseUsd('1000');
     const softCap = hardCap;
-    await deployFundraiser({ hardCap, softCap });
+    await createFundraiser({ hardCap, softCap });
     await contributeApproved(0, amount);
     await testContributeAcceptRemoveRevert('HardCap has been reached');
   });
 
   it('Does not allow to contribute/accept/remove if before startDate @nodeploy', async () => {
-    await deployFundraiser({
+    await createFundraiser({
       startDate: moment().add(2, 'days').unix(),
       endDate: moment().add(5, 'days').unix(),
     });
@@ -462,10 +503,10 @@ describe('Fundraiser', async function () {
   });
 
   it('Does not allow to contribute/accept/remove after endDate @nodeploy', async () => {
-    await deployFundraiser({
-      startDate: moment().subtract(5, 'days').unix(),
-      endDate: moment().subtract(2, 'days').unix(),
+    await createFundraiser({
+      endDate: moment().add(1, 'days').unix(),
     });
+    await advanceTimeAndBlock(2 * 24 * 3600);
     await testContributeAcceptRemoveRevert('Fundraise has ended');
   });
 
@@ -477,17 +518,17 @@ describe('Fundraiser', async function () {
     );
     await expect(fundraiser.connect(issuer).payFee(fee.sub(1)))
       .to.emit(fundraiser, 'FeePaid')
-      .withArgs(issuerAddress, fee.sub(1));
+      .withArgs(issuer.address, fee.sub(1));
     expect(await fundraiser.isFeePaid()).to.equal(false);
     expect(await fundraiser.totalFeePaid()).to.equal(fee.sub(1));
 
-    const usdBefore = await usdc.balanceOf(issuerAddress);
+    const usdBefore = await usdc.balanceOf(issuer.address);
     await expect(fundraiser.connect(issuer).payFee(2))
       .to.emit(fundraiser, 'FeePaid')
-      .withArgs(issuerAddress, 1);
+      .withArgs(issuer.address, 1);
     expect(await fundraiser.isFeePaid()).to.equal(true);
     expect(await fundraiser.totalFeePaid()).to.equal(fee);
-    expect(await usdc.balanceOf(issuerAddress)).to.equal(usdBefore.sub(1));
+    expect(await usdc.balanceOf(issuer.address)).to.equal(usdBefore.sub(1));
 
     await expect(fundraiser.connect(issuer).payFee(1)).to.be.revertedWith(
       'Fundraiser: Fee already paid.'
@@ -498,19 +539,21 @@ describe('Fundraiser', async function () {
     await contributeApproved(0, hardCap);
     await payFee();
     const amountQualified = await fundraiser.amountQualified();
-    const balanceBefore = await contracts.usdc.balanceOf(issuerAddress);
+    const balanceBefore = await contracts.usdc.balanceOf(issuer.address);
     await setTokenAllowance();
-    await expect(fundraiser.connect(issuer).mint()).to.emit(fundraiser, 'FundraiserFinished');
+    await expect(fundraiser.connect(issuer).concludeFundraise(true)).to.emit(
+      fundraiser,
+      'FundraiserFinished'
+    );
     expect(await fundraiser.contributionsLocked()).to.equal(true);
     expect(await fundraiser.isFinished()).to.equal(true);
-    expect(await contracts.usdc.balanceOf(issuerAddress)).to.equal(
+    expect(await contracts.usdc.balanceOf(issuer.address)).to.equal(
       balanceBefore.add(amountQualified)
     ); // auto withdraw
   });
 
   it('Can finish (stake and mint) if softCap reached and endDate passed @nodeploy', async () => {
-    await deployFundraiser({
-      startDate: moment().subtract(1, 'days').unix(),
+    await createFundraiser({
       endDate: moment().add(1, 'days').unix(),
     });
 
@@ -519,7 +562,10 @@ describe('Fundraiser', async function () {
     const snapshotId = await takeSnapshot();
     await setTokenAllowance();
     await advanceTimeAndBlock(2 * 24 * 3600);
-    await expect(fundraiser.connect(issuer).mint()).to.emit(fundraiser, 'FundraiserFinished');
+    await expect(fundraiser.connect(issuer).concludeFundraise(true)).to.emit(
+      fundraiser,
+      'FundraiserFinished'
+    );
     expect(await fundraiser.contributionsLocked()).to.equal(true);
     expect(await fundraiser.isFinished()).to.equal(true);
     await revertToSnapshot(snapshotId);
@@ -534,13 +580,17 @@ describe('Fundraiser', async function () {
 
   it('Cannot finish if already finished', async () => {
     await runAndFinishFundraiser();
-    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith('Already finished');
+    await expect(fundraiser.connect(issuer).concludeFundraise(true)).to.be.revertedWith(
+      'Already finished'
+    );
   });
 
   it('Cannot finish if softCap not reached', async () => {
     await contributeApproved(0, softCap.sub(1));
     await payFee();
-    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith('SoftCap not reached');
+    await expect(fundraiser.connect(issuer).concludeFundraise(true)).to.be.revertedWith(
+      'SoftCap not reached'
+    );
   });
 
   it('Cannot finish if fee is not paid', async () => {
@@ -548,22 +598,13 @@ describe('Fundraiser', async function () {
 
     await contributeApproved(0, softCap);
     await fundraiser.connect(issuer).payFee(fee.sub(1));
-    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith(
+    await expect(fundraiser.connect(issuer).concludeFundraise(true)).to.be.revertedWith(
       'Fundraiser: Fee must be fully paid.'
     );
   });
 
-  it('Cannot finish when allowance for src20 not set', async () => {
-    await contributeApproved(0, hardCap);
-    await payFee();
-    // NOT approving here
-    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith(
-      'Fundraiser: Not enough token allowance for distribution.'
-    );
-  });
-
   it('Cannot finish after expiration date has passed @nodeploy', async () => {
-    await deployFundraiser({
+    await createFundraiser({
       startDate: moment().subtract(1, 'days').unix(),
       endDate: moment().add(1, 'days').unix(),
     });
@@ -572,14 +613,16 @@ describe('Fundraiser', async function () {
     await contributeApproved(0, softCap);
     const snapshotId = await takeSnapshot();
     await advanceTimeAndBlock(2 * 24 * 3600 + expirationTime);
-    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith('Expiration time passed');
+    await expect(fundraiser.connect(issuer).concludeFundraise(true)).to.be.revertedWith(
+      'Expiration time passed'
+    );
     await revertToSnapshot(snapshotId);
   });
 
   it('Cannot finish if neither hardcap nor end date has been reached', async () => {
     await contributeApproved(0, softCap);
     await payFee();
-    await expect(fundraiser.connect(issuer).mint()).to.be.revertedWith(
+    await expect(fundraiser.connect(issuer).concludeFundraise(true)).to.be.revertedWith(
       'EndDate or hardCap not reached'
     );
   });
@@ -611,7 +654,7 @@ describe('Fundraiser', async function () {
 
   it('Computes token price if supply is specified', async () => {
     const supply = parseUnits('1000', 18);
-    await deployFundraiser({ supply, tokenPrice: 0 });
+    await createFundraiser({ supply, tokenPrice: 0 });
     await runAndFinishFundraiser([hardCap]);
 
     expect(await fundraiser.supply()).to.equal(supply);
@@ -623,7 +666,7 @@ describe('Fundraiser', async function () {
 
   it('Computes supply if token price is specified', async () => {
     const tokenPrice = parseUsd(20);
-    await deployFundraiser({ supply: 0, tokenPrice });
+    await createFundraiser({ supply: 0, tokenPrice });
     await runAndFinishFundraiser([hardCap]);
 
     // hardcap === 10k => supply = 500 with 18 decimals

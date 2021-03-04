@@ -51,8 +51,6 @@ contract SRC20 is ERC20, Ownable {
   event SupplyMinted(uint256 amount, address account);
   event SupplyBurned(uint256 amount, address account);
 
-  /// @dev The owner is passed explicitly from the factory,
-  /// that's why it is not msg.sender
   constructor(
     string memory _name,
     string memory _symbol,
@@ -72,8 +70,6 @@ contract SRC20 is ERC20, Ownable {
     if (features.isEnabled(features.TransferRules())) {
       transferRules = new TransferRules(address(this), msg.sender);
     }
-
-    transferOwnership(msg.sender);
 
     registry = _registry;
     SRC20Registry(registry).register(address(this), _minter);
@@ -102,10 +98,6 @@ contract SRC20 is ERC20, Ownable {
 
   function getMinter() public view returns (address) {
     return SRC20Registry(registry).getMinter(address(this));
-  }
-
-  function getFactory() public view returns (address) {
-    return SRC20Registry(registry).getFactory(address(this));
   }
 
   function transfer(address recipient, uint256 amount) public override returns (bool) {
