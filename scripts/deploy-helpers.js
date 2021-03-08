@@ -197,24 +197,6 @@ async function createSrc20(baseContracts, issuer, options) {
   return await deployContract('SRC20', params, issuer);
 }
 
-async function deployFundraiser(src20Address, options, signer) {
-  options = _.merge(getFundraiserOptions(), options);
-  if (!signer) signer = await getIssuer();
-  return await deployContract(
-    'Fundraiser',
-    [
-      options.label,
-      src20Address, // label
-      options.supply, // supply
-      options.startDate,
-      options.endDate,
-      options.softCap,
-      options.hardCap,
-    ],
-    signer
-  );
-}
-
 async function deployContributorRestrictions(fundraiser, options) {
   const issuer = await getIssuer();
   return await deployContract(
@@ -233,42 +215,54 @@ async function deployFundraiserManager(options) {
   return await deployContract('FundraiserManager', [options.expirationTime, options.fee]);
 }
 
-async function setupFundraiser(
-  fundraiser,
-  contributorRestrictions,
-  affiliateManager,
-  contracts,
-  options
-) {
-  const issuer = await getIssuer();
-  await fundraiser.connect(issuer).setup(
-    contracts.usdc.address, // baseCurrency
+async function deployFundraiser(contracts, options, signer) {
+  const {
+    src20,
+    tokenMinter,
+    fundraiserManager,
+    contributorRestrictions,
+    affiliateManager,
+  } = contracts;
+
+  options = _.merge(getFundraiserOptions(), options);
+  if (!signer) signer = await getIssuer();
+
+  const params = [
+    options.label,
+    src20.address, // label
+    options.supply, // supply
     options.tokenPrice,
-    affiliateManager ? affiliateManager.address : ZERO_ADDRESS,
-    contributorRestrictions.address,
-    contracts.fundraiserManager.address,
-    contracts.tokenMinter.address,
-    options.contributionsLocked
-  );
+    options.startDate,
+    options.endDate,
+    options.softCap,
+    options.hardCap,
+    options.contributionsLocked,
+    [
+      contracts.usdc.address,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      fundraiserManager.address,
+      tokenMinter.address,
+    ],
+  ];
+  return await deployContract('Fundraiser', params, signer);
 }
 
 async function deployFundraiserContracts(contracts, customOptions = {}) {
   const options = _.merge(getFundraiserOptions(), customOptions);
-  const fundraiser = await deployFundraiser(contracts.src20.address, options);
-  const contributorRestrictions = await deployContributorRestrictions(fundraiser, options);
-  const affiliateManager = options.affiliateManager
-    ? await deployContract('AffiliateManager', [], await getIssuer())
-    : null;
+  // const contributorRestrictions = await deployContributorRestrictions(fundraiser, options);
+  // const affiliateManager = options.affiliateManager
+  //   ? await deployContract('AffiliateManager', [], await getIssuer())
+  //   : null;
+  const contributorRestrictions = ZERO_ADDRESS;
+  const affiliateManager = ZERO_ADDRESS;
 
-  if (!options.skipSetup) {
-    await setupFundraiser(
-      fundraiser,
-      contributorRestrictions,
-      affiliateManager,
-      contracts,
-      options
-    );
-  }
+  dumpContractAddresses({ ...contracts, contributorRestrictions, affiliateManager });
+
+  const fundraiser = await deployFundraiser(
+    { ...contracts, contributorRestrictions, affiliateManager },
+    options
+  );
 
   return [{ ...contracts, fundraiser, affiliateManager, contributorRestrictions }, options];
 }
@@ -324,7 +318,6 @@ module.exports = {
   deployToken,
   deployFundraiser,
   deployContributorRestrictions,
-  setupFundraiser,
   deployFundraiserContracts,
   dumpContractAddresses,
   advanceTimeAndBlock,
