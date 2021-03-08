@@ -27,8 +27,9 @@ contract SRC20Registry is Ownable {
   mapping(address => bool) public authorizedFactories;
   mapping(address => SRC20Record) public registry;
 
+  event Deployed(address treasury, address rewardPool);
   event TreasuryUpdated(address treasury);
-  event RewardPoolUpdated(address treasury);
+  event RewardPoolUpdated(address rewardPool);
   event SRC20Registered(address token, address minter);
   event SRC20Unregistered(address token);
   event MinterAdded(address minter);
@@ -39,6 +40,7 @@ contract SRC20Registry is Ownable {
     require(_rewardPool != address(0), 'SRC20Registry: Reward pool must be set');
     treasury = _treasury;
     rewardPool = _rewardPool;
+    emit Deployed(treasury, rewardPool);
   }
 
   function updateTreasury(address _treasury) external onlyOwner returns (bool) {
