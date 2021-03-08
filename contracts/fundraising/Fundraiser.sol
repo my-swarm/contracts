@@ -78,16 +78,17 @@ contract Fundraiser is Ownable {
   bool public contributionsLocked = true;
 
   // state
-  uint256 public numContributors = 0;
-  uint256 public amountQualified = 0;
-  uint256 public amountPending = 0;
-  uint256 public amountWithdrawn = 0;
-  uint256 public totalFeePaid = 0;
+  uint256 public numContributors;
+  uint256 public amountQualified;
+  uint256 public amountPending;
+  uint256 public amountWithdrawn;
+  uint256 public totalFeePaid;
+  uint256 public totalEarnedByAffiliates;
 
-  bool public isFinished = false;
-  bool public isCanceled = false;
-  bool public isSetup = false;
-  bool public isHardcapReached = false;
+  bool public isFinished;
+  bool public isCanceled;
+  bool public isSetup;
+  bool public isHardcapReached;
 
   // per contributor, these are contributors that have not been whitelisted yet
   mapping(address => uint256) public pendingContributions;
@@ -100,13 +101,13 @@ contract Fundraiser is Ownable {
   mapping(address => bool) public contributors;
 
   // contributor to affiliate address mapping
-  mapping(address => address) public contributorAffiliates;
+  mapping(address => address) public contributorAffiliate;
 
   // affil share per affiliate. how much an affiliate gets
   mapping(address => uint256) public affiliateEarned;
 
-  // affil share per contributor. we need this to be able to revert given contributors part of affiliate share
-  mapping(address => uint256) public contributorShares;
+  // affil pending payment to affiliate per contributor. we need this to be able to revert given contributors part of affiliate share
+  mapping(address => uint256) public pendingAffiliatePayment;
 
   modifier onlyContributorRestrictions {
     require(
@@ -253,7 +254,7 @@ contract Fundraiser is Ownable {
       string memory referral = '';
       if (affiliateManager != address(0)) {
         referral = AffiliateManager(affiliateManager).getReferral(
-          contributorAffiliates[_contributor]
+          contributorAffiliate[_contributor]
         );
       }
 
@@ -280,7 +281,7 @@ contract Fundraiser is Ownable {
   {
     _removeContributor(_contributor);
     if (affiliateManager != address(0)) {
-      _removeShare(_contributor);
+      _removeAffiliatePayment(_contributor);
     }
     _fullRefund(_contributor);
     emit ContributorRemoved(_contributor, true);
@@ -302,7 +303,7 @@ contract Fundraiser is Ownable {
     );
     require(_fullRefund(msg.sender), 'Fundraiser: There are no funds to refund');
     _removeContributor(msg.sender);
-    _removeShare(msg.sender);
+    _removeAffiliatePayment(msg.sender);
     emit ContributorRemoved(msg.sender, false);
     return true;
   }
@@ -474,7 +475,7 @@ contract Fundraiser is Ownable {
       amountQualified = amountQualified.add(_amount);
       _addContributor(_contributor);
       if (affiliateManager != address(0)) {
-        _addShare(_contributor, _referral, _amount);
+        _addAffiliatePayment(_contributor, _referral, _amount);
       }
       emit ContributionAdded(_contributor, _amount);
     } else {
@@ -505,7 +506,7 @@ contract Fundraiser is Ownable {
     }
   }
 
-  function _addShare(
+  function _addAffiliatePayment(
     address _contributor,
     string memory _referral,
     uint256 _amount
@@ -515,27 +516,31 @@ contract Fundraiser is Ownable {
         AffiliateManager(affiliateManager).getByReferral(_referral);
       if (affiliate != address(0)) {
         if (
-          contributorAffiliates[_contributor] == address(0) ||
-          contributorAffiliates[_contributor] == affiliate
+          contributorAffiliate[_contributor] == address(0) ||
+          contributorAffiliate[_contributor] == affiliate
         ) {
-          contributorAffiliates[_contributor] = affiliate;
+          contributorAffiliate[_contributor] = affiliate;
           // percentage has 4 decimals, fraction has 6 decimals in total
-          uint256 share = (_amount.mul(percentage)).div(1000000);
-          contributorShares[_contributor] = contributorShares[_contributor].add(share);
-          affiliateEarned[affiliate] = affiliateEarned[affiliate].add(share);
+          uint256 payment = (_amount.mul(percentage)).div(1000000);
+          pendingAffiliatePayment[_contributor] = pendingAffiliatePayment[_contributor].add(
+            payment
+          );
+          affiliateEarned[affiliate] = affiliateEarned[affiliate].add(payment);
+          totalEarnedByAffiliates = totalEarnedByAffiliates.add(payment);
         }
       }
     }
   }
 
-  function _removeShare(address _contributor) internal {
-    if (contributorAffiliates[_contributor] != address(0)) {
-      affiliateEarned[contributorAffiliates[_contributor]] = affiliateEarned[
-        contributorAffiliates[_contributor]
+  function _removeAffiliatePayment(address _contributor) internal {
+    if (contributorAffiliate[_contributor] != address(0)) {
+      affiliateEarned[contributorAffiliate[_contributor]] = affiliateEarned[
+        contributorAffiliate[_contributor]
       ]
-        .sub(contributorShares[_contributor]);
-      contributorShares[_contributor] = 0;
-      contributorAffiliates[_contributor] = address(0);
+        .sub(pendingAffiliatePayment[_contributor]);
+      totalEarnedByAffiliates = totalEarnedByAffiliates.sub(pendingAffiliatePayment[_contributor]);
+      pendingAffiliatePayment[_contributor] = 0;
+      contributorAffiliate[_contributor] = address(0);
     }
   }
 
@@ -598,7 +603,7 @@ contract Fundraiser is Ownable {
   function _withdraw(address _user) internal returns (bool) {
     // Note for Sasa: this should only withdraw amountQualified - sum of affiliateEarned
     // or is there a different logic for the shares claim (what's not claimed prior _withdraw cannot be claimed)?
-    amountWithdrawn = amountQualified;
+    amountWithdrawn = amountQualified.sub(totalEarnedByAffiliates);
     amountQualified = 0;
 
     ERC20(baseCurrency).safeTransfer(_user, amountWithdrawn);
