@@ -146,7 +146,7 @@ contract Fundraiser is Ownable {
   ) {
     require(msg.sender == SRC20(_token).owner(), 'Only token owner can initiate fundraise');
     require(
-      supply != 0 || _tokenPrice != 0,
+      _supply != 0 || _tokenPrice != 0,
       'Fundraiser: Either price or amount to mint is needed'
     );
     require(_hardCap >= _softCap, 'Fundraiser: Hardcap has to be >= Softcap');
