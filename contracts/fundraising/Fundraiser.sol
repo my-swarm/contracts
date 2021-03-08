@@ -180,9 +180,9 @@ contract Fundraiser is Ownable {
       )
     );
 
-    addressList[0] = baseCurrency;
-    addressList[1] = fundraiserManager;
-    addressList[2] = minter;
+    baseCurrency = addressList[0];
+    fundraiserManager = addressList[1];
+    minter = addressList[2];
     isSetup = true;
 
     SRC20Registry(SRC20(token).registry()).registerFundraise(msg.sender, token);
