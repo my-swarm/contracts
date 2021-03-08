@@ -141,6 +141,9 @@ contract Fundraiser is Ownable {
     uint256 _endDate,
     uint256 _softCap,
     uint256 _hardCap,
+    uint256 _maxContributors,
+    uint256 _minInvestmentAmount,
+    uint256 _maxInvestmentAmount,
     bool _contributionsLocked,
     address[] memory addressList
   ) {
@@ -167,32 +170,24 @@ contract Fundraiser is Ownable {
     hardCap = _hardCap;
     contributionsLocked = _contributionsLocked;
 
-    _setup(addressList[0], addressList[1], addressList[2], addressList[3], addressList[4]);
+    affiliateManager = address(new AffiliateManager());
+    contributorRestrictions = address(
+      new ContributorRestrictions(
+        address(this),
+        _maxContributors,
+        _minInvestmentAmount,
+        _maxInvestmentAmount
+      )
+    );
 
-    emit FundraiserCreated(label, token, supply, tokenPrice, startDate, endDate, softCap, hardCap);
-  }
-
-  /**
-   *  Set up additional parameters that didn't fit in the constructor
-   *  All variables cannot be in the constructor because we get "stack too deep" error
-   *  NOTE : If tokenPrice is not zero, supply is ignored
-   */
-  function _setup(
-    address _baseCurrency,
-    address _affiliateManager,
-    address _contributorRestrictions,
-    address _fundraiserManager,
-    address _minter
-  ) internal {
-    SRC20Registry(SRC20(token).registry()).registerFundraise(msg.sender, token);
-
-    baseCurrency = _baseCurrency;
-    affiliateManager = _affiliateManager;
-    contributorRestrictions = _contributorRestrictions;
-    fundraiserManager = _fundraiserManager;
-    minter = _minter;
+    addressList[0] = baseCurrency;
+    addressList[1] = fundraiserManager;
+    addressList[2] = minter;
     isSetup = true;
 
+    SRC20Registry(SRC20(token).registry()).registerFundraise(msg.sender, token);
+
+    emit FundraiserCreated(label, token, supply, tokenPrice, startDate, endDate, softCap, hardCap);
     emit FundraiserSetup(
       baseCurrency,
       affiliateManager,

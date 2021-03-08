@@ -216,13 +216,7 @@ async function deployFundraiserManager(options) {
 }
 
 async function deployFundraiser(contracts, options, signer) {
-  const {
-    src20,
-    tokenMinter,
-    fundraiserManager,
-    contributorRestrictions,
-    affiliateManager,
-  } = contracts;
+  const { src20, tokenMinter, fundraiserManager } = contracts;
 
   options = _.merge(getFundraiserOptions(), options);
   if (!signer) signer = await getIssuer();
@@ -236,14 +230,11 @@ async function deployFundraiser(contracts, options, signer) {
     options.endDate,
     options.softCap,
     options.hardCap,
+    options.contributors.maxNum,
+    options.contributors.minAmount,
+    options.contributors.maxAmount,
     options.contributionsLocked,
-    [
-      contracts.usdc.address,
-      ZERO_ADDRESS,
-      ZERO_ADDRESS,
-      fundraiserManager.address,
-      tokenMinter.address,
-    ],
+    [contracts.usdc.address, fundraiserManager.address, tokenMinter.address],
   ];
   return await deployContract('Fundraiser', params, signer);
 }
@@ -254,17 +245,14 @@ async function deployFundraiserContracts(contracts, customOptions = {}) {
   // const affiliateManager = options.affiliateManager
   //   ? await deployContract('AffiliateManager', [], await getIssuer())
   //   : null;
-  const contributorRestrictions = ZERO_ADDRESS;
-  const affiliateManager = ZERO_ADDRESS;
+  // const contributorRestrictions = ZERO_ADDRESS;
+  // const affiliateManager = ZERO_ADDRESS;
 
-  dumpContractAddresses({ ...contracts, contributorRestrictions, affiliateManager });
+  dumpContractAddresses({ ...contracts });
 
-  const fundraiser = await deployFundraiser(
-    { ...contracts, contributorRestrictions, affiliateManager },
-    options
-  );
+  const fundraiser = await deployFundraiser({ ...contracts }, options);
 
-  return [{ ...contracts, fundraiser, affiliateManager, contributorRestrictions }, options];
+  return [{ ...contracts, fundraiser }, options];
 }
 
 async function getEvent(transaction, eventName) {

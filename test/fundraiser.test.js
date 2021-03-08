@@ -120,8 +120,8 @@ describe('Fundraiser', async function () {
     expect(fundraiser.address).to.match(REGEX_ADDR);
     expect(await fundraiser.minter()).to.equal(contracts.tokenMinter.address);
     expect(await fundraiser.fundraiserManager()).to.equal(contracts.fundraiserManager.address);
-    expect(await fundraiser.affiliateManager()).to.match(REGEX_ADDR);
-    expect(await fundraiser.contributorRestrictions()).to.match(REGEX_ADDR);
+    //  expect(await fundraiser.affiliateManager()).to.match(REGEX_ADDR);
+    //  expect(await fundraiser.contributorRestrictions()).to.match(REGEX_ADDR);
     expect(await fundraiser.label()).to.equal(options.label);
     expect(await fundraiser.token()).to.equal(contracts.src20.address);
     expect(await fundraiser.supply()).to.equal(options.supply);
@@ -672,6 +672,6 @@ describe('Fundraiser', async function () {
     expect(await fundraiser.supply()).to.equal(BigNumber.from(500).mul(BigNumber.from(10).pow(18)));
     expect(await fundraiser.tokenPrice()).to.equal(tokenPrice);
   });
-  
+
  */
 });
