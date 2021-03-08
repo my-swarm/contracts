@@ -25,6 +25,7 @@ contract Fundraiser is Ownable {
     string label,
     address token,
     uint256 supply,
+    uint256 tokenPrice,
     uint256 startDate,
     uint256 endDate,
     uint256 softCap,
@@ -33,12 +34,10 @@ contract Fundraiser is Ownable {
 
   event FundraiserSetup(
     address baseCurrency,
-    uint256 tokenPrice,
     address affiliateManager,
     address contributorRestrictions,
     address fundraiserManager,
-    address minter,
-    bool contributionsLocked
+    address minter
   );
   event FundraiserCanceled();
   event FundraiserFinished();
@@ -104,7 +103,7 @@ contract Fundraiser is Ownable {
   mapping(address => address) public contributorAffiliates;
 
   // affil share per affiliate. how much an affiliate gets
-  mapping(address => uint256) public affiliateShares;
+  mapping(address => uint256) public affiliateEarned;
 
   // affil share per contributor. we need this to be able to revert given contributors part of affiliate share
   mapping(address => uint256) public contributorShares;
@@ -136,12 +135,19 @@ contract Fundraiser is Ownable {
     string memory _label,
     address _token,
     uint256 _supply,
+    uint256 _tokenPrice,
     uint256 _startDate,
     uint256 _endDate,
     uint256 _softCap,
-    uint256 _hardCap
+    uint256 _hardCap,
+    bool _contributionsLocked,
+    address[] memory addressList
   ) {
     require(msg.sender == SRC20(_token).owner(), 'Only token owner can initiate fundraise');
+    require(
+      supply != 0 || _tokenPrice != 0,
+      'Fundraiser: Either price or amount to mint is needed'
+    );
     require(_hardCap >= _softCap, 'Fundraiser: Hardcap has to be >= Softcap');
 
     startDate = _startDate == 0 || _startDate < block.timestamp ? block.timestamp : _startDate;
@@ -150,11 +156,19 @@ contract Fundraiser is Ownable {
     label = _label;
     token = _token;
     supply = _supply;
+
+    if (supply == 0) {
+      tokenPrice = _tokenPrice;
+    }
+
     endDate = _endDate;
     softCap = _softCap;
     hardCap = _hardCap;
+    contributionsLocked = _contributionsLocked;
 
-    emit FundraiserCreated(label, token, supply, startDate, endDate, softCap, hardCap);
+    _setup(addressList[0], addressList[1], addressList[2], addressList[3], addressList[4]);
+
+    emit FundraiserCreated(label, token, supply, tokenPrice, startDate, endDate, softCap, hardCap);
   }
 
   /**
@@ -162,43 +176,28 @@ contract Fundraiser is Ownable {
    *  All variables cannot be in the constructor because we get "stack too deep" error
    *  NOTE : If tokenPrice is not zero, supply is ignored
    */
-  function setup(
+  function _setup(
     address _baseCurrency,
-    uint256 _tokenPrice,
     address _affiliateManager,
     address _contributorRestrictions,
     address _fundraiserManager,
-    address _minter,
-    bool _contributionsLocked
-  ) external onlyOwner() {
-    require(
-      _tokenPrice != 0 || supply != 0,
-      'Fundraiser: Either price or amount to mint is needed'
-    );
-    require(!isSetup, 'Fundraiser: Contract is already set up');
-    require(!isCanceled, 'Fundraiser: Fundraiser is canceled');
-
+    address _minter
+  ) internal {
     SRC20Registry(SRC20(token).registry()).registerFundraise(msg.sender, token);
 
     baseCurrency = _baseCurrency;
-    if (supply == 0) {
-      tokenPrice = _tokenPrice;
-    }
     affiliateManager = _affiliateManager;
     contributorRestrictions = _contributorRestrictions;
     fundraiserManager = _fundraiserManager;
-    contributionsLocked = _contributionsLocked;
     minter = _minter;
     isSetup = true;
 
     emit FundraiserSetup(
       baseCurrency,
-      tokenPrice,
       affiliateManager,
       contributorRestrictions,
       fundraiserManager,
-      minter,
-      contributionsLocked
+      minter
     );
   }
 
@@ -361,10 +360,10 @@ contract Fundraiser is Ownable {
 
   function claimReferrals() external returns (bool) {
     require(isFinished, 'Fundraiser: Fundraise is not finished');
-    require(affiliateShares[msg.sender] != 0, 'Fundraiser: There are no referrals to be collected');
+    require(affiliateEarned[msg.sender] != 0, 'Fundraiser: There are no referrals to be collected');
 
-    uint256 amount = affiliateShares[msg.sender];
-    affiliateShares[msg.sender] = 0;
+    uint256 amount = affiliateEarned[msg.sender];
+    affiliateEarned[msg.sender] = 0;
 
     ERC20(baseCurrency).safeTransfer(msg.sender, amount);
 
@@ -523,7 +522,7 @@ contract Fundraiser is Ownable {
           // percentage has 4 decimals, fraction has 6 decimals in total
           uint256 share = (_amount.mul(percentage)).div(1000000);
           contributorShares[_contributor] = contributorShares[_contributor].add(share);
-          affiliateShares[affiliate] = affiliateShares[affiliate].add(share);
+          affiliateEarned[affiliate] = affiliateEarned[affiliate].add(share);
         }
       }
     }
@@ -531,7 +530,7 @@ contract Fundraiser is Ownable {
 
   function _removeShare(address _contributor) internal {
     if (contributorAffiliates[_contributor] != address(0)) {
-      affiliateShares[contributorAffiliates[_contributor]] = affiliateShares[
+      affiliateEarned[contributorAffiliates[_contributor]] = affiliateEarned[
         contributorAffiliates[_contributor]
       ]
         .sub(contributorShares[_contributor]);
@@ -597,7 +596,7 @@ contract Fundraiser is Ownable {
   }
 
   function _withdraw(address _user) internal returns (bool) {
-    // Note for Sasa: this should only withdraw amountQualified - sum of affiliateShares
+    // Note for Sasa: this should only withdraw amountQualified - sum of affiliateEarned
     // or is there a different logic for the shares claim (what's not claimed prior _withdraw cannot be claimed)?
     amountWithdrawn = amountQualified;
     amountQualified = 0;
