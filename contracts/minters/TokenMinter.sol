@@ -48,6 +48,7 @@ contract TokenMinter {
   }
 
   event Minted(uint256 amount, uint256 fee, address account);
+  event FeeApplied(uint256 treasury, uint256 rewardPool);
   event Burned(uint256 amount, address account);
 
   /**
@@ -155,6 +156,7 @@ contract TokenMinter {
     IERC20(_feeToken).safeTransfer(treasury, treasuryAmount);
     IERC20(_feeToken).safeTransfer(rewardPool, rewardAmount);
 
+    emit FeeApplied(treasuryAmount, rewardAmount);
     return true;
   }
 
