@@ -221,8 +221,13 @@ contract Fundraiser is Ownable {
    */
   function contribute(uint256 _amount, string calldata _referral) external ongoing returns (bool) {
     require(_amount != 0, 'Fundraiser: cannot contribute 0');
+    require(
+      ContributorRestrictions(contributorRestrictions).checkMinInvestment(_amount),
+      'Fundraiser: Cannot invest less than minAmount'
+    );
 
     ERC20(baseCurrency).safeTransferFrom(msg.sender, address(this), _amount);
+
     _processContribution(msg.sender, _amount, _referral);
 
     return true;
@@ -429,64 +434,91 @@ contract Fundraiser is Ownable {
     uint256 _amount,
     string memory _referral
   ) internal returns (uint256) {
-    require(
-      ContributorRestrictions(contributorRestrictions).checkMinInvestment(_amount),
-      'Fundraiser: Cannot invest less than minAmount'
-    );
-
+    uint256 refund;
+    uint256 acceptedAmount;
     bool qualified = ContributorRestrictions(contributorRestrictions).isWhitelisted(_contributor);
-    uint256 maxAmount = ContributorRestrictions(contributorRestrictions).maxAmount();
-    uint256 refund = 0;
 
-    uint256 currentAmount =
-      qualified ? qualifiedContributions[_contributor] : pendingContributions[_contributor];
-
-    uint256 newAmount = currentAmount.add(_amount);
-
-    if (!ContributorRestrictions(contributorRestrictions).checkMaxInvestment(newAmount)) {
-      refund = newAmount.sub(maxAmount);
-      _amount = _amount.sub(refund);
-      require(_amount != 0, 'Fundraiser: Cannot invest more than maxAmount');
-    }
+    (refund, acceptedAmount) = _processMaxInvesment(qualified, _contributor, _amount);
 
     if (qualified) {
-      if (
-        !ContributorRestrictions(contributorRestrictions).checkMaxContributors(
+      require(
+        ContributorRestrictions(contributorRestrictions).checkMaxContributors(
           numContributors.add(1)
-        )
-      ) {
-        revert('Fundraiser: Maximum number of contributors reached');
-      }
-      (bool hardcapReached, uint256 overHardcap) = _checkHardCap(amountQualified.add(_amount));
-      if (hardcapReached) {
-        isHardcapReached = hardcapReached;
-        refund = refund.add(overHardcap);
-        _amount = _amount.sub(overHardcap);
-      }
-    }
+        ),
+        'Fundraiser: Maximum number of contributors reached'
+      );
 
-    require(_amount != 0, 'Fundraiser: Hardcap already reached');
+      uint256 overHardCap;
 
-    if (qualified) {
-      qualifiedContributions[_contributor] = qualifiedContributions[_contributor].add(_amount);
-      amountQualified = amountQualified.add(_amount);
+      (overHardCap, acceptedAmount) = _processHardCap(acceptedAmount);
 
-      _addContributor(_contributor);
-      _processAffiliatePayment(_contributor, _referral, _amount);
+      refund = refund.add(overHardCap);
 
-      emit ContributionAdded(_contributor, _amount);
+      _addQualifiedInvestment(_contributor, acceptedAmount, _referral);
     } else {
-      pendingContributions[_contributor] = pendingContributions[_contributor].add(_amount);
-      amountPending = amountPending.add(_amount);
-      // @Jiri: Shouldn't the _amount being emitted in this event be the total amount pending for this contributor?
-      emit ContributionPending(_contributor, _amount);
+      _addPendingInvestment(_contributor, acceptedAmount);
     }
 
     if (refund != 0) {
       _refund(_contributor, refund);
     }
 
-    return _amount;
+    return acceptedAmount;
+  }
+
+  function _addQualifiedInvestment(
+    address _contributor,
+    uint256 _amount,
+    string memory _referral
+  ) internal {
+    qualifiedContributions[_contributor] = qualifiedContributions[_contributor].add(_amount);
+    amountQualified = amountQualified.add(_amount);
+
+    _addContributor(_contributor);
+    _processAffiliatePayment(_contributor, _referral, _amount);
+
+    emit ContributionAdded(_contributor, _amount);
+  }
+
+  function _addPendingInvestment(address _contributor, uint256 _amount) internal {
+    pendingContributions[_contributor] = pendingContributions[_contributor].add(_amount);
+    amountPending = amountPending.add(_amount);
+    // @Jiri: Shouldn't the _amount being emitted in this event be the total amount pending for this contributor?
+    emit ContributionPending(_contributor, _amount);
+  }
+
+  function _processHardCap(uint256 _amount)
+    internal
+    returns (uint256 _overHardCap, uint256 _underHardcap)
+  {
+    bool hardcapReached;
+
+    (hardcapReached, _overHardCap) = _validateHardCap(amountQualified.add(_amount));
+
+    if (hardcapReached) {
+      isHardcapReached = hardcapReached;
+      _underHardcap = _underHardcap.sub(_overHardCap);
+      require(_underHardcap != 0, 'Fundraiser: Hardcap already reached');
+    }
+  }
+
+  function _processMaxInvesment(
+    bool _qualified,
+    address _contributor,
+    uint256 _amount
+  ) internal view returns (uint256 _overMax, uint256 _acceptedAmount) {
+    uint256 maxAmount = ContributorRestrictions(contributorRestrictions).maxAmount();
+
+    uint256 currentAmount =
+      _qualified ? qualifiedContributions[_contributor] : pendingContributions[_contributor];
+
+    _acceptedAmount = currentAmount.add(_amount);
+
+    if (!ContributorRestrictions(contributorRestrictions).checkMaxInvestment(_acceptedAmount)) {
+      _overMax = _acceptedAmount.sub(maxAmount);
+      _acceptedAmount = _amount.sub(_overMax);
+      require(_acceptedAmount != 0, 'Fundraiser: Cannot invest more than maxAmount');
+    }
   }
 
   function _addContributor(address _user) internal {
@@ -543,7 +575,7 @@ contract Fundraiser is Ownable {
     }
   }
 
-  function _checkHardCap(uint256 _amount) internal view returns (bool, uint256) {
+  function _validateHardCap(uint256 _amount) internal view returns (bool, uint256) {
     bool hardcapReached;
     uint256 overflow;
 
