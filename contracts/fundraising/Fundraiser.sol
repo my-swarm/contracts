@@ -223,8 +223,8 @@ contract Fundraiser is Ownable {
     require(_amount != 0, 'Fundraiser: cannot contribute 0');
 
     ERC20(baseCurrency).safeTransferFrom(msg.sender, address(this), _amount);
+    _processContribution(msg.sender, _amount, _referral);
 
-    _contribute(msg.sender, _amount, _referral);
     return true;
   }
 
@@ -241,21 +241,20 @@ contract Fundraiser is Ownable {
     onlyContributorRestrictions
     returns (bool)
   {
-    uint256 amount = pendingContributions[_contributor];
-    // process contribution
-    if (amount != 0) {
-      pendingContributions[_contributor] = 0;
-      amountPending = amountPending.sub(amount);
-      string memory referral = '';
-      if (affiliateManager != address(0)) {
-        referral = AffiliateManager(affiliateManager).getReferral(
-          contributorAffiliate[_contributor]
-        );
-      }
+    uint256 pendingAmount = pendingContributions[_contributor];
 
-      uint256 realAmount = _contribute(_contributor, amount, referral);
-      emit PendingContributionAccepted(_contributor, realAmount);
+    // process pending contribution
+    if (pendingAmount != 0) {
+      pendingContributions[_contributor] = 0;
+      amountPending = amountPending.sub(pendingAmount);
+
+      string memory referral =
+        AffiliateManager(affiliateManager).getReferral(contributorAffiliate[_contributor]);
+
+      uint256 totalAmount = _processContribution(_contributor, pendingAmount, referral);
+      emit PendingContributionAccepted(_contributor, totalAmount);
     }
+
     emit ContributorAccepted(_contributor);
     return true;
   }
@@ -275,10 +274,9 @@ contract Fundraiser is Ownable {
     returns (bool)
   {
     _removeContributor(_contributor);
-    if (affiliateManager != address(0)) {
-      _removeAffiliatePayment(_contributor);
-    }
+    _removeAffiliatePayment(_contributor);
     _fullRefund(_contributor);
+
     emit ContributorRemoved(_contributor, true);
     return true;
   }
@@ -297,8 +295,10 @@ contract Fundraiser is Ownable {
       'Fundraiser: Condition for refund not met (event canceled, expired or contributions not locked)!'
     );
     require(_fullRefund(msg.sender), 'Fundraiser: There are no funds to refund');
+
     _removeContributor(msg.sender);
     _removeAffiliatePayment(msg.sender);
+
     emit ContributorRemoved(msg.sender, false);
     return true;
   }
@@ -309,8 +309,9 @@ contract Fundraiser is Ownable {
    *  @return true on success
    */
   function concludeFundraise(bool mintTokens) external onlyOwner() returns (bool) {
-    // This has all the conditions and will revert if they are not met
-    uint256 amountToAllocate = _finish();
+    require(_concludeFundraise(), 'Fundraiser: Not possible to conclude fundraise');
+
+    uint256 amountToAllocate = _calculateSupply();
 
     require(amountToAllocate != 0, 'Fundraiser: No tokens to allocate');
 
@@ -325,6 +326,7 @@ contract Fundraiser is Ownable {
 
     // send funds to the issuer
     _withdraw(msg.sender);
+
     return true;
   }
 
@@ -422,7 +424,7 @@ contract Fundraiser is Ownable {
    *
    *  @return uint256 Actual contributed amount (subtracted when hardcap overflow etc.)
    */
-  function _contribute(
+  function _processContribution(
     address _contributor,
     uint256 _amount,
     string memory _referral
@@ -468,10 +470,10 @@ contract Fundraiser is Ownable {
     if (qualified) {
       qualifiedContributions[_contributor] = qualifiedContributions[_contributor].add(_amount);
       amountQualified = amountQualified.add(_amount);
+
       _addContributor(_contributor);
-      if (affiliateManager != address(0)) {
-        _addAffiliatePayment(_contributor, _referral, _amount);
-      }
+      _processAffiliatePayment(_contributor, _referral, _amount);
+
       emit ContributionAdded(_contributor, _amount);
     } else {
       pendingContributions[_contributor] = pendingContributions[_contributor].add(_amount);
@@ -501,7 +503,7 @@ contract Fundraiser is Ownable {
     }
   }
 
-  function _addAffiliatePayment(
+  function _processAffiliatePayment(
     address _contributor,
     string memory _referral,
     uint256 _amount
@@ -533,7 +535,9 @@ contract Fundraiser is Ownable {
         contributorAffiliate[_contributor]
       ]
         .sub(pendingAffiliatePayment[_contributor]);
+
       totalEarnedByAffiliates = totalEarnedByAffiliates.sub(pendingAffiliatePayment[_contributor]);
+
       pendingAffiliatePayment[_contributor] = 0;
       contributorAffiliate[_contributor] = address(0);
     }
@@ -553,12 +557,7 @@ contract Fundraiser is Ownable {
     return (hardcapReached, overflow);
   }
 
-  /**
-   *  Perform all the necessary actions to finish the fundraise
-   *
-   *  @return true on success
-   */
-  function _finish() internal returns (uint256) {
+  function _concludeFundraise() internal returns (bool) {
     require(!isFinished, 'Fundraiser: Already finished');
     require(amountQualified >= softCap, 'Fundraiser: SoftCap not reached');
     require(
@@ -573,11 +572,21 @@ contract Fundraiser is Ownable {
     if (amountQualified < hardCap && block.timestamp < endDate) {
       revert('Fundraiser: EndDate or hardCap not reached');
     }
+
     // lock the fundraise amount... it will be somewhere between the soft and hard caps
     contributionsLocked = true;
     isFinished = true;
     emit FundraiserFinished();
 
+    return true;
+  }
+
+  /**
+   *  Perform all the necessary actions to finish the fundraise
+   *
+   *  @return true on success
+   */
+  function _calculateSupply() internal returns (uint256) {
     // find out the token price
     uint256 baseCurrencyDecimals = uint256(10)**ERC20(baseCurrency).decimals();
     uint256 tokenDecimals = uint256(10)**SRC20(token).decimals();
@@ -596,8 +605,6 @@ contract Fundraiser is Ownable {
   }
 
   function _withdraw(address _user) internal returns (bool) {
-    // Note for Sasa: this should only withdraw amountQualified - sum of affiliateEarned
-    // or is there a different logic for the shares claim (what's not claimed prior _withdraw cannot be claimed)?
     amountWithdrawn = amountQualified.sub(totalEarnedByAffiliates);
     amountQualified = 0;
 
@@ -608,14 +615,16 @@ contract Fundraiser is Ownable {
   }
 
   function _fullRefund(address _user) internal returns (bool) {
-    uint256 amount = qualifiedContributions[_user].add(pendingContributions[_user]);
+    uint256 refundAmount = qualifiedContributions[_user].add(pendingContributions[_user]);
 
-    if (amount != 0) {
+    if (refundAmount != 0) {
       amountQualified = amountQualified.sub(qualifiedContributions[_user]);
       amountPending = amountPending.sub(pendingContributions[_user]);
       delete qualifiedContributions[_user];
       delete pendingContributions[_user];
-      _refund(_user, amount);
+
+      _refund(_user, refundAmount);
+
       return true;
     } else {
       return false;
