@@ -25,7 +25,7 @@ contract AffiliateManager is Ownable {
 
   modifier onlyAuthorised() {
     require(
-      msg.sender == Fundraiser(fundraiser).owner(),
+      msg.sender == owner() || msg.sender == Fundraiser(fundraiser).owner(),
       'AffiliateManager: caller is not authorised'
     );
     _;

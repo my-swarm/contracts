@@ -14,7 +14,8 @@ describe('Affiliate Manager', async function () {
   let affiliateManager;
 
   before(async function () {
-    affiliateManager = await deployContract('AffiliateManager');
+    const fundraiserAddress = getRandomAddress();
+    affiliateManager = await deployContract('AffiliateManager', [fundraiserAddress]);
     snapshotId = await takeSnapshot();
   });
 
