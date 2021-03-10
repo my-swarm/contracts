@@ -5,17 +5,16 @@ const { parseUnits } = ethers.utils;
 const {
   deployBaseContracts,
   deployToken,
-  deployFundraiserContracts,
+  deployFundraiser,
   getAddresses,
   getIssuer,
   getSwarm,
-  advanceTimeAndBlock,
   takeSnapshot,
   revertToSnapshot,
+  getFundraiserOptions,
   ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
 const { distributeToken, updateAllowance } = require('../scripts/token-helpers');
-const { getRandomAddress, REGEX_ADDRESS } = require('./test-helpers');
 
 function parseUsd(x) {
   return parseUnits(x.toString(), 6);
@@ -48,7 +47,11 @@ describe('Fundraiser affiliate/referrer', async function () {
     const [tokenContracts, tokenOptions] = await deployToken(baseContracts);
     softCap = tokenOptions.softCap;
     fee = baseContractOptions.fundraiserManager.fee;
-    [contracts] = await deployFundraiserContracts(tokenContracts, { affiliateManager: true });
+    contracts = {
+      ...tokenContracts,
+      ...baseContracts,
+      ...(await deployFundraiser(tokenContracts, getFundraiserOptions({ affiliateManager: true }))),
+    };
     fundraiser = contracts.fundraiser;
     cRestrictions = contracts.contributorRestrictions;
     affiliateManager = contracts.affiliateManager;
@@ -128,17 +131,17 @@ describe('Fundraiser affiliate/referrer', async function () {
   it('Adds affiliate when contributing', async () => {
     await contributeAll();
 
-    const affilAddr1 = await fundraiser.contributorAffiliates(addr[0]);
+    const affilAddr1 = await fundraiser.contributorAffiliate(addr[0]);
     expect(await affiliateManager.getReferral(affilAddr1)).to.equal(affil1.referral);
   });
 
   it('Increases affiliate share for affiliate', async () => {
     await contributeAll();
 
-    expect(await fundraiser.affiliateShares(affil1.address)).to.equal(
+    expect(await fundraiser.affiliateEarned(affil1.address)).to.equal(
       amount.mul(affil1.percentage).div(100).div(10000)
     );
-    expect(await fundraiser.affiliateShares(affil2.address)).to.equal(
+    expect(await fundraiser.affiliateEarned(affil2.address)).to.equal(
       amount.add(amount8).mul(affil2.percentage).div(100).div(10000)
     );
   });
@@ -146,20 +149,20 @@ describe('Fundraiser affiliate/referrer', async function () {
   it('Increases affiliate share for contributor', async () => {
     await contributeAll();
 
-    expect(await fundraiser.contributorShares(addr[0])).to.equal(
+    expect(await fundraiser.pendingAffiliatePayment(addr[0])).to.equal(
       amount.mul(affil1.percentage).div(100).div(10000)
     );
-    expect(await fundraiser.contributorShares(addr[1])).to.equal(
+    expect(await fundraiser.pendingAffiliatePayment(addr[1])).to.equal(
       amount.mul(affil2.percentage).div(100).div(10000)
     );
   });
 
   it('Removes affiliate/contributor share when contributor removed', async () => {
     await contributeApproved(0, amount, affil1.referral);
-    await cRestrictions.unWhitelistAccount(addr[0]);
-    expect(await fundraiser.contributorAffiliates(addr[0])).to.equal(ZERO_ADDRESS);
-    expect(await fundraiser.contributorShares(addr[0])).to.equal(0);
-    expect(await fundraiser.affiliateShares(affil1.address)).to.equal(0);
+    await cRestrictions.connect(issuer).unWhitelistAccount(addr[0]);
+    expect(await fundraiser.contributorAffiliate(addr[0])).to.equal(ZERO_ADDRESS);
+    expect(await fundraiser.pendingAffiliatePayment(addr[0])).to.equal(0);
+    expect(await fundraiser.affiliateEarned(affil1.address)).to.equal(0);
   });
 
   it('Allows to claim referrals if conditions are met', async () => {
@@ -171,7 +174,7 @@ describe('Fundraiser affiliate/referrer', async function () {
     await expect(fundraiser.connect(affil1.account).claimReferrals())
       .to.emit(fundraiser, 'ReferralClaimed')
       .withArgs(affil1.address, expectedShare);
-    expect(await fundraiser.affiliateShares(affil1.address)).to.equal(0);
+    expect(await fundraiser.affiliateEarned(affil1.address)).to.equal(0);
     expect(await usdc.balanceOf(affil1.address)).to.equal(usdBefore.add(expectedShare));
   });
 
