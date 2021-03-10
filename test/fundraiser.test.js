@@ -265,7 +265,7 @@ describe('Fundraiser', async function () {
     }
   }
 
-  it('💪 Can whitelist and unwhitelist contributors', async function () {
+  it('Can whitelist and unwhitelist contributors', async function () {
     await expect(cRestrictions.connect(issuer).whitelistAccount(addr[0]))
       .to.emit(cRestrictions, 'AccountWhitelisted')
       .withArgs(addr[0], issuer.address);
@@ -296,7 +296,7 @@ describe('Fundraiser', async function () {
     expect(await cRestrictions.isWhitelisted(addr[2])).to.equal(false);
   });
 
-  it('❤ Automatically accepts contributions from whitelisted contributors', async function () {
+  it('Automatically accepts contributions from whitelisted contributors', async function () {
     await whitelistContributor(addr[0]);
     await storeState();
     // await fundraiser.connect(accounts[0]).contribute(amount, affil);
@@ -309,7 +309,7 @@ describe('Fundraiser', async function () {
     });
   });
 
-  it('🙏 Accepts unqualified contributions as pending', async function () {
+  it('Accepts unqualified contributions as pending', async function () {
     await storeState();
     await expect(fundraiser.connect(accounts[0]).contribute(amount, affil)).to.emit(
       fundraiser,
@@ -320,13 +320,13 @@ describe('Fundraiser', async function () {
     });
   });
 
-  it('😋 Cannot contribute zero', async function () {
+  it('Cannot contribute zero', async function () {
     await expect(fundraiser.connect(accounts[0]).contribute(0, affil)).to.be.revertedWith(
       'Fundraiser: cannot contribute 0'
     );
   });
 
-  it('😎 Does not accept qualified investments above hardCap and refunds what is over hardCap', async function () {
+  it('Does not accept qualified investments above hardCap and refunds what is over hardCap', async function () {
     await storeState();
     await cRestrictions.connect(issuer).bulkWhitelistAccount(addr);
     await fundraiser.connect(accounts[0]).contribute(amount9, affil);
@@ -348,7 +348,7 @@ describe('Fundraiser', async function () {
     expect(await fundraiser.contributors(addr[2])).to.equal(false);
   });
 
-  it('😎 Works exactly the same if pending contributors are accepted after the fact', async function () {
+  it('Works exactly the same if pending contributors are accepted after the fact', async function () {
     await storeState();
     await expect(fundraiser.connect(accounts[0]).contribute(amount9, affil)).to.emit(
       fundraiser,
