@@ -170,7 +170,7 @@ contract Fundraiser is Ownable {
     hardCap = _hardCap;
     contributionsLocked = _contributionsLocked;
 
-    affiliateManager = address(new AffiliateManager());
+    affiliateManager = address(new AffiliateManager(address(this)));
     contributorRestrictions = address(
       new ContributorRestrictions(
         address(this),

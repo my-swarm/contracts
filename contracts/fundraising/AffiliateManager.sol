@@ -2,6 +2,7 @@
 pragma solidity >=0.6.0 <0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
+import '../fundraising/Fundraiser.sol';
 
 /**
  * @title AffiliateManager
@@ -10,6 +11,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
  * Affiliate links, etc
  */
 contract AffiliateManager is Ownable {
+  address fundraiser;
   struct Affiliate {
     string referral;
     uint256 percentage; // NOTE: percentage is treated as a decimal with 4 decimals
@@ -21,8 +23,22 @@ contract AffiliateManager is Ownable {
   // mapping of affiliate address to it's setup
   mapping(address => Affiliate) private affiliates;
 
+  modifier onlyAuthorised() {
+    require(
+      msg.sender == Fundraiser(fundraiser).owner(),
+      'AffiliateManager: caller is not authorised'
+    );
+    _;
+  }
+
   event AffiliateAddedOrUpdated(address account, string referral, uint256 percentage);
   event AffiliateRemoved(address account);
+
+  constructor(
+    address _fundraiser
+  ) Ownable() {
+    fundraiser = _fundraiser;
+  }
 
   /**
    *  Adds or updates an Affiliate. Can be done by the Token Issuer at any time
@@ -32,7 +48,7 @@ contract AffiliateManager is Ownable {
     address _addr,
     string calldata _referral,
     uint256 _percentage
-  ) external onlyOwner() returns (bool) {
+  ) external onlyAuthorised() returns (bool) {
     require(_percentage < 1000000, 'AffiliateManager: Percentage has to be < 100');
     require(_percentage > 0, 'AffiliateManager: Percentage has to be > 0');
     if (affiliates[_addr].percentage != 0) {
@@ -53,7 +69,7 @@ contract AffiliateManager is Ownable {
    *
    *  @return true on success
    */
-  function remove(address _addr) external onlyOwner() returns (bool) {
+  function remove(address _addr) external onlyAuthorised() returns (bool) {
     require(affiliates[_addr].percentage != 0, 'Affiliate: not found');
     referrals[affiliates[_addr].referral] = address(0x0);
     delete (affiliates[_addr]);
