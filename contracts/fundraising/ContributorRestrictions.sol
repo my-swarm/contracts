@@ -18,7 +18,7 @@ contract ContributorRestrictions is Whitelisted {
 
   modifier onlyAuthorised() {
     require(
-      msg.sender == owner() || msg.sender == fundraiser,
+      msg.sender == Fundraiser(fundraiser).owner() || msg.sender == fundraiser,
       'ContributorRestrictions: caller is not authorised'
     );
     _;
