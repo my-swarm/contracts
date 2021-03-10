@@ -451,7 +451,6 @@ contract Fundraiser is Ownable {
       uint256 overHardCap;
 
       (overHardCap, acceptedAmount) = _processHardCap(acceptedAmount);
-
       refund = refund.add(overHardCap);
 
       _addQualifiedInvestment(_contributor, acceptedAmount, _referral);
@@ -494,10 +493,10 @@ contract Fundraiser is Ownable {
     bool hardcapReached;
 
     (hardcapReached, _overHardCap) = _validateHardCap(amountQualified.add(_amount));
+    _underHardcap = _amount.sub(_overHardCap);
 
     if (hardcapReached) {
       isHardcapReached = hardcapReached;
-      _underHardcap = _underHardcap.sub(_overHardCap);
       require(_underHardcap != 0, 'Fundraiser: Hardcap already reached');
     }
   }
@@ -507,15 +506,17 @@ contract Fundraiser is Ownable {
     address _contributor,
     uint256 _amount
   ) internal view returns (uint256 _overMax, uint256 _acceptedAmount) {
+    _overMax = 0;
+    _acceptedAmount = _amount;
     uint256 maxAmount = ContributorRestrictions(contributorRestrictions).maxAmount();
 
     uint256 currentAmount =
       _qualified ? qualifiedContributions[_contributor] : pendingContributions[_contributor];
 
-    _acceptedAmount = currentAmount.add(_amount);
+    uint256 totalAmount = currentAmount.add(_amount);
 
-    if (!ContributorRestrictions(contributorRestrictions).checkMaxInvestment(_acceptedAmount)) {
-      _overMax = _acceptedAmount.sub(maxAmount);
+    if (!ContributorRestrictions(contributorRestrictions).checkMaxInvestment(totalAmount)) {
+      _overMax = totalAmount.sub(maxAmount);
       _acceptedAmount = _amount.sub(_overMax);
       require(_acceptedAmount != 0, 'Fundraiser: Cannot invest more than maxAmount');
     }
