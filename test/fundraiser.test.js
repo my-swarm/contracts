@@ -6,13 +6,13 @@ const { BigNumber } = ethers;
 const {
   deployBaseContracts,
   deployToken,
-  deployFundraiserContracts,
   getIssuer,
   getSwarm,
   advanceTimeAndBlock,
   takeSnapshot,
   revertToSnapshot,
   deployFundraiser,
+  getFundraiserOptions,
 } = require('../scripts/deploy-helpers');
 const { distributeToken, updateAllowance } = require('../scripts/token-helpers');
 const { REGEX_ADDR } = require('./test-helpers');
@@ -43,7 +43,6 @@ describe('Fundraiser', async function () {
   let contracts;
   let usdc;
   let fundraiser;
-  let fundraiserOptions;
   let cRestrictions;
   let amount;
   let amount2;
@@ -93,10 +92,10 @@ describe('Fundraiser', async function () {
 
   async function createFundraiser(customOptions = {}) {
     // default options: softCap: 5000, hardCap: 10000, supply: 100K, startDate: now, endDate: 1 month
-    const [fc, options] = await deployFundraiserContracts(contracts, customOptions);
-    fundraiser = fc.fundraiser;
-    fundraiserOptions = options;
-    cRestrictions = fc.contributorRestrictions;
+    const options = getFundraiserOptions(customOptions);
+    const c = await deployFundraiser(contracts, options);
+    fundraiser = c.fundraiser;
+    cRestrictions = c.contributorRestrictions;
     softCap = options.softCap;
     hardCap = options.hardCap;
 
@@ -109,19 +108,17 @@ describe('Fundraiser', async function () {
   }
 
   it('Can start @nodeploy', async () => {
-    const [
-      { fundraiser, affiliateManager, contributorRestrictions },
-      options,
-    ] = await deployFundraiserContracts(contracts, {
+    const options = getFundraiserOptions({
       affiliateManager: true,
       startDate: moment().add(1, 'day').unix(),
     });
+    const { fundraiser, contributorRestrictions } = await deployFundraiser(contracts, options);
 
     expect(fundraiser.address).to.match(REGEX_ADDR);
     expect(await fundraiser.minter()).to.equal(contracts.tokenMinter.address);
     expect(await fundraiser.fundraiserManager()).to.equal(contracts.fundraiserManager.address);
-    //  expect(await fundraiser.affiliateManager()).to.match(REGEX_ADDR);
-    //  expect(await fundraiser.contributorRestrictions()).to.match(REGEX_ADDR);
+    expect(await fundraiser.affiliateManager()).to.match(REGEX_ADDR);
+    expect(await fundraiser.contributorRestrictions()).to.match(REGEX_ADDR);
     expect(await fundraiser.label()).to.equal(options.label);
     expect(await fundraiser.token()).to.equal(contracts.src20.address);
     expect(await fundraiser.supply()).to.equal(options.supply);
@@ -142,38 +139,54 @@ describe('Fundraiser', async function () {
     expect(await fundraiser.isCanceled()).to.equal(false);
     expect(await fundraiser.isSetup()).to.equal(true);
     expect(await fundraiser.isHardcapReached()).to.equal(false);
-  });
-  /*
-  it('Cannot be crated if startDate > endDate @nodeploy', async () => {
-    await expect(
-      deployFundraiser(contracts.src20.address, {
-        startDate: moment().add(20, 'day').unix(),
-        endDate: moment().add(10, 'day').unix(),
-      })
-    ).to.be.revertedWith('Fundraiser: End date has to be after start date');
+
+    expect(await contributorRestrictions.maxCount()).to.equal(options.contributors.maxCount);
+    expect(await contributorRestrictions.minAmount()).to.equal(options.contributors.minAmount);
+    expect(await contributorRestrictions.maxAmount()).to.equal(options.contributors.maxAmount);
   });
 
+  it('Cannot be crated if startDate > endDate @nodeploy', async () => {
+    await expect(
+      deployFundraiser(
+        contracts,
+        getFundraiserOptions({
+          startDate: moment().add(20, 'day').unix(),
+          endDate: moment().add(10, 'day').unix(),
+        })
+      )
+    ).to.be.revertedWith('Fundraiser: End date has to be after start date');
+  });
   it('Cannot be crated if softCap > hardCap @nodeploy', async () => {
     await expect(
-      deployFundraiser(contracts.src20.address, {
-        softCap: 2000,
-        hardCap: 1000,
-      })
+      deployFundraiser(
+        contracts,
+        getFundraiserOptions({
+          softCap: 2000,
+          hardCap: 1000,
+        })
+      )
     ).to.be.revertedWith('Fundraiser: Hardcap has to be >= Softcap');
   });
 
   it('Can only be created by token owner @nodeploy', async () => {
     const randomAccount = accounts[1];
     await expect(
-      deployFundraiser(contracts.src20.address, {
-        softCap: 2000,
-        hardCap: 1000,
-      })
-    ).to.be.revertedWith('Fundraiser: Hardcap has to be >= Softcap');
+      deployFundraiser(
+        contracts,
+        getFundraiserOptions({
+          softCap: 2000,
+          hardCap: 1000,
+        }),
+        randomAccount
+      )
+    ).to.be.revertedWith('Only token owner can initiate fundraise');
   });
 
   it('When startDate not provided, uses the current date @nodeploy', async () => {
-    const fundraiser = await deployFundraiser(contracts.src20.address, { startDate: 0 });
+    const { fundraiser } = await deployFundraiser(
+      contracts,
+      getFundraiserOptions({ startDate: 0 })
+    );
     expect((await fundraiser.startDate()).toNumber()).to.be.greaterThan(Date.now() / 1000 - 60);
   });
 
@@ -191,11 +204,6 @@ describe('Fundraiser', async function () {
       'UnWhitelistAccount should revert'
     ).to.be.revertedWith(message);
   }
-
-  it('Does not allow to contribute/accept/remove if not setup @nodeploy', async () => {
-    await createFundraiser({ skipSetup: true });
-    await testContributeAcceptRemoveRevert('Fundraise setup not completed');
-  });
 
   async function payFee() {
     if ((await fundraiser.fee()).eq(0)) return;
@@ -320,7 +328,7 @@ describe('Fundraiser', async function () {
 
   it('😎 Does not accept qualified investments above hardCap and refunds what is over hardCap', async function () {
     await storeState();
-    await cRestrictions.bulkWhitelistAccount(addr);
+    await cRestrictions.connect(issuer).bulkWhitelistAccount(addr);
     await fundraiser.connect(accounts[0]).contribute(amount9, affil);
     // first over hardcap gets refunded
     await expect(fundraiser.connect(accounts[1]).contribute(amount3, affil))
@@ -355,12 +363,15 @@ describe('Fundraiser', async function () {
       'ContributionPending'
     );
 
-    await expect(cRestrictions.whitelistAccount(addr[0])).to.emit(fundraiser, 'ContributionAdded');
-    await expect(cRestrictions.whitelistAccount(addr[1]))
+    await expect(cRestrictions.connect(issuer).whitelistAccount(addr[0])).to.emit(
+      fundraiser,
+      'ContributionAdded'
+    );
+    await expect(cRestrictions.connect(issuer).whitelistAccount(addr[1]))
       .to.emit(fundraiser, 'ContributionAdded')
       .withArgs(addr[1], parseUsd(1000))
       .and.to.emit(fundraiser, 'ContributionRefunded');
-    await expect(cRestrictions.whitelistAccount(addr[2])).to.be.revertedWith(
+    await expect(cRestrictions.connect(issuer).whitelistAccount(addr[2])).to.be.revertedWith(
       'HardCap has been reached'
     );
 
@@ -383,15 +394,30 @@ describe('Fundraiser', async function () {
     expect(await fundraiser.contributors(addr[2])).to.equal(false);
   });
 
-  it('Allows contributor to make multiple contributions', async function () {
+  it('Allows contributor to make multiple unqualified contributions', async function () {
     await storeState();
     await fundraiser.connect(accounts[0]).contribute(amount, affil);
     await fundraiser.connect(accounts[0]).contribute(amount2, affil);
+    const sum = amount.add(amount2);
     await compareState({
-      amountPending: amount.add(amount2),
+      amountPending: sum,
     });
 
-    await expect(await fundraiser.pendingContributions(addr[0])).to.equal(amount.add(amount2));
+    await expect(await fundraiser.pendingContributions(addr[0])).to.equal(sum);
+  });
+
+  it('Allows contributor to make multiple qualified contributions', async function () {
+    await storeState();
+    await cRestrictions.connect(issuer).whitelistAccount(addr[0]);
+    await fundraiser.connect(accounts[0]).contribute(amount, affil);
+    await fundraiser.connect(accounts[0]).contribute(amount2, affil);
+    const sum = amount.add(amount2);
+    await compareState({
+      amountQualified: sum,
+      numContributors: 1,
+    });
+
+    await expect(await fundraiser.qualifiedContributions(addr[0])).to.equal(sum);
   });
 
   it('Does not allow to contribute more than maxAmount when not accepted yet @nodeploy', async function () {
@@ -453,9 +479,9 @@ describe('Fundraiser', async function () {
   });
 
   it('Does not check max number of non-accepted contributors @nodeploy', async () => {
-    const maxNum = 2;
-    await createFundraiser({ contributors: { maxNum } });
-    for (let i = 0; i <= maxNum; i++) {
+    const maxCount = 2;
+    await createFundraiser({ contributors: { maxCount } });
+    for (let i = 0; i <= maxCount; i++) {
       await expect(fundraiser.connect(accounts[i]).contribute(amount, affil)).to.emit(
         fundraiser,
         'ContributionPending'
@@ -464,20 +490,20 @@ describe('Fundraiser', async function () {
   });
 
   it('Does not allow more contributors than maxCount @nodeploy', async () => {
-    const maxNum = 2;
-    await createFundraiser({ contributors: { maxNum } });
-    for (let i = 0; i <= maxNum; i++) {
+    const maxCount = 2;
+    await createFundraiser({ contributors: { maxCount } });
+    for (let i = 0; i <= maxCount; i++) {
       await cRestrictions.connect(issuer).whitelistAccount(addr[i]);
     }
-    for (let i = 0; i < maxNum; i++) {
+    for (let i = 0; i < maxCount; i++) {
       await expect(fundraiser.connect(accounts[i]).contribute(amount, affil)).to.emit(
         fundraiser,
         'ContributionAdded'
       );
     }
-    await expect(fundraiser.connect(accounts[maxNum]).contribute(amount, affil)).to.be.revertedWith(
-      'Maximum number of contributors reached'
-    );
+    await expect(
+      fundraiser.connect(accounts[maxCount]).contribute(amount, affil)
+    ).to.be.revertedWith('Maximum number of contributors reached');
   });
 
   it('Does not allow to contribute/accept/remove if finished', async () => {
@@ -672,6 +698,4 @@ describe('Fundraiser', async function () {
     expect(await fundraiser.supply()).to.equal(BigNumber.from(500).mul(BigNumber.from(10).pow(18)));
     expect(await fundraiser.tokenPrice()).to.equal(tokenPrice);
   });
-
- */
 });
