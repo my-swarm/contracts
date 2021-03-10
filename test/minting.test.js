@@ -97,10 +97,40 @@ describe('Minting and Fee', async () => {
     expect(await swm.balanceOf(rewardsPool.address)).to.equal(fee.mul(8).div(10));
   });
 
-  it('Can burn tokens');
-  it('Cannot burn zero tokens');
-  it('Cannot burn more than balance');
-  it('Cannot burn when not owner');
+  async function mint() {
+    const supply = maxSupply.div(2);
+    await swm.connect(issuer).approve(tokenMinter.address, fee);
+    await src20.connect(issuer).mint(supply);
+    return supply;
+  }
+
+  it('Can burn tokens', async () => {
+    const supply = await mint();
+    let burned = supply.div(2);
+    await expect(src20.connect(issuer).burn(burned))
+      .to.emit(tokenMinter, 'Burned')
+      .withArgs(burned, issuer.address)
+      .and.to.emit(src20, 'SupplyBurned')
+      .withArgs(burned, issuer.address);
+  });
+  it('Cannot burn zero tokens', async () => {
+    await mint();
+    await expect(src20.connect(issuer).burn(0)).to.be.revertedWith(
+      'SRC20: Burn amount must be greater than zero'
+    );
+  });
+  it('Cannot burn more than balance', async () => {
+    const supply = await mint();
+    await expect(src20.connect(issuer).burn(supply.add(1))).to.be.revertedWith(
+      'ERC20: burn amount exceeds balance'
+    );
+  });
+  it('Cannot burn when not owner', async () => {
+    const randomAccount = await getAccount(10);
+    await expect(src20.connect(randomAccount).burn(1)).to.be.revertedWith(
+      'Ownable: caller is not the owne'
+    );
+  });
 
   it('Cannot mint zero tokens', async () => {
     await expect(src20.connect(issuer).mint(0)).to.be.revertedWith(
