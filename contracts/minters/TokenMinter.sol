@@ -6,7 +6,7 @@ import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
 
 import '../token/SRC20.sol';
-import '../factories/SRC20Registry.sol';
+import '../registry/SRC20Registry.sol';
 import '../interfaces/IPriceUSD.sol';
 
 import 'hardhat/console.sol';

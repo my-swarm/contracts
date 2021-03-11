@@ -8,7 +8,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 
 import '../interfaces/ITokenMinter.sol';
 import '../token/SRC20.sol';
-import '../factories/SRC20Registry.sol';
+import '../registry/SRC20Registry.sol';
 import './ContributorRestrictions.sol';
 import './FundraiserManager.sol';
 import './AffiliateManager.sol';

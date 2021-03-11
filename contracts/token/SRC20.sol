@@ -7,7 +7,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/cryptography/ECDSA.sol';
 
 import '../minters/TokenMinter.sol';
-import '../factories/SRC20Registry.sol';
+import '../registry/SRC20Registry.sol';
 import '../rules/TransferRules.sol';
 import './features/Features.sol';
 
