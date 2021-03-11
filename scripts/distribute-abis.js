@@ -9,20 +9,18 @@ const jsonConfig = {
 };
 
 const CONTRACTS = [
-  'Features',
-  'TokenMinter',
-  'SRC20Roles',
-  'SRC20Factory',
-  'SRC20Registry',
-  'TransferRules',
-  'SWMPriceOracle',
-  'SRC20',
-  'Fundraiser',
-  'ContributorRestrictions',
-  'AffiliateManager',
-  'FundraiserManager',
+  'fundraising/Fundraiser',
+  'fundraising/ContributorRestrictions',
+  'fundraising/AffiliateManager',
+  'fundraising/FundraiserManager',
+  'minters/TokenMinter',
+  'minters/SWMPriceOracle',
+  'registry/SRC20Registry',
+  'rules/TransferRules',
+  'token/SRC20',
+  'token/features/Features',
 ];
-const ARTIFACTS_DIR = path.resolve(__dirname, '../artifacts');
+const ARTIFACTS_DIR = path.resolve(__dirname, '../artifacts/contracts');
 const SUBGRAPH_DIR = path.resolve(__dirname, '../../subgraph');
 const ISSUANCE_DIR = path.resolve(__dirname, '../../issuance/@contracts');
 
@@ -38,14 +36,18 @@ function sendToIssuance(contractName, abi, bytecode) {
   fs.writeFileSync(bytecodesPath, jsonFormat(bytecodes, jsonConfig));
 }
 
-function readArtifacts(contractName) {
-  return JSON.parse(fs.readFileSync(`${ARTIFACTS_DIR}/${contractName}.json`).toString());
+function readArtifacts(contractPath) {
+  const contractName = contractPath.split('/').pop();
+  return JSON.parse(
+    fs.readFileSync(`${ARTIFACTS_DIR}/${contractPath}.sol/${contractName}.json`).toString()
+  );
 }
 
 console.log('Distributing abis...');
 
-for (const contractName of CONTRACTS) {
-  const artifacts = readArtifacts(contractName);
+for (const contractPath of CONTRACTS) {
+  const contractName = contractPath.split('/').pop();
+  const artifacts = readArtifacts(contractPath);
   const { abi, bytecode } = artifacts;
   sendToSubgraph(contractName, abi);
   sendToIssuance(contractName, abi, bytecode);
