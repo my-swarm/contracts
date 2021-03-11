@@ -4,8 +4,9 @@ const {
   deployBaseContracts,
   dumpContractAddresses,
   deployToken,
-  deployFundraiserContracts,
+  deployFundraiser,
   advanceTimeAndBlock,
+  getFundraiserOptions,
 } = require('./deploy-helpers');
 const {
   mint,
@@ -13,8 +14,6 @@ const {
   transferToken,
   bulkTransfer,
   updateAllowance,
-  increaseSupply,
-  decreaseSupply,
   whitelist,
   greylist,
   unwhitelist,
@@ -105,13 +104,11 @@ async function main() {
     name: 'Testing Token: Fundraising',
     symbol: 'TT4',
   });
-  const [fundraiserContracts4, fundraiserOptions4] = await deployFundraiserContracts(
-    {
-      ...baseContracts,
-      ...token4,
-    },
-    { affiliateManager: true, endDate: moment().add(10, 'month').unix() }
-  );
+  const fundraiser4Options = getFundraiserOptions({
+    affiliateManager: true,
+    endDate: moment().add(10, 'month').unix(),
+  });
+  const fundraiserContracts4 = await deployFundraiser(token4, fundraiser4Options);
   token4 = { ...token4, ...fundraiserContracts4 };
   await addAffiliate(token4, ca[1], 'referral1', 10 * 10000); // 4 decimals
   await addAffiliate(token4, ca[2], 'referral2', 2 * 10000);
@@ -163,11 +160,11 @@ async function main() {
   await contribute(token4, contributors[15], 700);
   // day 15
   advanceTimeAndBlock(24 * 3600);
-  await contribute(token4, contributors[16], 1000);
+  await contribute(token4, contributors[8], 1000);
   // day 18
   advanceTimeAndBlock(3 * 24 * 3600);
-  await contribute(token4, contributors[17], 300);
-  // contributors[17] is the last one
+  await contribute(token4, contributors[14], 300);
+  // contributors[15] is the last one
 
   // expected result:
   // 0, 1, 2, 7: qualified
@@ -182,13 +179,8 @@ async function main() {
     name: 'Testing Token: Fundraised',
     symbol: 'TT5',
   });
-  const [fundraiserContracts5] = await deployFundraiserContracts(
-    {
-      ...baseContracts,
-      ...token5,
-    },
-    { hardCap: parseUnits('9000', 6) }
-  );
+  const options = getFundraiserOptions({ hardCap: parseUnits('9000', 6) });
+  const fundraiserContracts5 = await deployFundraiser(token5, options);
   token5 = { ...token5, ...fundraiserContracts5 };
   await massContribute(
     token5,

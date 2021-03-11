@@ -62,22 +62,25 @@ function getSrc20Options(customOptions = {}) {
 }
 
 function getFundraiserOptions(customOptions) {
-  return _.merge({
-    label: 'Testing Fundraiser',
-    supply: ethers.utils.parseUnits('100000'), // 10k baby
-    startDate: 0,
-    endDate: moment().add(1, 'month').unix(),
-    softCap: ethers.utils.parseUnits('5000', 6),
-    hardCap: ethers.utils.parseUnits('10000', 6),
-    tokenPrice: 0, // ethers.utils.parseUnits('1'), // 1 token = 1 usd
-    contributionsLocked: false,
-    affiliateManager: false,
-    contributors: {
-      maxCount: 0,
-      minAmount: 0,
-      maxAmount: 0,
+  return _.merge(
+    {
+      label: 'Testing Fundraiser',
+      supply: ethers.utils.parseUnits('100000'), // 10k baby
+      startDate: 0,
+      endDate: moment().add(1, 'month').unix(),
+      softCap: ethers.utils.parseUnits('5000', 6),
+      hardCap: ethers.utils.parseUnits('10000', 6),
+      tokenPrice: 0, // ethers.utils.parseUnits('1'), // 1 token = 1 usd
+      contributionsLocked: false,
+      affiliateManager: false,
+      contributors: {
+        maxCount: 0,
+        minAmount: 0,
+        maxAmount: 0,
+      },
     },
-  }, customOptions);
+    customOptions
+  );
 }
 
 async function deployBaseContracts(customOptions = {}) {
@@ -173,15 +176,6 @@ async function deployToken(baseContracts, customOptions = {}) {
   log(`Deploying ${options.name} [${options.symbol}]...`);
   const issuer = await getIssuer();
 
-  const src20 = await createSrc20(baseContracts, issuer, options);
-  const minter = await ethers.getContractAt('TokenMinter', await src20.getMinter());
-  const transferRules = await ethers.getContractAt('TransferRules', await src20.transferRules());
-  const features = await ethers.getContractAt('Features', await src20.features());
-
-  return [{ ...baseContracts, src20, minter, transferRules, features }, options];
-}
-
-async function createSrc20(baseContracts, issuer, options) {
   const { src20Registry, tokenMinter } = baseContracts;
   const params = [
     options.name,
@@ -193,22 +187,13 @@ async function createSrc20(baseContracts, issuer, options) {
     src20Registry.address,
     tokenMinter.address,
   ];
-  // todo: deploy
-  return await deployContract('SRC20', params, issuer);
-}
+  const src20 = await deployContract('SRC20', params, issuer);
 
-async function deployContributorRestrictions(fundraiser, options) {
-  const issuer = await getIssuer();
-  return await deployContract(
-    'ContributorRestrictions',
-    [
-      fundraiser.address,
-      options.contributors.maxCount,
-      options.contributors.minAmount,
-      options.contributors.maxAmount,
-    ],
-    issuer
-  );
+  const minter = await ethers.getContractAt('TokenMinter', await src20.getMinter());
+  const transferRules = await ethers.getContractAt('TransferRules', await src20.transferRules());
+  const features = await ethers.getContractAt('Features', await src20.features());
+
+  return [{ ...baseContracts, src20, minter, transferRules, features }, options];
 }
 
 async function deployFundraiserManager(options) {
@@ -236,15 +221,15 @@ async function deployFundraiser(contracts, options, signer) {
     [contracts.usdc.address, fundraiserManager.address, tokenMinter.address],
   ];
   const fundraiser = await deployContract('Fundraiser', params, signer);
-  const contributorRestrictions = await ethers.getContractAt('ContributorRestrictions', await fundraiser.contributorRestrictions());
-  const affiliateManager = await ethers.getContractAt('AffiliateManager', await fundraiser.affiliateManager());
-  return { fundraiser, contributorRestrictions, affiliateManager};
-}
-
-async function deployFundraiserContracts(contracts, customOptions = {}) {
-  const options = _.merge(getFundraiserOptions(), customOptions);
-  const fundraiser = await deployFundraiser({ ...contracts }, options);
-  return [{ ...contracts, fundraiser }, options];
+  const contributorRestrictions = await ethers.getContractAt(
+    'ContributorRestrictions',
+    await fundraiser.contributorRestrictions()
+  );
+  const affiliateManager = await ethers.getContractAt(
+    'AffiliateManager',
+    await fundraiser.affiliateManager()
+  );
+  return { fundraiser, contributorRestrictions, affiliateManager };
 }
 
 async function getEvent(transaction, eventName) {
@@ -275,13 +260,12 @@ async function advanceTimeAndBlock(time) {
 
 async function takeSnapshot() {
   const provider = bre.ethers.provider;
-  const snapshotId = await provider.send('evm_snapshot');
-  return snapshotId;
+  return await provider.send('evm_snapshot');
 }
 
 async function revertToSnapshot(id) {
   const provider = bre.ethers.provider;
-  const result = await provider.send('evm_revert', [id]);
+  return await provider.send('evm_revert', [id]);
 }
 
 module.exports = {
@@ -290,19 +274,13 @@ module.exports = {
   getIssuer,
   getSwarm,
   getAddresses,
-  getBaseContractsOptions,
-  getSrc20Options,
   getFundraiserOptions,
   deployBaseContracts,
   deployContract,
   deployToken,
   deployFundraiser,
-  deployContributorRestrictions,
-  deployFundraiserContracts,
   dumpContractAddresses,
   advanceTimeAndBlock,
   takeSnapshot,
   revertToSnapshot,
-  getEvent,
-  createSrc20,
 };
