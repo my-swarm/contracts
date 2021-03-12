@@ -23,22 +23,9 @@ contract Fundraiser is Ownable {
 
   event FundraiserCreated(
     string label,
-    address token,
-    uint256 supply,
-    uint256 tokenPrice,
-    uint256 startDate,
-    uint256 endDate,
-    uint256 softCap,
-    uint256 hardCap
+    address token
   );
 
-  event FundraiserSetup(
-    address baseCurrency,
-    address affiliateManager,
-    address contributorRestrictions,
-    address fundraiserManager,
-    address minter
-  );
   event FundraiserCanceled();
   event FundraiserFinished();
 
@@ -59,23 +46,25 @@ contract Fundraiser is Ownable {
   event ReferralClaimed(address indexed account, uint256 amount);
   event FeePaid(address indexed account, uint256 amount);
 
-  // from constructor
+  // inputs
   string public label;
   address public token;
   uint256 public supply;
+  uint256 public tokenPrice;
+  bool public contributionsLocked = true;
+
   uint256 public startDate;
   uint256 public endDate;
+
   uint256 public softCap;
   uint256 public hardCap;
 
-  // from setup
+  // other contracts
   address public baseCurrency;
-  uint256 public tokenPrice;
   address public affiliateManager;
   address public contributorRestrictions;
   address public minter;
   address public fundraiserManager;
-  bool public contributionsLocked = true;
 
   // state
   uint256 public numContributors;
@@ -85,6 +74,7 @@ contract Fundraiser is Ownable {
   uint256 public totalFeePaid;
   uint256 public totalEarnedByAffiliates;
 
+  // state flags
   bool public isFinished;
   bool public isCanceled;
   bool public isSetup;
@@ -187,14 +177,7 @@ contract Fundraiser is Ownable {
 
     SRC20Registry(SRC20(token).registry()).registerFundraise(msg.sender, token);
 
-    emit FundraiserCreated(label, token, supply, tokenPrice, startDate, endDate, softCap, hardCap);
-    emit FundraiserSetup(
-      baseCurrency,
-      affiliateManager,
-      contributorRestrictions,
-      fundraiserManager,
-      minter
-    );
+    emit FundraiserCreated(label, token);
   }
 
   /**
