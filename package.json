@@ -9,7 +9,8 @@
     "compile": "hardhat compile",
     "distribute": "node ./scripts/distribute-abis.js",
     "deploy": "LOG=1 hardhat run scripts/deploy-base.js --show-stack-traces --network",
-    "dev:base": "concurrently \"hardhat node --hostname 0.0.0.0\" \"(sleep 2 && yarn deploy:base localhost)\"",
+    "deploy:issuance": "yarn compile && hardhat run scripts/deploy-issuance.js --show-stack-traces --network",
+    "dev:base": "concurrently \"hardhat node --hostname 0.0.0.0\" \"(sleep 2 && yarn deploy localhost)\"",
     "dev:issuance": "concurrently \"hardhat node --hostname 0.0.0.0\" \"(sleep 2 && yarn deploy:issuance localhost)\"",
     "lint": "solhint -f table contracts/*.sol contracts/**/*.sol",
     "lint:fix": "prettier --write contracts"
