@@ -6,13 +6,10 @@ const {
   deployToken,
   ZERO_ADDRESS,
   getIssuer,
-  getAddresses,
-  takeSnapshot,
-  revertToSnapshot,
 } = require('../scripts/deploy-helpers');
 const { updateAllowance, mint } = require('../scripts/token-helpers');
 
-const { getRandomAddress, getRandomAddresses } = require('./test-helpers');
+const { getRandomAddresses, takeSnapshot, revertToSnapshot } = require('./test-helpers');
 
 describe('Transfering SRC20', async () => {
   let snapshotId;
@@ -105,13 +102,6 @@ describe('Transfering SRC20', async () => {
     expect(await src20.balanceOf(addr[0])).to.equal(balance.sub(amount));
     expect(await src20.balanceOf(addr[1])).to.equal(balance.add(amount));
   });
-
-  /*
-  it('Creates transfer request if both accounts are graylisted', async () => {
-    await transferRules.connect(issuer).bulkGreylistAccount([addr[0], addr[1]]);
-    src20.connect(accounts[0]).transfer(addr[1], amount);
-  });
-*/
 
   async function createTransferRequest() {
     await transferRules.connect(issuer).bulkGreylistAccount([addr[0], addr[1]]);

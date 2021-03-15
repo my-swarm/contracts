@@ -1,21 +1,11 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { parseUnits } = ethers.utils;
-const {
-  getKnownAccounts,
-  getSwarm,
-  getAccount,
-  deployContract,
-  deployBaseContracts,
-  deployToken,
-  ZERO_ADDRESS,
-  takeSnapshot,
-  revertToSnapshot,
-} = require('../scripts/deploy-helpers');
+const { getAccount, deployBaseContracts, deployToken } = require('../scripts/deploy-helpers');
 
 const { updateAllowance } = require('../scripts/token-helpers');
 
-const { getRandomAddress } = require('./test-helpers');
+const { getRandomAddress, takeSnapshot, revertToSnapshot } = require('./test-helpers');
 
 function parseSwm(x) {
   return parseUnits(x.toString(), 18);
@@ -151,15 +141,6 @@ describe('Minting and Fee', async () => {
     );
   });
 
-  /*
-  it('Cannot mint unregistered tokens', async () => {
-    await src20Registry.remove(src20.address);
-    await expect(src20.connect(issuer).mint(src20.address, issuer.address, 1)).to.be.revertedWith(
-      'Caller not token minter.'
-    );
-  });
-   */
-
   it('Mints more if nav increased', async () => {
     await updateAllowance(issuer, swm, tokenMinter.address);
     const supply = maxSupply.div(2);
@@ -210,52 +191,4 @@ describe('Minting and Fee', async () => {
       'revert ERC20: transfer amount exceeds balance'
     );
   });
-
-  /*
-  it('Can increase and decrease supply after initial mint', async () => {
-    const supply = maxSupply.div(2);
-    await swm.connect(issuer).approve(src20Registry.address, fee.mul(10));
-    await src20.connect(issuer).mint(src20.address, supply);
-    const issuerSwmBefore = await swm.balanceOf(issuer.address);
-
-    await expect(
-      src20Registry.connect(issuer).increaseSupply(src20.address, issuer.address, supply)
-    )
-      .to.emit(src20Registry, 'SRC20SupplyIncreased')
-      .withArgs(src20.address, issuer.address, fee, supply);
-
-    // corect stake
-    expect(await src20Registry.getStake(src20.address)).to.equal(fee.mul(2));
-    // src20 total supply increased
-    expect(await src20.totalSupply()).to.equal(maxSupply);
-    // issuer balance increased by supply
-    expect(await src20.balanceOf(issuer.address)).to.equal(maxSupply);
-    // issuer swm balance decreased
-    expect(await swm.balanceOf(issuer.address)).to.equal(issuerSwmBefore.sub(fee));
-
-    await expect(
-      src20Registry.connect(issuer).decreaseSupply(src20.address, issuer.address, supply)
-    )
-      .to.emit(src20Registry, 'SRC20SupplyDecreased')
-      .withArgs(src20.address, issuer.address, fee, supply);
-
-    // corect stake
-    expect(await src20Registry.getStake(src20.address)).to.equal(fee);
-    // src20 total supply decreased
-    expect(await src20.totalSupply()).to.equal(supply);
-    // issuer balance decreased by supply
-    expect(await src20.balanceOf(issuer.address)).to.equal(supply);
-    // issuer swm balance increased
-    expect(await swm.balanceOf(issuer.address)).to.equal(issuerSwmBefore);
-  });
-
-  it('Cannot increase/decrease supply before initial mint', async () => {
-    await expect(
-      src20Registry.connect(issuer).increaseSupply(src20.address, issuer.address, 1)
-    ).to.be.revertedWith('Cannot increase supply before initial stake&mint');
-    await expect(
-      src20Registry.connect(issuer).decreaseSupply(src20.address, issuer.address, 1)
-    ).to.be.revertedWith('Cannot increase supply before initial stake&mint');
-  });
-   */
 });

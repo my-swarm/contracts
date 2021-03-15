@@ -2,22 +2,12 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const {
   getIssuer,
-  getSwarm,
   getAccount,
-  deployContract,
   deployBaseContracts,
   deployToken,
 } = require('../scripts/deploy-helpers');
 
 const { getRandomAddress, getRandomAddresses } = require('./test-helpers');
-
-function getAssetOptions() {
-  const src20Address = getRandomAddress();
-  const kyaHash = ethers.utils.formatBytes32String('aaaa1234bbbb1234');
-  const kyaUri = 'http://kya-updated.com';
-  const nav = 3456;
-  return { src20Address, kyaHash, kyaUri, nav };
-}
 
 describe('TransferRules', async () => {
   let src20;
@@ -179,15 +169,4 @@ describe('TransferRules', async () => {
     await transferRules.connect(issuer).greylistAccount(a[1]);
     expect(await transferRules.authorize(a[0], a[1], 100)).to.equal(true);
   });
-  /*
-  it('Creates trensfer request if both accounts greylisted', async () => {
-    const a = getRandomAddresses(2);
-    await transferRules.bulkGreylistAccount(a);
-    await src20.connect(issuer).transferTokenForced(issuerAddress, a[0], 1000);
-    expect(await transferRules.doTransfer(a[0], a[1], 100)).to.equal(true);
-    await expect(transferRules.doTransfer(a[0], a[1], 100))
-      .to.emit(transferRules, 'TransferRequested')
-      .withArgs(2, a[0], a[1], 100);
-  });
- */
 });

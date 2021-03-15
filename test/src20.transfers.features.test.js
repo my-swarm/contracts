@@ -7,12 +7,10 @@ const {
   ZERO_ADDRESS,
   getIssuer,
   getAddresses,
-  takeSnapshot,
-  revertToSnapshot,
 } = require('../scripts/deploy-helpers');
 const { mint } = require('../scripts/token-helpers');
 
-const { getRandomAddress } = require('./test-helpers');
+const { getRandomAddress, takeSnapshot, revertToSnapshot } = require('./test-helpers');
 
 const FEATURE_TRANSFER = 1;
 const FEATURE_PAUSABLE = 2;

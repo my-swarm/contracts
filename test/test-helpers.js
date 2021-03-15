@@ -1,5 +1,5 @@
 const ethers = require('ethers');
-const { deployContract } = require('../scripts/deploy-helpers');
+const bre = require('hardhat');
 const REGEX_ADDR = /0x[a-z0-9]{40}/i;
 
 function getRandomAddress() {
@@ -17,18 +17,27 @@ function getRandomAddresses(count) {
   return result;
 }
 
-async function deploySrc20Mock() {
-  deployContract('SRC20Mock', [
-    'Mock SRC20 COntract',
-    'SRM',
-    18,
-    parseUnits(1000, 18),
-    getRandomAddresses(5),
-  ]);
+async function advanceTimeAndBlock(time) {
+  const provider = bre.ethers.provider;
+  let block = await provider.getBlock('latest');
+  return provider.send('evm_mine', [block['timestamp'] + time]);
+}
+
+async function takeSnapshot() {
+  const provider = bre.ethers.provider;
+  return await provider.send('evm_snapshot');
+}
+
+async function revertToSnapshot(id) {
+  const provider = bre.ethers.provider;
+  return await provider.send('evm_revert', [id]);
 }
 
 module.exports = {
   REGEX_ADDR,
   getRandomAddress,
   getRandomAddresses,
+  advanceTimeAndBlock,
+  takeSnapshot,
+  revertToSnapshot,
 };

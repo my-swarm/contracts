@@ -8,14 +8,16 @@ const {
   deployToken,
   getIssuer,
   getSwarm,
-  advanceTimeAndBlock,
-  takeSnapshot,
-  revertToSnapshot,
   deployFundraiser,
   getFundraiserOptions,
 } = require('../scripts/deploy-helpers');
 const { distributeToken, updateAllowance } = require('../scripts/token-helpers');
-const { REGEX_ADDR } = require('./test-helpers');
+const {
+  REGEX_ADDR,
+  advanceTimeAndBlock,
+  takeSnapshot,
+  revertToSnapshot,
+} = require('./test-helpers');
 
 const stateProps = [
   'numContributors',

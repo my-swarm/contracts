@@ -2,12 +2,11 @@ const { expect } = require('chai');
 
 const {
   deployContract,
-  takeSnapshot,
-  revertToSnapshot,
+
   ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
 
-const { getRandomAddress } = require('./test-helpers');
+const { getRandomAddress, takeSnapshot, revertToSnapshot } = require('./test-helpers');
 
 describe('Affiliate Manager', async function () {
   let snapshotId;

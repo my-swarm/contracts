@@ -47,9 +47,9 @@ contract TokenMinter {
     _;
   }
 
-  event Minted(uint256 amount, uint256 fee, address account);
-  event FeeApplied(uint256 treasury, uint256 rewardPool);
-  event Burned(uint256 amount, address account);
+  event Minted(address token, uint256 amount, uint256 fee, address account);
+  event FeeApplied(address token, uint256 treasury, uint256 rewardPool);
+  event Burned(address token, uint256 amount, address account);
 
   /**
    *  Calculate how many SWM tokens need to be paid as fee to tokenize an asset
@@ -127,7 +127,7 @@ contract TokenMinter {
 
     netAssetValue[_src20] = SRC20(_src20).nav();
 
-    emit Minted(_amount, swmAmount, _recipient);
+    emit Minted(_src20, _amount, swmAmount, _recipient);
     return true;
   }
 
@@ -138,7 +138,7 @@ contract TokenMinter {
   ) external onlyAuthorised(_src20) returns (bool) {
     SRC20(_src20).executeBurn(_account, _amount);
 
-    emit Burned(_amount, _account);
+    emit Burned(_src20, _amount, _account);
     return true;
   }
 
@@ -156,7 +156,7 @@ contract TokenMinter {
     IERC20(_feeToken).safeTransfer(treasury, treasuryAmount);
     IERC20(_feeToken).safeTransfer(rewardPool, rewardAmount);
 
-    emit FeeApplied(treasuryAmount, rewardAmount);
+    emit FeeApplied(_src20, treasuryAmount, rewardAmount);
     return true;
   }
 

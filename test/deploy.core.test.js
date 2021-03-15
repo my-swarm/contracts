@@ -1,4 +1,3 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { deployBaseContracts, getAddresses } = require('../scripts/deploy-helpers');
 const { REGEX_ADDR } = require('./test-helpers');

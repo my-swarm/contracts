@@ -3,11 +3,6 @@ const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { parseUnits } = ethers.utils;
 
-async function getContributors(num) {
-  const skipFirst = 2; // fist two accounts have other significance
-  return (await ethers.getSigners()).slice(skipFirst, skipFirst + num);
-}
-
 async function getIssuer() {
   const [, issuer] = await ethers.getSigners();
   return issuer;
@@ -154,7 +149,6 @@ async function sanitizeAmounts(amounts, token) {
 }
 
 module.exports = {
-  getContributors,
   mint,
   distributeToken,
   transferToken,

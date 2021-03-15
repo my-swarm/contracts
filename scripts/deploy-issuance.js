@@ -32,10 +32,8 @@ const { exportBaseContractAddresses, exportTokenContractAddresses } = require('.
 
 const { parseUnits } = ethers.utils;
 
-const fundraiserOptions = {};
-
 async function main() {
-  const [swarm, issuer, trasury, rewardsPool, ...contributors] = await ethers.getSigners();
+  const [swarm, issuer, _trasury, _rewardsPool, ...contributors] = await ethers.getSigners();
   const [baseContracts] = await deployBaseContracts();
   const { usdc, swm } = baseContracts;
   const ca = contributors.map((c) => c.address);
@@ -57,13 +55,8 @@ async function main() {
   });
   console.log('mint');
   await mint(token2, token2Options.nav, token2Options.maxSupply.div(2));
-  console.log('updateAllowance');
-  await updateAllowance(issuer, token2.swm, token2.src20Registry.address, -1); // unlimited allowance to simplify
-  // max supply is 1 million, 500k minted so far. After we should have 500 + 200 - 100 = 600
-  // console.log('increase supply');
-  // await increaseSupply(token2, 200000);
-  // console.log('decrease supply');
-  // await decreaseSupply(token2, 100000);
+  // console.log('updateAllowance');
+  // await updateAllowance(issuer, token2.swm, token2.src20Registry.address, -1); // unlimited allowance to simplify
 
   console.log('whitelist');
   await whitelist(token2, ca.slice(0, 5));
@@ -82,7 +75,7 @@ async function main() {
     features: 21, // 1 + 4 + 16
   });
   await mint(token3, token3Options.nav, token3Options.maxSupply.div(2));
-  await updateAllowance(issuer, token3.swm, token3.src20Registry.address, -1); // unlimited allowance to simplify
+  // await updateAllowance(issuer, token3.swm, token3.src20Registry.address, -1); // unlimited allowance to simplify
 
   await updateAllowance(issuer, token3.src20, issuer.address, -1); // also allow myself to spend src for bulk
   await bulkTransfer(token3, ca.slice(0, 8), [5000, 2000, 3000, 4000, 5000, 1000, 1000, 1000]);

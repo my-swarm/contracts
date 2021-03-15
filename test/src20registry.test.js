@@ -1,15 +1,12 @@
 const { expect } = require('chai');
+const { getAccount, getSwarm, deployContract, ZERO_ADDRESS } = require('../scripts/deploy-helpers');
+
 const {
-  getAccount,
-  getrandomAccount,
-  getSwarm,
-  deployContract,
-  ZERO_ADDRESS,
+  getRandomAddress,
+  getRandomAddresses,
   takeSnapshot,
   revertToSnapshot,
-} = require('../scripts/deploy-helpers');
-
-const { getRandomAddress, getRandomAddresses } = require('./test-helpers');
+} = require('./test-helpers');
 
 const MSG_ONLY_OWNER = 'Ownable: caller is not the owner';
 
@@ -162,16 +159,7 @@ describe('SRC20 Registry', async () => {
       registry.connect(randomAccount).register(ZERO_ADDRESS, minterAddress)
     ).to.be.revertedWith('SRC20Registry: Token is zero address');
   });
-  /*
-  it('Cannot add a token when not factory', async () => {
-    const unregisteredFactory = await getAccount(10);
-    const [tokenAddress, minterAddress] = getRandomAddresses(2);
-    await registry.addMinter(minterAddress);
-    await expect(
-      registry.connect(unregisteredFactory).register(tokenAddress, minterAddress)
-    ).to.be.revertedWith('SRC20Registry: Caller not authorized factory');
-  });
-*/
+
   it('Cannot add a token with unregistered minter', async () => {
     const [tokenAddress, minterAddress] = getRandomAddresses(2);
     await expect(

@@ -1,6 +1,5 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const moment = require('moment');
 const { parseUnits } = ethers.utils;
 const {
   deployBaseContracts,
@@ -9,12 +8,12 @@ const {
   getAddresses,
   getIssuer,
   getSwarm,
-  takeSnapshot,
-  revertToSnapshot,
+
   getFundraiserOptions,
   ZERO_ADDRESS,
 } = require('../scripts/deploy-helpers');
 const { distributeToken, updateAllowance } = require('../scripts/token-helpers');
+const { takeSnapshot, revertToSnapshot } = require('./test-helpers');
 
 function parseUsd(x) {
   return parseUnits(x.toString(), 6);

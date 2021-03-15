@@ -252,22 +252,6 @@ function dumpContractAddresses(contracts) {
   }
 }
 
-async function advanceTimeAndBlock(time) {
-  const provider = bre.ethers.provider;
-  let block = await provider.getBlock('latest');
-  return provider.send('evm_mine', [block['timestamp'] + time]);
-}
-
-async function takeSnapshot() {
-  const provider = bre.ethers.provider;
-  return await provider.send('evm_snapshot');
-}
-
-async function revertToSnapshot(id) {
-  const provider = bre.ethers.provider;
-  return await provider.send('evm_revert', [id]);
-}
-
 module.exports = {
   ZERO_ADDRESS,
   getAccount,
@@ -280,7 +264,4 @@ module.exports = {
   deployToken,
   deployFundraiser,
   dumpContractAddresses,
-  advanceTimeAndBlock,
-  takeSnapshot,
-  revertToSnapshot,
 };
